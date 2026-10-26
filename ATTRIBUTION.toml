@@ -7,7 +7,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Greek UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "4329b6aee40ddf7ce05179752789a3a10cacb95592bf308f8bd384d3d6f53cec"
+sha256 = "a3234684d5318ce38213c79533d3eebb9c635497ba9e00fb9ca7ebe2fad9d73d"
 
 # ATTRIBUTION.toml: one entry per asset (AGENTS.md §1). The source of truth for provenance and licences.
 # ATTRIBUTION.md is generated from this file: `cargo xtask assets --write`. Checked by `cargo xtask assets` (part of `xtask ci`).
@@ -30,7 +30,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Simplified Chinese UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "6a89b98bb213e090421d0c38c29578a8f2081b7357744bac49b2867034ded248"
+sha256 = "c5e0206846b009bcb366d092c3d64fd8b9e42d29d5406fb73ae36ecb1f2083d5"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/zh-hant.tsv"
@@ -41,7 +41,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Traditional Chinese UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "9139cf33b08c27839113110d5cbb8e6834ba63470699855bbad43dc03dd6aa4b"
+sha256 = "349a2ead371bdbfeefb9ab2279c676b205cefe163cbef174f8123fe4bf739ab9"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/cs.tsv"
@@ -52,7 +52,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Czech UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "199e8e77338cca56892cf50f58f749b76667ee2541c596ce5dd52b434c516429"
+sha256 = "cb332907792d4aa760ca9862160e24a7b469afdbcfb93235e99deb8d58604ae2"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/pt-br.tsv"
@@ -63,7 +63,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Brazilian Portuguese UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "fe09536a7e2c980555a3f34003312532061864825a62e818c2a9d6d301cb35a2"
+sha256 = "ebd3a12e471ba9d9a69e6532fbac2d027dec3c91b79cdfbb1c6c386d13de3bd6"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/es.tsv"
@@ -74,7 +74,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Spanish UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "6bcf4eb47072d3d0335cef434a93433454078d2cf2f02c6a8d235149227629ff"
+sha256 = "f5e0553165ab0223bfbc809b1630170d1af11d6546ae5a682d4090104b6e4a05"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/fr.tsv"
@@ -85,7 +85,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "French UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "f2a4420891597df0b431dad89d3b832012eb8ca3fe8f5ac3979e830cbeaad651"
+sha256 = "dd2171a0a940a84e512fd6408a11cddf104be897ec4ab670c5ef6f1781ccb671"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/de.tsv"
@@ -96,7 +96,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "German UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "b73baadb3979e3014e53ca4cf9f29b961504a4a3ced0b2b8e42b9abb5bdf744f"
+sha256 = "1b9b3d0d6dab626c3acb8c9aa64d64e56b98eb3f2faf71dcb1957067e72706db"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/te.tsv"
@@ -107,7 +107,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Telugu UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "61e60bfc57537fcb568c8920467a7a7ff9b287cb9c531b08324810e68f395f36"
+sha256 = "668f23f4095120343e3f0910dc8f5844765370fae40400c48d685cad20dcf60e"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/it.tsv"
@@ -118,7 +118,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Italian UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "0d3a18640b1df59408e1561176c1754d6910b8151f3e34b4cac1588209019176"
+sha256 = "02f3fd4b2721b0ea9c01c99d477a0339a28180514568179d3fc420e7fb81c671"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/pl.tsv"
@@ -129,7 +129,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Polish UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "b5e9a4cddd378fecad9a0490b64aec20fed50935a0aa2dc99331d900f2ffbe68"
+sha256 = "26eb438c309d34e55eba959a21f139db91fa5fd1d6d4b7c3d1cd0fa79a60a5b0"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/ru.tsv"
@@ -140,7 +140,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Russian UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "32cea2d0305741a2514e43b731579121668744083aff6c497b148fde12dc7512"
+sha256 = "c04b6d0320bce999b33bd189bffcec8a196d4169e56cc65675dc920c5a671dac"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/hu.tsv"
@@ -151,7 +151,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Hungarian UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "9fe2b2377aa0ff72cb092653c38b7878fa5448df88a244fdbf37bfcc35eff078"
+sha256 = "37b042977d934b0b550e5f52faa5d90abbcb9e7ff61ff9588021610ce709e474"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/bg.tsv"
@@ -162,7 +162,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Bulgarian UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "22a130102d1eb4825d41221eed477e3e98965c05ffd97e004d0f79ee6bceb34f"
+sha256 = "3d1f1d2558eec1271fa653bc38616feeefc6559deeb2a0cdbf07d67634e9ac97"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/kk.tsv"
@@ -173,7 +173,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Kazakh UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "4777f57c325d77ac8f410e08ee890793ffc3931038b666eed35390b27a0b44ec"
+sha256 = "03071249bd6c13f79da72262415e484fb1aa36098a37a49094b9dab58cebc4e2"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/ja.tsv"
@@ -184,7 +184,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Japanese UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "1c4c722becb381ad3f6ae91b4c14266d21037bbb3f0ec4f01d5763fb2de5d758"
+sha256 = "c0ba73b27b95b275f5eebc040ab1c3c6c3b227c63e1c637b4cdb27d0a9264a8b"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/uk.tsv"
@@ -195,7 +195,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Ukrainian UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "96378bf6f400a1d42d382c03336c29123e0c60ec382dbb3ecf233bb2693b782a"
+sha256 = "e3af76714ee9899328a453ec83195f4dc462fe48ba445fbe3688c777e74bc9dc"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/ar.tsv"
@@ -206,7 +206,7 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Arabic UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "4da7316129259d8d0f766f54eae114dc4f9302824d52884d380f9c5da375b40c"
+sha256 = "0855d7f785c433799da83400ebc932f987eb543008486bc4f553aadb4102c2ba"
 
 [[asset]]
 path = "crates/ui-egui/src/i18n/tr.tsv"
@@ -217,7 +217,19 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Turkish UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "0bcabe67a26035acb80d4e7d92a434939a6165de955e9fae1b82f7a3b65bc2d6"
+sha256 = "884ab18d60db52f65cd0e30530e196c73c0e627f450bc948517e2f4b7deeb04b"
+
+[[asset]]
+path = "crates/ui-egui/src/i18n/lt.tsv"
+title = "Lithuanian interface translation catalog"
+author = "PdfCraft contributors"
+source = "Contributor-original: clean-room translations of PdfCraft's English UI labels and user-facing messages; original catalog reviewed by a native Lithuanian-speaking contributor; 2026-10-15 coverage additions are AI-assisted and not separately native-reviewed"
+licence = "MIT OR Apache-2.0"
+licence_file = "LICENSE-MIT"
+kind = "translation"
+usage = "Lithuanian UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
+sha256 = "c805a2c6da08e77a9a7455856d82c168cf6f353d96e1dc140fcc8898f12ba538"
+
 
 [[asset]]
 path = "assets/icons/accessibility.svg"
@@ -1430,72 +1442,6 @@ usage = "UI icon, embedded via crates/ui-egui/src/icon_data.rs"
 sha256 = "b1be29238f563ba7e3623ad8e0e0bc51285f17c8bd5d4c37aa5c6b6263e2dbf8"
 
 [[asset]]
-path = "assets/icons/a-large-small.svg"
-title = "Lucide icon \"a-large-small\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/a-large-small.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app (apps/pdfcraft-android, generated LucideIcons)"
-sha256 = "d4985fc71174d108e322c3b25cb6abe2837a115fe3f239a1918645db436743ec"
-
-[[asset]]
-path = "assets/icons/circle-minus.svg"
-title = "Lucide icon \"circle-minus\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/circle-minus.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app (apps/pdfcraft-android, generated LucideIcons)"
-sha256 = "038fd0c51fced47c803d6599984cb39819064817cbf6f86d4f4fb32405f24362"
-
-[[asset]]
-path = "assets/icons/grip-vertical.svg"
-title = "Lucide icon \"grip-vertical\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/grip-vertical.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app (apps/pdfcraft-android, generated LucideIcons)"
-sha256 = "8ba40fbc68b87db71f8e3111ef0afd1269ad84a12081f57424cb9d650ceddc10"
-
-[[asset]]
-path = "assets/icons/images.svg"
-title = "Lucide icon \"images\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/images.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app (apps/pdfcraft-android, generated LucideIcons)"
-sha256 = "22606eb41e5abee2d747925b584ae99f12f309750721f15fd832fd8c66337fdf"
-
-[[asset]]
-path = "assets/icons/mic-audio-lines.svg"
-title = "Lucide icon \"mic-audio-lines\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/mic-audio-lines.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app (apps/pdfcraft-android, generated LucideIcons)"
-sha256 = "b1f1e8cbd7411d0fe0505adef217f6b6dc229967add57311f593ec84af9aa349"
-
-[[asset]]
-path = "assets/icons/volume-off.svg"
-title = "Lucide icon \"volume-off\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/volume-off.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app (apps/pdfcraft-android, generated LucideIcons)"
-sha256 = "eef6e2e253bef4c7e9eb940779116b83b305b12adec537b4996f50b0e2474282"
-
-[[asset]]
 path = "assets/icons/minimize.svg"
 title = "Lucide icon \"minimize\""
 author = "Lucide Contributors (portions Cole Bemis, Feather)"
@@ -2211,314 +2157,6 @@ usage = "UI icon, embedded via crates/ui-egui/src/icon_data.rs"
 sha256 = "486119c5803718fce74a1e2fe9b93bca4864fd9178139ca355339011e989bcb8"
 
 [[asset]]
-path = "assets/icons/arrow-left.svg"
-title = "Lucide icon \"arrow-left\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/arrow-left.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "7d6d0cfbf8a43028fd75e776cc4116aa402cb2beb5fb08963b490d9c72c0e1ad"
-
-[[asset]]
-path = "assets/icons/volume-2.svg"
-title = "Lucide icon \"volume-2\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/volume-2.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "c9cceb83a9f3cf11bb3b89f432138b7063f08b7c0d7dc9077f5154aa42e9f817"
-
-[[asset]]
-path = "assets/icons/headphones.svg"
-title = "Lucide icon \"headphones\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/headphones.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "6b80e0372cef71f1bd59b659686aaee2c5f18bd0461cd8f04ce373fbce8df208"
-
-[[asset]]
-path = "assets/icons/glasses.svg"
-title = "Lucide icon \"glasses\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/glasses.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "ae5d496ee63acd9c58258f3d9d0bad5bbc5f2114f5694f22ef878a7f51d7f0ee"
-
-[[asset]]
-path = "assets/icons/smartphone.svg"
-title = "Lucide icon \"smartphone\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/smartphone.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "b260bfa6b7c1e53c8fb9c1ec253c5cc6abdf4bb75ce61d8e3eb55d9eb227d5b1"
-
-[[asset]]
-path = "assets/icons/file-archive.svg"
-title = "Lucide icon \"file-archive\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/file-archive.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "449cd490bc5dbaaefdd0a8a685add9c31e35b85c7613a78f258e89474cbf4422"
-
-[[asset]]
-path = "assets/icons/combine.svg"
-title = "Lucide icon \"combine\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/combine.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "0150d3e04acf6516f63a0c1eba5ce2f71e33b49b0ae614ef7d5f29954c25f078"
-
-[[asset]]
-path = "assets/icons/book-open-text.svg"
-title = "Lucide icon \"book-open-text\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/book-open-text.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "80552b9a13cfd4a0deb207e7bdda33166dfe7c930bec80312fb4b49c6d880fa5"
-
-[[asset]]
-path = "assets/icons/gallery-vertical-end.svg"
-title = "Lucide icon \"gallery-vertical-end\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/gallery-vertical-end.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "6cb36dd37896ccd7a713d3048f5a1a78cbfc92357ae9154b4985a7eeb5628f4e"
-
-[[asset]]
-path = "assets/icons/file.svg"
-title = "Lucide icon \"file\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/file.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "72776cecb58b56efc4d9f92139e60c42f780de26252f17e438cc26019e6dbd64"
-
-[[asset]]
-path = "assets/icons/shapes.svg"
-title = "Lucide icon \"shapes\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/shapes.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "7d38fffb15d9c98371d232ec60db0f7a00deea3bf367e4dcc6153db6e92a7b77"
-
-[[asset]]
-path = "assets/icons/circle-small.svg"
-title = "Lucide icon \"circle-small\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/circle-small.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "5f6c76604f3decb2fe541d715d10ef0a0441e5a3d7c83dca562648dbce8578b0"
-
-[[asset]]
-path = "assets/icons/a-arrow-up.svg"
-title = "Lucide icon \"a-arrow-up\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/a-arrow-up.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "0f7ad7cda5098753e8dc40b72a1f0c3314a04d79a41317a98354eeced5eb6f80"
-
-[[asset]]
-path = "assets/icons/a-arrow-down.svg"
-title = "Lucide icon \"a-arrow-down\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/a-arrow-down.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "7a7461c5a3eef491c46bcb74cf0d21fd84c5c8131974bca592de9540125539ef"
-
-[[asset]]
-path = "assets/icons/square-check-big.svg"
-title = "Lucide icon \"square-check-big\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/square-check-big.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "d9c9bd88bfe17f4b6c26d6f9a703cc8e34a64a8ce276a918c5736792e49ab66d"
-
-[[asset]]
-path = "assets/icons/menu.svg"
-title = "Lucide icon \"menu\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/menu.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "59b215b53a6d34117d3c2f096ff439f4dde7180f850a76fecdaab099749ff337"
-
-[[asset]]
-path = "assets/icons/bookmark-minus.svg"
-title = "Lucide icon \"bookmark-minus\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/bookmark-minus.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "a3c1ff5d8cc7621efa3e56d315cd58d2cc2f03eadf0f4fa9927b411882e69be5"
-
-[[asset]]
-path = "assets/icons/file-stack.svg"
-title = "Lucide icon \"file-stack\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/file-stack.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "5f999cd410f0e28f48cd122c1b779dec5b9b3819bd8e7a5afa489d32e0982acf"
-
-[[asset]]
-path = "assets/icons/audio-lines.svg"
-title = "Lucide icon \"audio-lines\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/audio-lines.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "e41d5980105e89acd34df387bae01c7558441bdb36bf336f84316cc9e26c125f"
-
-[[asset]]
-path = "assets/icons/scroll-text.svg"
-title = "Lucide icon \"scroll-text\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/scroll-text.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "c94cd7e157e10a8b1e5d806dc63625c1a91282235de0dc7830508487389fdfe6"
-
-[[asset]]
-path = "assets/icons/list-tree.svg"
-title = "Lucide icon \"list-tree\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/list-tree.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "16986b8b450c004910e162d691ad7fe36c08e7048b47abc926b50fbe79a22bca"
-
-[[asset]]
-path = "assets/icons/arrow-down-wide-narrow.svg"
-title = "Lucide icon \"arrow-down-wide-narrow\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/arrow-down-wide-narrow.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "beb891b63752a71775c735464e83afda2c76f351994a295cdc0cc89ad6ddaf9a"
-
-[[asset]]
-path = "assets/icons/tablet-smartphone.svg"
-title = "Lucide icon \"tablet-smartphone\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/tablet-smartphone.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "38a18a5462b43651f741d730b282f909457f474527b3b947e398ed52bf1de6df"
-
-[[asset]]
-path = "assets/icons/file-image.svg"
-title = "Lucide icon \"file-image\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/file-image.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "ac1942fd032e7026b600a6f27a7786488b37ee3d225cdc04f76da3582e95130a"
-
-[[asset]]
-path = "assets/icons/file-type.svg"
-title = "Lucide icon \"file-type\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/file-type.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "e0495b028bdbac49ff7f4229f0af8f910880bd0f855a4c34aeccf718f7c49cc2"
-
-[[asset]]
-path = "assets/icons/square-pen.svg"
-title = "Lucide icon \"square-pen\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/square-pen.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "355117c260f711eb2da59d6c50ec78ecce09b7a23acf684f1d5752537705992e"
-
-[[asset]]
-path = "assets/icons/pause.svg"
-title = "Lucide icon \"pause\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/pause.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "22d0f74f0160d9250c1e9fee79958917087892a22fb94a15ac927d9ddbf21257"
-
-[[asset]]
-path = "assets/icons/play.svg"
-title = "Lucide icon \"play\""
-author = "Lucide Contributors (portions Cole Bemis, Feather)"
-source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/play.svg)"
-licence = "ISC"
-licence_file = "assets/icons/LICENSE-lucide.txt"
-kind = "icon"
-usage = "UI icon of the Android app, turned into Kotlin path data at build time (apps/pdfcraft-android/android/app/build.gradle.kts)"
-sha256 = "56b6c22f91045d4ee2bd5529668e454bfdc13760f82f89fb868a9e08a875bf26"
-
-[[asset]]
 path = "assets/fonts/Inter-Regular.ttf"
 title = "Inter Regular"
 author = "The Inter Project Authors (Rasmus Andersson)"
@@ -2728,15 +2366,16 @@ usage = "Default CMYK colour conversion (vendored hayro-interpret)"
 sha256 = "73e1ba37d2bad5bab2a964f40a9eed96209666efc067c3322626214bbef234a0"
 
 [[asset]]
-path = "vendor/hayro-interpret/assets/LAB.icc"
-title = "Lab abstract ICC profile"
-author = "The Hayro Authors (generated with LittleCMS 2)"
-source = "https://github.com/LaurenzV/hayro (hayro-interpret 0.7.0 assets/)"
+path = "crates/fonts/src/std14_metrics.rs"
+title = "Standard-14 font advance widths and encodings (as Rust tables)"
+author = "Adobe (Core14 AFM metrics, PDF specification encodings); tables generated by the PdfCraft contributors"
+source = "ISO 32000-2 Annex D and the Adobe Core14 AFM metrics. Generated by joining the published WinAnsi, Symbol and ZapfDingbats encodings (code to glyph name) with the per-glyph advance widths, then spot-checked against the specification by hand in the tests of crates/fonts/src/std14.rs. Data only: the code that reads these tables lives in std14.rs, so that ordinary edits do not churn this file's hash."
 licence = "MIT OR Apache-2.0"
-licence_file = "vendor/hayro-interpret/LICENSE-MIT"
+licence_file = "LICENSE-MIT"
 kind = "data"
-usage = "Lab colour space conversion (vendored hayro-interpret)"
-sha256 = "a6efc5c30ece826eba2a83ddf5aa7026289b0c5ffa90acb129bc59ab8d7f5c59"
+adobe_data = true
+usage = "Advance widths for the fourteen standard fonts, which a PDF may name without embedding. Non-visual data, not a typeface: the item AGENTS.md 1.1 permits, held first-party so generated appearance streams and the renderer agree."
+sha256 = "f225e0b044875b8fa6375b6b5ad935f0d99fcc1ad03ecf9f0baae2cedbfca4d2"
 
 [[bundled]]
 crate = "epaint_default_fonts"
@@ -3705,6 +3344,17 @@ usage = "UI icon, embedded via crates/ui-egui/src/icon_data.rs"
 sha256 = "d1a443233345724859de8e4fb48968ba91e885e12ddbd710701548bd91b39428"
 
 [[asset]]
+path = "crates/ui-egui/src/i18n/vi.tsv"
+title = "Vietnamese interface translation catalog"
+author = "PdfCraft contributors"
+source = "Contributor-original: clean-room translations of PdfCraft's English UI labels; PhotoCraft and VectorCraft Vietnamese catalogs used only as translation memory when English source and semantic context matched; original catalog reviewed by a native Vietnamese-speaking contributor; 2026-10-15 coverage additions are AI-assisted and not separately native-reviewed"
+licence = "MIT OR Apache-2.0"
+licence_file = "LICENSE-MIT"
+kind = "translation"
+usage = "Vietnamese UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
+sha256 = "11619064ae9edaeee5d601b7008e40095a40375a3e1a298155d59cb758fe7d34"
+
+[[asset]]
 path = "crates/ui-egui/src/i18n/sl.tsv"
 title = "Slovene interface translation catalog"
 author = "PdfCraft contributors"
@@ -3713,4 +3363,38 @@ licence = "MIT OR Apache-2.0"
 licence_file = "LICENSE-MIT"
 kind = "translation"
 usage = "Slovene UI strings, compiled in by crates/ui-egui/src/i18n/mod.rs"
-sha256 = "a1b6e16be9a905f73582fdceb7baf56fb9a7b07f77b33d52fee14f4c8525e8e4"
+sha256 = "89f2c7495cfb0fc9d36d35b95c056dbeda18ccae521250babac719ff5df62d89"
+
+[[asset]]
+
+path = "vendor/vello_common/assets/probe.png"
+title = "vello_common probe reference image (rendered from probe.rgba)"
+author = "Linebender vello contributors"
+source = "vello_common 0.0.8 (crates.io), vendored in vendor/vello_common; regenerated by its vello_sparse_tests regenerate_probe_reference binary"
+licence = "MIT OR Apache-2.0"
+licence_file = "vendor/vello_common/LICENSE-MIT"
+kind = "image"
+usage = "Reference picture of the vendored vello_common probe module, for people only; the build reads probe.rgba, not this file"
+sha256 = "78c59a0cfd2c829909d77006f94e34dac1ae5d1f90e7f10f72e84de541fef697"
+
+[[asset]]
+path = "assets/fonts/JahfanArabic-Regular.ttf"
+title = "Noto Sans Arabic Regular static instance"
+author = "The Noto Project Authors"
+source = "https://github.com/storytold/craft-fonts/tree/d1cf47d05e04426615fbda1d637b9ca6b1e7af35; generated with fonttools 4.60.1, wght=400, wdth=100"
+licence = "OFL-1.1"
+licence_file = "assets/fonts/OFL-NotoSansArabic.txt"
+kind = "font"
+usage = "Embedded Arabic PDF text and annotation shaping"
+sha256 = "65efad4885c590b640d9601b8cc6d9b66026e9ff74154ac600207600842c0f70"
+
+[[asset]]
+path = "assets/fonts/JahfanArabic-Bold.ttf"
+title = "Noto Sans Arabic Bold static instance"
+author = "The Noto Project Authors"
+source = "https://github.com/storytold/craft-fonts/tree/d1cf47d05e04426615fbda1d637b9ca6b1e7af35; generated with fonttools 4.60.1, wght=700, wdth=100"
+licence = "OFL-1.1"
+licence_file = "assets/fonts/OFL-NotoSansArabic.txt"
+kind = "font"
+usage = "Embedded Arabic PDF text and annotation shaping"
+sha256 = "8bdca58348d24273c150b823327956577589ef230f6c378a6aa66e08a5581a75"

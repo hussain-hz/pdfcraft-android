@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft
 
+import io.github.artcraftandroid.pdfcraft.R
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -36,7 +38,7 @@ class ReadAloudService : Service() {
     override fun onCreate() {
         super.onCreate()
         val nm = getSystemService(NotificationManager::class.java)
-        nm?.createNotificationChannel(NotificationChannel(CHANNEL, getString(R.string.common_tool_read_aloud), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
+        nm?.createNotificationChannel(NotificationChannel(CHANNEL, text(R.string.common_tool_read_aloud), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
         session = MediaSession(this, "PdfCraft read aloud").apply {
             setCallback(object : MediaSession.Callback() {
                 override fun onPlay() { controls?.play() }
@@ -74,11 +76,7 @@ class ReadAloudService : Service() {
                 .build(),
         )
         val notification = notification(title, playing)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        } else {
-            startForeground(NOTIFICATION, notification)
-        }
+        startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         return START_NOT_STICKY
     }
 
@@ -94,14 +92,14 @@ class ReadAloudService : Service() {
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_read_aloud)
             .setContentTitle(title)
-            .setContentText(getString(if (playing) R.string.service_notification_reading else R.string.service_notification_paused))
+            .setContentText(text(if (playing) R.string.service_notification_reading else R.string.service_notification_paused))
             .setContentIntent(open)
             .setOngoing(playing)
             .setDeleteIntent(PendingIntent.getService(this, 1, Intent(this, ReadAloudService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE))
-            .addAction(action(android.R.drawable.ic_media_rew, getString(R.string.service_action_back), ACTION_BACK))
-            .addAction(if (playing) action(android.R.drawable.ic_media_pause, getString(R.string.common_pause), ACTION_PAUSE) else action(android.R.drawable.ic_media_play, getString(R.string.common_play), ACTION_PLAY))
-            .addAction(action(android.R.drawable.ic_media_ff, getString(R.string.service_action_forward), ACTION_FORWARD))
-            .addAction(action(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.service_action_stop), ACTION_STOP))
+            .addAction(action(android.R.drawable.ic_media_rew, text(R.string.service_action_back), ACTION_BACK))
+            .addAction(if (playing) action(android.R.drawable.ic_media_pause, text(R.string.common_pause), ACTION_PAUSE) else action(android.R.drawable.ic_media_play, text(R.string.common_play), ACTION_PLAY))
+            .addAction(action(android.R.drawable.ic_media_ff, text(R.string.service_action_forward), ACTION_FORWARD))
+            .addAction(action(android.R.drawable.ic_menu_close_clear_cancel, text(R.string.service_action_stop), ACTION_STOP))
             .setStyle(Notification.MediaStyle().setMediaSession(session?.sessionToken).setShowActionsInCompactView(0, 1, 2))
             .build()
     }

@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui.viewer
 
+import androidx.core.content.edit
+
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.RepeatMode
@@ -122,7 +124,7 @@ class QuickToolbarPrefs(context: Context) {
     fun save(newBar: List<QuickTool>, newGrid: List<QuickTool>) {
         bar = newBar.distinct()
         grid = complete(newGrid, bar)
-        prefs.edit().putString("bar", bar.joinToString(",") { it.id }).putString("grid", grid.joinToString(",") { it.id }).apply()
+        prefs.edit { putString("bar", bar.joinToString(",") { it.id }); putString("grid", grid.joinToString(",") { it.id }) }
     }
 
     companion object {
@@ -168,7 +170,7 @@ fun AppViewModel.runQuickTool(doc: OpenDocument, tool: QuickTool) {
 fun CustomizeToolbar(vm: AppViewModel, onDone: () -> Unit) {
     val c = pdfColors
     val prefs = vm.quickToolbar
-    val slots = toolbarSlots(LocalConfiguration.current.screenWidthDp)
+    val slots = toolbarSlots(with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.width.toDp().value.toInt() })
     val bar = remember { prefs.bar.take(slots).toMutableStateList() }
     val grid = remember { mutableStateListOf<QuickTool>().apply { addAll(QuickToolbarPrefs.complete(prefs.grid + prefs.bar.drop(slots), bar)) } }
     val rects = remember { mutableStateMapOf<QuickTool, Rect>() }

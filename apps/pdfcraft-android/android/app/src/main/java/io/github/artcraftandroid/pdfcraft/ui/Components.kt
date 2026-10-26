@@ -495,21 +495,27 @@ fun WordWrapLabel(
     minSize: androidx.compose.ui.unit.TextUnit = 7.sp,
 ) {
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    // Arabic words must stay connected under narrow toolbar icons. Word joiners are
+    // invisible and preserve shaping while allowing line breaks at ordinary spaces.
+    val arabic = text.any { it in '\u0600'..'\u06ff' }
+    val displayText = remember(text, arabic) {
+        if (arabic) text.split(' ').joinToString(" ") { word -> word.toList().joinToString("\u2060") } else text
+    }
     val style = androidx.compose.material3.LocalTextStyle.current.merge(
         androidx.compose.ui.text.TextStyle(
-            color = color, fontSize = size, lineHeight = lineHeight, letterSpacing = letterSpacing,
+            color = color, fontSize = size, lineHeight = lineHeight, letterSpacing = if (arabic) 0.sp else letterSpacing,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         ),
     )
     androidx.compose.foundation.layout.BoxWithConstraints(modifier, contentAlignment = Alignment.TopCenter) {
         val room = constraints.maxWidth
-        val scale = remember(text, style, room) {
-            val widest = text.split(' ').filter { it.isNotBlank() }
+        val scale = remember(displayText, style, room) {
+            val widest = displayText.split(' ').filter { it.isNotBlank() }
                 .maxOfOrNull { measurer.measure(it, style, softWrap = false, maxLines = 1).size.width } ?: 0
             // a little under the exact ratio, so the narrowed word doesn't land a pixel too wide
             if (room == androidx.compose.ui.unit.Constraints.Infinity || widest <= room || widest == 0) 1f
             else (room.toFloat() / widest * 0.97f).coerceAtLeast(minSize.value / size.value)
         }
-        Text(text, style = style.copy(fontSize = size * scale, lineHeight = lineHeight * scale), maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+        Text(displayText, style = style.copy(fontSize = size * scale, lineHeight = lineHeight * scale), maxLines = maxLines, overflow = TextOverflow.Ellipsis)
     }
 }

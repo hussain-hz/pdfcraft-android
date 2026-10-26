@@ -1,0 +1,80 @@
+name: PdfCraft preview and compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pdfcraft-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: '2'
+      CRAFT_FONTS_DIR: ${{ github.workspace }}/.build-inputs/craft-fonts
+      CRAFT_FONTS_REQUIRED: '1'
+      CRAFT_FONT_SCRIPTS: Arab
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check out pinned Arabic font source
+        uses: actions/checkout@v7
+        with:
+          repository: storytold/craft-fonts
+          ref: d1cf47d05e04426615fbda1d637b9ca6b1e7af35
+          path: .build-inputs/craft-fonts
+      - name: Verify Arabic font and licence
+        shell: pwsh
+        run: ./tools/prepare-arabic-fonts.ps1 -SourceDirectory $env:CRAFT_FONTS_DIR
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install pinned Rust and Android target
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal
+          rustup target add aarch64-linux-android --toolchain 1.99.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: pdfcraft-android
+      - name: Test mobile engine compatibility
+        run: cargo test --locked --profile low-disk -p pdfcraft-android --lib
+      - name: Test upgraded engine libraries
+        run: cargo test --locked --profile low-disk -p pdfcraft-create -p pdfcraft-export -p pdfcraft-annot -p pdfcraft-render -p pdfcraft-edit --lib
+      - name: Prepare Android tools
+        shell: pwsh
+        run: |
+          cargo install cargo-ndk --version 4.1.2 --locked
+          $sdkmanager = "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat"
+          $packages = & $sdkmanager --list
+          $platform = if ($packages -match 'platforms;android-37\.0\s') { 'platforms;android-37.0' } else { 'platforms;android-37' }
+          & $sdkmanager $platform "ndk;29.0.14206865"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build preview and run Android unit tests
+        working-directory: apps/pdfcraft-android/android
+        shell: pwsh
+        run: ./gradlew.bat assemblePreview testDebugUnitTest lintPreview "-Ppdfcraft.abis=arm64-v8a" --max-workers=2 --no-daemon
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pdfcraft-preview-arm64
+          path: apps/pdfcraft-android/android/app/build/outputs/apk/preview/app-preview.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pdfcraft-test-results
+          path: |
+            apps/pdfcraft-android/android/app/build/reports/tests/
+            apps/pdfcraft-android/android/app/build/reports/lint-results-preview.*
+            apps/pdfcraft-android/android/app/build/outputs/mapping/preview/mapping.txt
+          if-no-files-found: ignore

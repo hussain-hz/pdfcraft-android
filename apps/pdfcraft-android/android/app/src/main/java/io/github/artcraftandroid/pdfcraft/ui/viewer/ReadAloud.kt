@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui.viewer
 
+import androidx.core.content.edit
+
 import android.content.Context
 import android.content.Intent
 import android.speech.tts.TextToSpeech
@@ -128,7 +130,7 @@ class ReadAloud(
     fun chooseLanguage(locale: Locale) {
         language = locale
         tts.language = locale
-        prefs(prefsCtx).edit().putString("lang", locale.toLanguageTag()).apply()
+        prefs(prefsCtx).edit { putString("lang", locale.toLanguageTag()) }
         if (playing) speakCurrent()
     }
 
@@ -355,7 +357,7 @@ class ReadAloud(
     fun setRate(r: Float) {
         speed = r
         tts.setSpeechRate(r)
-        prefs(prefsCtx).edit().putFloat("speed", r).apply()
+        prefs(prefsCtx).edit { putFloat("speed", r) }
         if (playing) speakCurrent()
     }
 
@@ -363,9 +365,9 @@ class ReadAloud(
         playing = false
         // keep the place for next time (the reference offers to resume); a finished reading starts over
         if (key.isNotEmpty()) {
-            val e = prefs(prefsCtx).edit()
-            if (finished) e.remove("pos:$key") else e.putString("pos:$key", "$page,$index,$offset")
-            e.apply()
+            prefs(prefsCtx).edit {
+                if (finished) remove("pos:$key") else putString("pos:$key", "$page,$index,$offset")
+            }
         }
         runCatching {
             tts.stop()
@@ -417,7 +419,7 @@ class ReadAloud(
             return if (v.size == 3) Triple(v[0], v[1], v[2]) else null
         }
 
-        fun forgetPosition(c: Context, key: String) = prefs(c).edit().remove("pos:$key").apply()
+        fun forgetPosition(c: Context, key: String) = prefs(c).edit { remove("pos:$key") }
     }
 }
 
@@ -628,7 +630,7 @@ private fun LanguageSheet(r: ReadAloud, onVoiceSettings: () -> Unit, onDismiss: 
         androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 420.dp), state = list) {
             items(langs.size) { i ->
                 val l = langs[i]
-                io.github.artcraftandroid.pdfcraft.ui.SheetRow(null, l.getDisplayName(Locale.getDefault()), { r.chooseLanguage(l); onDismiss() }, checked = i == current)
+                io.github.artcraftandroid.pdfcraft.ui.SheetRow(null, l.getDisplayName(androidx.compose.ui.platform.LocalConfiguration.current.locales[0]), { r.chooseLanguage(l); onDismiss() }, checked = i == current)
             }
         }
         io.github.artcraftandroid.pdfcraft.ui.SheetRow(LucideIcons.Settings, stringResource(R.string.read_aloud_voice_settings), onVoiceSettings)

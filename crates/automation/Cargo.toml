@@ -9,6 +9,7 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+pdfcraft-fonts = { workspace = true }
 pdfcraft-engine = { workspace = true }
 pdfcraft-cos = { workspace = true }
 pdfcraft-render = { workspace = true }
@@ -16,6 +17,7 @@ pdfcraft-organize = { workspace = true }
 pdfcraft-platform = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.11"
+tempfile = "3.27"
 png = "0.18"
 base64 = { version = "0.22", optional = true }
 
@@ -26,7 +28,6 @@ default = ["mcp"]
 mcp = ["dep:base64"]
 
 [dev-dependencies]
-pdfcraft-fonts = { workspace = true }
 flate2.workspace = true
 pdfcraft-model = { workspace = true }
 pdfcraft-xfa = { workspace = true }

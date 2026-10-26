@@ -294,6 +294,8 @@ pub struct CommentInfo {
     pub opacity: f32,
     /// Its line width in points, when it draws a line (ink, shapes, lines).
     pub width: Option<f32>,
+    /// Actual PDF text size for scaling Fill & Sign text, not only its box.
+    pub font_size: Option<f32>,
 }
 
 /// A form field's widget on a page: what a tap there fills.
@@ -678,6 +680,11 @@ impl MobileSession {
                     fill_sign: a.fill_sign,
                     opacity: a.opacity,
                     width: a.width,
+                    font_size: if a.subtype == "FreeText" {
+                        d.comment_props(a.page, a.index).and_then(|p| p.font_size).map(|s| s as f32)
+                    } else {
+                        None
+                    },
                 })
                 .collect()
         })

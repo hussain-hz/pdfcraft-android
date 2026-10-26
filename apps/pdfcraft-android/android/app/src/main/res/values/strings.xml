@@ -335,7 +335,7 @@
     <string name="root_author_prompt_body">Add a name to show who made each comment. You can change it later in Preferences.</string>
 
     <!-- App dialogs: a file that can't be written back -->
-    <string name="root_read_only_title">File is read-only</string>
+    <string name="root_read_only_title">Could not save the original</string>
     <!-- Verb: throw the changes away -->
     <string name="root_discard">Discard</string>
     <!-- %1$s is the file name -->
@@ -587,9 +587,9 @@
     <string name="sign_email_hint">name@example.com</string>
     <string name="sign_section_organisation">Organisation (optional)</string>
     <string name="sign_organisation_hint">Company or organisation</string>
-    <string name="sign_password_hint">At least 6 characters</string>
+    <string name="sign_password_hint">At least 8 characters</string>
     <string name="sign_password_again">The password again</string>
-    <string name="sign_password_short">The password needs at least 6 characters.</string>
+    <string name="sign_password_short">The password needs at least 8 characters.</string>
     <string name="sign_password_mismatch">The passwords don\'t match.</string>
     <string name="sign_password_note">PdfCraft doesn\'t keep the password and can\'t recover it: you type it each time you sign.</string>
 
@@ -1164,4 +1164,19 @@
     <string name="service_action_forward">Forward 15 seconds</string>
     <!-- Translator note: notification button that stops reading aloud -->
     <string name="service_action_stop">Stop</string>
+    <string name="transform_drag_selected">Drag selected item</string>
+    <string name="transform_enlarge">Enlarge</string>
+    <string name="viewer_fit_page">Fit page</string>
+    <string name="viewer_fit_page_description">Fit page to screen</string>
+    <string name="home_language">Language</string>
+    <string name="transform_move_down">Move down</string>
+    <string name="transform_move_left">Move left</string>
+    <string name="transform_move_right">Move right</string>
+    <string name="transform_move_up">Move up</string>
+    <string name="edit_paragraph_row">Paragraph row %1$s</string>
+    <string name="msg_recovered_changes">Recovered your unsaved changes</string>
+    <string name="transform_resize_selected">Resize selected item</string>
+    <string name="transform_shrink">Shrink</string>
+    <string name="msg_added_text_format_unsupported">This formatting isn\'t supported for added text.</string>
+    <string name="root_licence_noto_arabic">Noto Sans Arabic typeface</string>
 </resources>

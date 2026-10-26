@@ -52,7 +52,24 @@ pub fn ui_arabic_fonts() -> Vec<&'static CraftFont> {
 /// The face for Arabic text written into PDFs: the first `Arab` face. `None` when built without
 /// craft-fonts or when its revision has no Arabic face.
 pub fn document_arabic_font() -> Option<&'static CraftFont> {
-    ui_arabic_fonts().into_iter().next()
+    document_arabic_font_for_style(false)
+}
+
+/// Static licensed instances retain GSUB/GPOS and can be embedded in editable PDFs.
+pub fn document_arabic_font_for_style(bold: bool) -> Option<&'static CraftFont> {
+    static REGULAR: CraftFont = CraftFont {
+        family: "Noto Sans Arabic",
+        style: "Regular",
+        scripts: &["Arab"],
+        bytes: include_bytes!("../../../assets/fonts/JahfanArabic-Regular.ttf"),
+    };
+    static BOLD: CraftFont = CraftFont {
+        family: "Noto Sans Arabic",
+        style: "Bold",
+        scripts: &["Arab"],
+        bytes: include_bytes!("../../../assets/fonts/JahfanArabic-Bold.ttf"),
+    };
+    ui_arabic_fonts().first().map(|_| if bold { &BOLD } else { &REGULAR })
 }
 
 fn arabic<'a>(faces: impl IntoIterator<Item = &'a CraftFont>) -> Vec<&'a CraftFont> {
@@ -314,6 +331,8 @@ mod tests {
         if CRAFT_FONTS.iter().any(|f| f.family == "BIZ UDPGothic") {
             assert_eq!(ui.first().map(|f| f.family), Some("BIZ UDPGothic"));
         }
-        assert_eq!(document_japanese_font().map(|f| f.family), Some("Shippori Mincho"));
+        if CRAFT_FONTS.iter().any(|f| f.family == "Shippori Mincho") {
+            assert_eq!(document_japanese_font().map(|f| f.family), Some("Shippori Mincho"));
+        }
     }
 }

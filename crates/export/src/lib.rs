@@ -1,12 +1,10 @@
-//! pdfcraft-export — Export a PDF ▸ Word, Excel, PowerPoint, HTML, RTF (L4).
+//! pdfcraft-export — Export a PDF ▸ Word, HTML, RTF (L4).
 //!
 //! The engine reduces each page to [`Page`]: paragraphs (text, box, size, bold/italic) and
 //! images (encoded bytes and box), in reading order. The writers turn that into a flowing
 //! document: headings are the paragraphs set larger than the body text. Word keeps pages with
 //! rotated text, or text overlapped by artwork or watermark-sized text, as positioned, editable
-//! shapes to avoid reflowing overlays; other pages flow with images inline. Excel puts each page
-//! on a worksheet (detected tables as cell grids); PowerPoint puts each page on a slide, every
-//! paragraph, picture and table where it sits on the page.
+//! shapes to avoid reflowing overlays; other pages flow with images inline.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -19,7 +17,7 @@ pub use xlsx::xlsx;
 pub use zip::Zip;
 
 /// A paragraph of a page.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Block {
     pub text: String,
     /// [x0, y0, x1, y1] on the displayed page in points (y up).
@@ -32,12 +30,6 @@ pub struct Block {
     pub color: [f64; 3],
     /// Counterclockwise baseline angle in user space (degrees).
     pub rotation: f64,
-    /// The paragraph's visual rows as set on the page (empty when unknown), and the distance
-    /// between their baselines in points (0 when unknown). Positioned writers keep the rows.
-    pub lines: Vec<String>,
-    pub leading: f64,
-    /// The PDF font's name (`/BaseFont`), empty when unknown.
-    pub font: String,
 }
 
 /// An image of a page.
@@ -59,9 +51,6 @@ pub struct Page {
     pub height: f64,
     pub blocks: Vec<Block>,
     pub images: Vec<Image>,
-    /// The page's artwork without its text, rendered as a picture of the whole page (PowerPoint
-    /// puts it behind the text boxes). `None` when the artwork is blank or wasn't rendered.
-    pub background: Option<Image>,
 }
 
 /// One cell of a detected table. `span` is how many grid columns the cell covers (a header
@@ -75,8 +64,6 @@ pub struct Cell {
     /// Text fill colour as sRGB components in 0..=1.
     pub color: [f64; 3],
     pub span: usize,
-    /// The PDF font's name, empty when unknown.
-    pub font: String,
 }
 
 /// A table detected from the page's text layout: rows of cells, and the left edge of each
@@ -86,9 +73,6 @@ pub struct Table {
     pub rect: [f64; 4],
     pub cols: Vec<f64>,
     pub rows: Vec<Vec<Cell>>,
-    /// The top edge of each row (user space, y up), so positioned writers can space the rows
-    /// as on the page.
-    pub row_tops: Vec<f64>,
 }
 
 /// What goes into the output, in order.
@@ -140,7 +124,7 @@ fn is_cell_like(b: &Block) -> bool {
 /// Detect tables in a page's blocks from their text layout: columns are left edges shared by
 /// several short blocks, rows are blocks whose vertical spans overlap. Returns the tables and,
 /// per block, whether a table consumed it (so `items` can drop it from the paragraph flow).
-fn tables(blocks: &[Block]) -> (Vec<Table>, Vec<bool>) {
+pub(crate) fn tables(blocks: &[Block]) -> (Vec<Table>, Vec<bool>) {
     let mut consumed = vec![false; blocks.len()];
     // Candidate columns: cluster the left edges of cell-like blocks.
     let mut xs: Vec<(f64, usize)> = blocks.iter().enumerate().filter(|(_, b)| is_cell_like(b)).map(|(i, b)| (b.rect[0], i)).collect();
@@ -222,9 +206,7 @@ fn tables(blocks: &[Block]) -> (Vec<Table>, Vec<bool>) {
         let right = used.iter().map(|&i| blocks[i].rect[2]).fold(f64::MIN, f64::max) + COL_TOL;
         let mut rows_out = Vec::new();
         let mut slots: Vec<Option<Cell>> = vec![None; ncols];
-        let mut row_tops = Vec::with_capacity(run.len());
         for row in run.drain(..) {
-            row_tops.push(row.iter().filter_map(|(_, bi)| blocks.get(*bi)).map(|b| b.rect[3]).fold(f64::MIN, f64::max));
             for slot in slots.iter_mut() {
                 *slot = None;
             }
@@ -232,15 +214,7 @@ fn tables(blocks: &[Block]) -> (Vec<Table>, Vec<bool>) {
                 let b = &blocks[bi];
                 let Some(slot) = edges.iter().position(|e| (*e - b.rect[0]).abs() <= COL_TOL) else { continue };
                 let span = edges[slot + 1..].iter().filter(|e| **e > b.rect[0] + COL_TOL && **e < b.rect[2] - COL_TOL).count() + 1;
-                let cell = Cell {
-                    text: b.text.trim().to_string(),
-                    size: b.size,
-                    bold: b.bold,
-                    italic: b.italic,
-                    color: b.color,
-                    span,
-                    font: b.font.clone(),
-                };
+                let cell = Cell { text: b.text.trim().to_string(), size: b.size, bold: b.bold, italic: b.italic, color: b.color, span };
                 match &mut slots[slot] {
                     Some(c) => {
                         c.text.push(' ');
@@ -261,15 +235,7 @@ fn tables(blocks: &[Block]) -> (Vec<Table>, Vec<bool>) {
                     }
                     None => {
                         column += 1;
-                        materialized.push(Cell {
-                            text: String::new(),
-                            size: 11.0,
-                            bold: false,
-                            italic: false,
-                            color: [0.0; 3],
-                            span: 1,
-                            font: String::new(),
-                        });
+                        materialized.push(Cell { text: String::new(), size: 11.0, bold: false, italic: false, color: [0.0; 3], span: 1 });
                     }
                 }
             }
@@ -284,7 +250,7 @@ fn tables(blocks: &[Block]) -> (Vec<Table>, Vec<bool>) {
             right,
             used.iter().map(|&i| blocks[i].rect[3]).fold(f64::MIN, f64::max),
         ];
-        out.push(Table { rect, cols: edges, rows: rows_out, row_tops });
+        out.push(Table { rect, cols: edges, rows: rows_out });
     };
     // Runs of consecutive multi-column rows are tables. Rows on either side of a run that
     // hold a single cell wide enough to span two columns (a header band, a totals row) join
@@ -364,7 +330,7 @@ fn allowed(c: char) -> bool {
     matches!(c, '\t' | '\n' | '\r') || !(c.is_ascii_control() || c == '\u{FFFE}' || c == '\u{FFFF}')
 }
 
-fn esc(s: &str) -> String {
+pub(crate) fn esc(s: &str) -> String {
     let mut o = String::with_capacity(s.len());
     for c in s.chars().filter(|c| allowed(*c)) {
         match c {
@@ -448,13 +414,13 @@ table{{border-collapse:collapse;margin:1em 0}}td,th{{border:1px solid #999;paddi
 }
 
 /// A colour's 8-bit sRGB components (NaN and out-of-range values clamp; NaN reads as 0).
-fn rgb8(c: [f64; 3]) -> [u8; 3] {
+pub(crate) fn rgb8(c: [f64; 3]) -> [u8; 3] {
     // The value is clamped to 0..=255 before the cast, so it cannot truncate.
     c.map(|v| if v.is_finite() { (v.clamp(0.0, 1.0) * 255.0).round() as u8 } else { 0 })
 }
 
 /// The colour as `RRGGBB`, or `None` for black (the default every format already uses).
-fn hex(c: [f64; 3]) -> Option<String> {
+pub(crate) fn hex(c: [f64; 3]) -> Option<String> {
     let [r, g, b] = rgb8(c);
     (r | g | b != 0).then(|| format!("{r:02X}{g:02X}{b:02X}"))
 }
@@ -556,32 +522,33 @@ fn layout_number(n: f64) -> f64 {
     if n.is_finite() { n.clamp(-1584.0, 1584.0) } else { 0.0 }
 }
 
-/// A text block's width and height before rotation (points, each at least 1 and within
-/// ±`limit`): the axis-aligned box for level text, else one line of the font size tall and as
-/// wide as the box allows at that angle.
-fn rotated_size(b: &Block, limit: f64) -> (f64, f64) {
-    let num = |n: f64| if n.is_finite() { n.clamp(-limit, limit) } else { 0.0 };
-    let rotation = num(-b.rotation).rem_euclid(360.0);
-    let (sin, cos) = rotation.to_radians().sin_cos();
-    let (bw, bh) = (num(b.rect[2] - b.rect[0]).max(1.0), num(b.rect[3] - b.rect[1]).max(1.0));
-    let h = if b.rotation.abs() > 0.1 { num(b.size).max(1.0) } else { bh };
-    // Recover the unrotated width from the axis-aligned box. Use the larger axis so
-    // quarter turns and 45-degree watermarks do not divide by (nearly) zero.
-    let w = if b.rotation.abs() <= 0.1 {
-        bw
-    } else if cos.abs() >= sin.abs() {
-        (bw - h * sin.abs()) / cos.abs()
-    } else {
-        (bh - h * cos.abs()) / sin.abs()
-    };
-    (num(w).max(1.0), h)
+/// Most images a Word export embeds, and most image bytes (the zip writer has 32-bit sizes and
+/// a 16-bit entry count; a hostile PDF must not be able to overflow them).
+const MAX_MEDIA: usize = 1000;
+const MAX_MEDIA_BYTES: usize = 512 << 20;
+
+/// Whether `im` can still be embedded: it has data, and the package stays within its limits.
+fn room_for(media: &[(String, &Image)], im: &Image) -> bool {
+    !im.bytes.is_empty()
+        && media.len() < MAX_MEDIA
+        && media.iter().map(|(_, m)| m.bytes.len()).fold(im.bytes.len(), usize::saturating_add) <= MAX_MEDIA_BYTES
 }
 
-/// `docProps/core.xml` with the document title.
-fn core_xml(title: &str) -> String {
+/// Points as EMU (12700 per point); non-finite values are 0.
+fn emu(pt: f64) -> i64 {
+    if pt.is_finite() { (pt * 12700.0).round() as i64 } else { 0 }
+}
+
+/// The `a:graphic` of one picture (DrawingML), rotated by `rotation` degrees when given.
+fn picture_xml(n: usize, name: &str, (cx, cy): (i64, i64), rotation: Option<f64>) -> String {
+    let rot = rotation.map_or(String::new(), |r| format!(" rot=\"{}\"", (r * 60000.0).round() as i64));
     format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>{}</dc:title></cp:coreProperties>",
-        esc(title)
+        "<wp:docPr id=\"{n}\" name=\"Picture {n}\"/><wp:cNvGraphicFramePr/>\
+<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">\
+<pic:pic xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"><pic:nvPicPr><pic:cNvPr id=\"{n}\" name=\"{name}\"/><pic:cNvPicPr/></pic:nvPicPr>\
+<pic:blipFill><a:blip r:embed=\"rIdImg{n}\"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>\
+<pic:spPr><a:xfrm{rot}><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{cx}\" cy=\"{cy}\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>\
+</a:graphicData></a:graphic>"
     )
 }
 
@@ -593,8 +560,19 @@ fn positioned_page<'a>(page: &'a Page, media: &mut Vec<(String, &'a Image)>, sha
     for b in &page.blocks {
         *shape_id = shape_id.saturating_add(1);
         let rotation = layout_number(-b.rotation).rem_euclid(360.0);
+        let (sin, cos) = rotation.to_radians().sin_cos();
         let (bw, bh) = (layout_number(b.rect[2] - b.rect[0]).max(1.0), layout_number(b.rect[3] - b.rect[1]).max(1.0));
-        let (w, h) = rotated_size(b, 1584.0);
+        let h = if b.rotation.abs() > 0.1 { layout_number(b.size).max(1.0) } else { bh };
+        // Recover the unrotated width from the axis-aligned box. Use the larger axis so
+        // quarter turns and 45-degree watermarks do not divide by (nearly) zero.
+        let w = if b.rotation.abs() <= 0.1 {
+            bw
+        } else if cos.abs() >= sin.abs() {
+            (bw - h * sin.abs()) / cos.abs()
+        } else {
+            (bh - h * cos.abs()) / sin.abs()
+        };
+        let w = layout_number(w).max(1.0);
         let (x, y) = (layout_number(b.rect[0] + (bw - w) / 2.0), layout_number(page.height - b.rect[3] + (bh - h) / 2.0));
         let z = if b.size >= 2.0 * body { -2 } else { 1 };
         let style = format!(
@@ -606,13 +584,31 @@ fn positioned_page<'a>(page: &'a Page, media: &mut Vec<(String, &'a Image)>, sha
         ));
     }
     for im in &page.images {
+        if !room_for(media, im) {
+            continue;
+        }
         *shape_id = shape_id.saturating_add(1);
         let n = media.len().saturating_add(1);
         let (w, h) = (layout_number(im.size[0]).max(1.0), layout_number(im.size[1]).max(1.0));
         let (x, y) = (layout_number((im.rect[0] + im.rect[2] - w) / 2.0), layout_number(page.height - (im.rect[1] + im.rect[3] + h) / 2.0));
         let rotation = layout_number(-im.rotation).rem_euclid(360.0);
-        s.push_str(&format!("<w:r><w:pict><v:rect id=\"Image{shape_id}\" style=\"position:absolute;margin-left:{x:.3}pt;margin-top:{y:.3}pt;width:{w:.3}pt;height:{h:.3}pt;rotation:{rotation:.3};z-index:-1;mso-position-horizontal-relative:page;mso-position-vertical-relative:page\" stroked=\"f\"><v:imagedata r:id=\"rIdImg{n}\"/><w10:wrap type=\"none\"/></v:rect></w:pict></w:r>"));
-        media.push((format!("image{n}.{}", im.ext), im));
+        let name = format!("image{n}.{}", im.ext);
+        let pic = picture_xml(n, &name, (emu(w), emu(h)), Some(rotation));
+        // A DrawingML anchor, the way Word itself stores a picture placed behind text: a VML
+        // rectangle with an image does not show the picture.
+        s.push_str(&format!(
+            "<w:r><w:drawing><wp:anchor distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\" simplePos=\"0\" relativeHeight=\"{}\" behindDoc=\"1\" locked=\"0\" layoutInCell=\"1\" allowOverlap=\"1\">\
+<wp:simplePos x=\"0\" y=\"0\"/><wp:positionH relativeFrom=\"page\"><wp:posOffset>{}</wp:posOffset></wp:positionH><wp:positionV relativeFrom=\"page\"><wp:posOffset>{}</wp:posOffset></wp:positionV>\
+<wp:extent cx=\"{}\" cy=\"{}\"/><wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/><wp:wrapNone/>",
+            n.saturating_add(1),
+            emu(x),
+            emu(y),
+            emu(w),
+            emu(h),
+        ));
+        s.push_str(&pic);
+        s.push_str("</wp:anchor></w:drawing></w:r>");
+        media.push((name, im));
     }
     s.push_str("</w:p>");
     s
@@ -666,21 +662,18 @@ pub fn docx(pages: &[Page], title: &str) -> Vec<u8> {
                         body.push_str(&docx_table(t));
                     }
                     Item::Img(im) => {
-                        let n = media.len() + 1;
-                        let name = format!("image{n}.{}", im.ext);
-                        // Size on the page, in EMU (12700 per point), at most the text width.
-                        let (w, h) = ((im.rect[2] - im.rect[0]).max(1.0), (im.rect[3] - im.rect[1]).max(1.0));
-                        let k = (text_w / w).min(1.0);
-                        let (cx, cy) = ((w * k * 12700.0) as i64, (h * k * 12700.0) as i64);
-                        body.push_str(&format!(
-                    "<w:p><w:r><w:drawing><wp:inline><wp:extent cx=\"{cx}\" cy=\"{cy}\"/><wp:docPr id=\"{n}\" name=\"Picture {n}\"/>\
-<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">\
-<pic:pic xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"><pic:nvPicPr><pic:cNvPr id=\"{n}\" name=\"{name}\"/><pic:cNvPicPr/></pic:nvPicPr>\
-<pic:blipFill><a:blip r:embed=\"rIdImg{n}\"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>\
-<pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{cx}\" cy=\"{cy}\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>\
-</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"
-                ));
-                        media.push((name, im));
+                        if room_for(&media, im) {
+                            let n = media.len() + 1;
+                            let name = format!("image{n}.{}", im.ext);
+                            // Size on the page, at most the text width.
+                            let (w, h) = ((im.rect[2] - im.rect[0]).max(1.0), (im.rect[3] - im.rect[1]).max(1.0));
+                            let k = (text_w / w).min(1.0);
+                            let (cx, cy) = (emu(w * k), emu(h * k));
+                            body.push_str(&format!("<w:p><w:r><w:drawing><wp:inline><wp:extent cx=\"{cx}\" cy=\"{cy}\"/>"));
+                            body.push_str(&picture_xml(n, &name, (cx, cy), None));
+                            body.push_str("</wp:inline></w:drawing></w:r></w:p>");
+                            media.push((name, im));
+                        }
                     }
                     Item::PageBreak => body.push_str("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>"),
                 }
@@ -736,7 +729,10 @@ xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawin
 <w:style w:type=\"paragraph\" w:styleId=\"Heading1\"><w:name w:val=\"heading 1\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/><w:pPr><w:keepNext/><w:spacing w:before=\"240\"/><w:outlineLvl w:val=\"0\"/></w:pPr><w:rPr><w:b/></w:rPr></w:style>\
 <w:style w:type=\"paragraph\" w:styleId=\"Heading2\"><w:name w:val=\"heading 2\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/><w:pPr><w:keepNext/><w:spacing w:before=\"200\"/><w:outlineLvl w:val=\"1\"/></w:pPr><w:rPr><w:b/></w:rPr></w:style>\
 </w:styles>";
-    let core = core_xml(title);
+    let core = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>{}</dc:title></cp:coreProperties>",
+        esc(title)
+    );
     let mut z = Zip::default();
     z.add("[Content_Types].xml", types.as_bytes(), true);
     z.add("_rels/.rels", rels.as_bytes(), true);
@@ -859,9 +855,6 @@ mod tests {
 
     fn page() -> Page {
         let b = |t: &str, y: f64, size: f64, bold: bool| Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
             text: t.into(),
             rect: [72.0, y, 500.0, y + size],
             size,
@@ -886,7 +879,6 @@ mod tests {
                 size: [200.0, 150.0],
                 rotation: 0.0,
             }],
-            background: None,
         }
     }
 
@@ -944,9 +936,6 @@ mod tests {
     fn word_overlap_does_not_consume_invoice_body_space() {
         let mut p = table_page();
         p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
             text: "DRAFT".into(),
             rect: [100.0, 200.0, 500.0, 700.0],
             size: 100.0,
@@ -965,8 +954,9 @@ mod tests {
         assert!(xml.contains("margin-left:72.000pt;margin-top:160.000pt"), "Meter field keeps its source position: {xml}");
         let watermark = xml.split(">DRAFT</w:t>").next().unwrap().rsplit("<v:rect ").next().unwrap();
         assert!(watermark.contains("z-index:-2"), "watermark is behind foreground graphics");
-        let image = xml.split("<v:imagedata ").next().unwrap().rsplit("<v:rect ").next().unwrap();
-        assert!(image.contains("z-index:-1"), "foreground graphics cover the watermark");
+        // The picture is a DrawingML anchor behind the text (a VML rectangle shows no picture in Word).
+        assert!(!xml.contains("<v:imagedata"), "{xml}");
+        assert!(xml.contains("<wp:anchor ") && xml.contains("behindDoc=\"1\"") && xml.contains("<a:blip r:embed=\"rIdImg1\"/>"), "{xml}");
     }
 
     #[test]
@@ -985,7 +975,7 @@ mod tests {
     }
 
     /// One part of a package written by [`Zip`], inflated.
-    fn part(zip: &[u8], name: &str) -> String {
+    pub(crate) fn part(zip: &[u8], name: &str) -> String {
         let at = |i: usize, n: usize| zip[i..i + n].iter().rev().fold(0usize, |v, b| v << 8 | *b as usize);
         let mut i = 0;
         while zip[i..].starts_with(b"PK\x03\x04") {
@@ -1008,9 +998,6 @@ mod tests {
         let mut p = page();
         p.height = 2400.0;
         p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
             text: "Total\u{0}\u{3}\u{c} 4.50\u{FFFF}\tGBP".into(),
             rect: [72.0, 100.0, 300.0, 110.0],
             size: f64::NAN,
@@ -1045,9 +1032,13 @@ mod tests {
         let h = html(&[p.clone()], "Colour");
         assert!(h.contains("<h1 style=\"color:#0D3B2E\">Annual Report</h1>"), "{h}");
         assert!(h.contains("<p style=\"color:#00FF00\">"), "{h}");
-        let r = rtf(&[p]);
+        let r = rtf(&[p.clone()]);
         assert!(r.contains("{\\colortbl;\\red13\\green59\\blue46;\\red0\\green255\\blue0;}"), "{r}");
         assert!(r.contains("\\cf1 Annual Report"), "{r}");
+        let ppt = pptx(&[p], "Colour");
+        let pxml = part(&ppt, "ppt/slides/slide1.xml");
+        assert!(pxml.contains("<a:srgbClr val=\"0D3B2E\"/>"), "{pxml}");
+        assert!(pxml.contains("<a:srgbClr val=\"00FF00\"/>"), "out-of-range values clamp: {pxml}");
         // A table cell keeps its colour too.
         let mut t = table_page();
         t.blocks[0].color = [1.0, 0.0, 0.0];
@@ -1060,9 +1051,6 @@ mod tests {
     fn rtf_escapes_and_sizes() {
         let mut p = page();
         p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
             text: "Café {x}".into(),
             rect: [72.0, 100.0, 200.0, 110.0],
             size: 10.0,
@@ -1080,9 +1068,6 @@ mod tests {
     /// A 3-column table with a spanning header row and a hole in the last row.
     fn table_page() -> Page {
         let cell = |t: &str, x: f64, y: f64, w: f64| Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
             text: t.into(),
             rect: [x, y, x + w, y + 12.0],
             size: 11.0,
@@ -1106,9 +1091,6 @@ mod tests {
                 // A2's row is missing its third cell (an empty cell in the grid).
                 cell("Totals", 72.0, 530.0, 240.0),
                 Block {
-                    lines: Vec::new(),
-                    leading: 0.0,
-                    font: String::new(),
                     text: "Notes follow the table and are long enough to be the body text size of the page here.".into(),
                     rect: [72.0, 460.0, 500.0, 471.0],
                     size: 11.0,
@@ -1119,7 +1101,6 @@ mod tests {
                 },
             ],
             images: Vec::new(),
-            background: None,
         }
     }
 
@@ -1143,12 +1124,20 @@ mod tests {
         assert!(table_xml.contains("<w:gridSpan w:val=\"2\"/>"), "{table_xml}");
         assert_eq!(table_xml.matches("<w:tr>").count(), 4);
 
-        let r = rtf(&[p]);
+        let r = rtf(std::slice::from_ref(&p));
         assert!(r.contains("\\trowd"), "{r}");
         assert_eq!(r.matches("\\row").count(), 4);
         // Boundaries precede the cells; "Totals" spans two columns, so it ends at the third edge.
         assert!(r.contains("\\trowd\\trgaph108\\cellx4640\\cellx7840\\cellx9920{"), "{r}");
         assert!(r.contains("\\trowd\\trgaph108\\cellx7840{\\intbl\\fs22 Totals}\\cell\\row"), "{r}");
+
+        let pt = pptx(std::slice::from_ref(&p), "Bill");
+        assert!(pt.starts_with(b"PK"));
+        assert!(pt.windows(b"ppt/slides/slide1.xml".len()).any(|w| w == b"ppt/slides/slide1.xml"));
+        let slide_xml = part(&pt, "ppt/slides/slide1.xml");
+        assert!(slide_xml.contains("<a:tbl>"));
+        assert!(slide_xml.contains("gridSpan=\"2\""));
+        assert_eq!(slide_xml.matches("<a:tr ").count(), 4);
     }
 
     #[test]
@@ -1160,18 +1149,7 @@ mod tests {
             .map(|i| {
                 let (row, col) = (i / 2, i / 2 + i % 2);
                 let (x, y) = (10.0 + col as f64 * 20.0, 10_000.0 - row as f64 * 14.0);
-                Block {
-                    lines: Vec::new(),
-                    leading: 0.0,
-                    font: String::new(),
-                    text: "x".into(),
-                    rect: [x, y, x + 8.0, y + 12.0],
-                    size: 11.0,
-                    bold: false,
-                    italic: false,
-                    color: [0.0; 3],
-                    rotation: 0.0,
-                }
+                Block { text: "x".into(), rect: [x, y, x + 8.0, y + 12.0], size: 11.0, bold: false, italic: false, color: [0.0; 3], rotation: 0.0 }
             })
             .collect();
         let started = std::time::Instant::now();
@@ -1191,9 +1169,6 @@ mod tests {
                     (0..n).map(move |col| {
                         let (x, y) = (20.0 + col as f64 * 22.0, 700.0 - row as f64 * 14.0);
                         Block {
-                            lines: Vec::new(),
-                            leading: 0.0,
-                            font: String::new(),
                             text: (col + 1).to_string(),
                             rect: [x, y, x + 8.0, y + 8.0],
                             size: 8.0,
@@ -1206,7 +1181,6 @@ mod tests {
                 })
                 .collect(),
             images: Vec::new(),
-            background: None,
         };
         let grid_cols = |p: &Page| part(&docx(std::slice::from_ref(p), "Grid"), "word/document.xml").matches("<w:gridCol ").count();
         assert_eq!(grid_cols(&grid(63)), 63, "63 columns is still a table");
@@ -1214,377 +1188,9 @@ mod tests {
         assert_eq!(grid_cols(&grid(64)), 0);
     }
 
-    /// The names of a package's parts, in order.
-    fn part_names(zip: &[u8]) -> Vec<String> {
-        let at = |i: usize, n: usize| zip[i..i + n].iter().rev().fold(0usize, |v, b| v << 8 | *b as usize);
-        let mut names = Vec::new();
-        let mut i = 0;
-        while zip[i..].starts_with(b"PK\x03\x04") {
-            let (size, name_len) = (at(i + 18, 4), at(i + 26, 2));
-            names.push(String::from_utf8(zip[i + 30..i + 30 + name_len].to_vec()).unwrap());
-            i += 30 + name_len + size;
-        }
-        names
-    }
-
-    #[test]
-    fn plain_numbers_are_recognised() {
-        let n = |s: &str| xlsx::plain_number(s);
-        assert_eq!(n("37414.00"), Some(("37414.00".into(), false, 2)));
-        assert_eq!(n("-12"), Some(("-12".into(), false, 0)));
-        assert_eq!(n("+7"), Some(("7".into(), false, 0)));
-        assert_eq!(n("1,234.5"), Some(("1234.5".into(), true, 1)));
-        assert_eq!(n(" 12,345,678 "), Some(("12345678".into(), true, 0)));
-        assert_eq!(n("0.5"), Some(("0.5".into(), false, 1)));
-        for text in ["", "-", "1.", ".5", "1,23", "12,3456", ",123", "1.2.3", "02139", "1e5", "12 kWh", "$5", "NaN", "inf", "1234567890123456"] {
-            assert_eq!(n(text), None, "{text:?} is text");
-        }
-        assert_eq!(xlsx::col_name(0), "A");
-        assert_eq!(xlsx::col_name(25), "Z");
-        assert_eq!(xlsx::col_name(26), "AA");
-        assert_eq!(xlsx::col_name(16_383), "XFD");
-    }
-
-    #[test]
-    fn xlsx_is_a_workbook_with_a_sheet_per_page() {
-        let x = xlsx(&[page(), table_page()], "Report & <co>");
-        let names = part_names(&x);
-        for n in [
-            "[Content_Types].xml",
-            "_rels/.rels",
-            "docProps/core.xml",
-            "xl/workbook.xml",
-            "xl/_rels/workbook.xml.rels",
-            "xl/styles.xml",
-            "xl/sharedStrings.xml",
-            "xl/worksheets/sheet1.xml",
-            "xl/worksheets/sheet2.xml",
-        ] {
-            assert!(names.iter().any(|e| e == n), "{n} in {names:?}");
-        }
-        assert!(!names.iter().any(|e| e == "xl/worksheets/sheet3.xml"));
-        let wb = part(&x, "xl/workbook.xml");
-        assert!(wb.contains("<sheet name=\"Page 1\" sheetId=\"1\" r:id=\"rId1\"/><sheet name=\"Page 2\" sheetId=\"2\" r:id=\"rId2\"/>"), "{wb}");
-        let types = part(&x, "[Content_Types].xml");
-        assert_eq!(types.matches("spreadsheetml.worksheet+xml").count(), 2);
-        assert!(part(&x, "docProps/core.xml").contains("<dc:title>Report &amp; &lt;co&gt;</dc:title>"));
-        // Reading order: one paragraph per row in column A; the image is left out.
-        let sheet = part(&x, "xl/worksheets/sheet1.xml");
-        let strings = part(&x, "xl/sharedStrings.xml");
-        assert!(sheet.contains("<row r=\"1\"><c r=\"A1\" s=\"1\" t=\"s\"><v>0</v></c></row>"), "{sheet}");
-        assert!(strings.contains("<si><t xml:space=\"preserve\">Annual Report</t></si><si><t xml:space=\"preserve\">Overview</t></si>"), "{strings}");
-        assert!(strings.contains("Some &lt;body&gt; text &amp; more"), "{strings}");
-        assert_eq!(sheet.matches("<row ").count(), 4, "{sheet}");
-        // Bold 24 pt and bold 14 pt are two fonts beside the default; body text uses the default.
-        let styles = part(&x, "xl/styles.xml");
-        assert!(styles.contains("<font><b/><sz val=\"24\"/><color rgb=\"FF000000\"/>"), "{styles}");
-        assert!(styles.contains("<font><b/><sz val=\"14\"/>"), "{styles}");
-        // An empty document still has a sheet (Excel needs one).
-        let empty = xlsx(&[], "Empty");
-        assert!(part(&empty, "xl/workbook.xml").contains("<sheet name=\"Page 1\""));
-        assert!(part(&empty, "xl/worksheets/sheet1.xml").contains("<sheetData/>"));
-    }
-
-    #[test]
-    fn xlsx_turns_a_table_into_a_grid_of_numbers_and_text_with_merges() {
-        let mut p = table_page();
-        p.blocks[0].bold = true;
-        p.blocks[1].bold = true;
-        p.blocks[2].color = [1.0, 0.0, 0.0];
-        p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
-            text: "1,250.5".into(),
-            rect: [392.0, 560.0, 492.0, 572.0],
-            ..p.blocks[5].clone()
-        });
-        let x = xlsx(&[p], "Bill");
-        let sheet = part(&x, "xl/worksheets/sheet1.xml");
-        let strings = part(&x, "xl/sharedStrings.xml");
-        let si: Vec<&str> = strings.split("<si><t xml:space=\"preserve\">").skip(1).map(|s| s.split('<').next().unwrap()).collect();
-        let at = |r: &str| -> String {
-            let c = sheet.split(&format!("<c r=\"{r}\"")).nth(1).unwrap_or_else(|| panic!("{r} missing: {sheet}"));
-            let c = &c[..c.find("</c>").unwrap()];
-            let v = c.split("<v>").nth(1).unwrap().split('<').next().unwrap().to_string();
-            if c.contains("t=\"s\"") { si[v.parse::<usize>().unwrap()].to_string() } else { format!("={v}") }
-        };
-        // One cell per table cell: the header, the rows, numbers as numbers.
-        assert_eq!([at("A1"), at("B1"), at("C1")], ["Meter", "Unit", "Reading"]);
-        assert_eq!([at("A2"), at("B2"), at("C2")], ["A1", "kWh", "=37414.00"]);
-        assert_eq!([at("A3"), at("B3"), at("C3")], ["A2", "kW", "=1250.5"]);
-        assert_eq!(at("A4"), "Totals");
-        assert!(sheet.contains("<mergeCells count=\"1\"><mergeCell ref=\"A4:B4\"/></mergeCells>"), "{sheet}");
-        // A blank row separates the table from the paragraph after it.
-        assert!(!sheet.contains("<row r=\"5\""), "{sheet}");
-        assert!(at("A6").starts_with("Notes follow"), "{sheet}");
-        // Number formats keep the decimals and separators; fonts and formats are written once.
-        let styles = part(&x, "xl/styles.xml");
-        assert!(styles.contains("<numFmt numFmtId=\"164\" formatCode=\"#,##0.0\"/>"), "{styles}");
-        assert!(styles.contains("numFmtId=\"2\" fontId=\"0\""), "37414.00 keeps two decimals: {styles}");
-        assert_eq!(styles.matches("<font><b/>").count(), 1, "one bold font for both bold cells: {styles}");
-        assert!(styles.contains("<color rgb=\"FFFF0000\"/>"), "{styles}");
-        assert!(sheet.contains("<cols><col min=\"1\" max=\"1\""), "column widths follow the table: {sheet}");
-        let widths: Vec<f64> = sheet.split("width=\"").skip(1).map(|s| s.split('"').next().unwrap().parse().unwrap()).collect();
-        assert!(widths.len() == 3 && widths.iter().all(|w| (4.0..=80.0).contains(w)), "{widths:?}");
-        assert!(widths[0] > widths[2], "the first column is the widest on the page: {widths:?}");
-    }
-
-    #[test]
-    fn xlsx_drops_control_characters_and_survives_hostile_sizes() {
-        let mut p = page();
-        p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
-            text: format!("Total\u{0}\u{3}\u{c} 4.50\u{FFFF}\tGBP{}", "x".repeat(40_000)),
-            rect: [72.0, 100.0, 300.0, 110.0],
-            size: f64::NAN,
-            bold: false,
-            italic: true,
-            color: [f64::INFINITY, f64::NAN, -3.0],
-            rotation: f64::NAN,
-        });
-        p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
-            text: "Huge\u{1}".into(),
-            rect: [72.0, 50.0, 300.0, 60.0],
-            size: 1e300,
-            ..p.blocks[0].clone()
-        });
-        p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
-            text: "\u{1}\u{2}".into(),
-            rect: [72.0, 30.0, 300.0, 40.0],
-            ..p.blocks[0].clone()
-        });
-        let x = xlsx(&[p], "Receipt\u{1}");
-        for name in part_names(&x) {
-            let xml = part(&x, &name);
-            assert!(!xml.chars().any(|c| !allowed(c)), "{name}");
-            assert!(!xml.contains("NaN") && !xml.contains("inf"), "{name}: {xml}");
-        }
-        let strings = part(&x, "xl/sharedStrings.xml");
-        let long = strings.split("Total 4.50\tGBP").nth(1).unwrap();
-        let kept = long.split('<').next().unwrap();
-        assert_eq!(kept.len() + "Total 4.50\tGBP".len(), 32_767, "cut to Excel's cell limit");
-        let styles = part(&x, "xl/styles.xml");
-        assert!(styles.contains("<font><i/><sz val=\"11\"/><color rgb=\"FF000000\"/>"), "a NaN size reads as 11 pt: {styles}");
-        assert!(styles.contains("<sz val=\"409\"/>"), "huge sizes clamp to Excel's maximum: {styles}");
-        // A cell left with no text after dropping controls is not written.
-        assert_eq!(part(&x, "xl/worksheets/sheet1.xml").matches("<c ").count(), 6);
-    }
-
-    #[test]
-    fn pptx_is_a_presentation_with_a_slide_per_page() {
-        let deck = pptx(&[page(), table_page()], "Deck");
-        let names = part_names(&deck);
-        for n in [
-            "[Content_Types].xml",
-            "_rels/.rels",
-            "docProps/core.xml",
-            "ppt/presentation.xml",
-            "ppt/_rels/presentation.xml.rels",
-            "ppt/presProps.xml",
-            "ppt/viewProps.xml",
-            "ppt/tableStyles.xml",
-            "ppt/theme/theme1.xml",
-            "ppt/slideMasters/slideMaster1.xml",
-            "ppt/slideMasters/_rels/slideMaster1.xml.rels",
-            "ppt/slideLayouts/slideLayout1.xml",
-            "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
-            "ppt/slides/slide1.xml",
-            "ppt/slides/_rels/slide1.xml.rels",
-            "ppt/slides/slide2.xml",
-            "ppt/slides/_rels/slide2.xml.rels",
-            "ppt/media/image1.png",
-        ] {
-            assert!(names.iter().any(|e| e == n), "{n} in {names:?}");
-        }
-        assert!(!names.iter().any(|e| e == "ppt/slides/slide3.xml"));
-        let pres = part(&deck, "ppt/presentation.xml");
-        assert!(pres.contains("<p:sldMasterId id=\"2147483648\" r:id=\"rIdMaster\"/>"), "{pres}");
-        assert!(pres.contains("<p:sldIdLst><p:sldId id=\"256\" r:id=\"rIdSlide1\"/><p:sldId id=\"257\" r:id=\"rIdSlide2\"/></p:sldIdLst>"), "{pres}");
-        assert!(pres.contains("<p:sldSz cx=\"7772400\" cy=\"10058400\"/><p:notesSz cx=\"6858000\" cy=\"9144000\"/>"), "slide = page in EMU: {pres}");
-        let master = part(&deck, "ppt/slideMasters/slideMaster1.xml");
-        for needed in ["<p:clrMap ", "<p:sldLayoutId id=\"2147483649\" r:id=\"rId1\"/>", "<p:txStyles><p:titleStyle>"] {
-            assert!(master.contains(needed), "{needed}: {master}");
-        }
-        let types = part(&deck, "[Content_Types].xml");
-        assert_eq!(types.matches("presentationml.slide+xml").count(), 2);
-        // Text boxes at their page positions: 24 pt bold title, its top 68 pt below the top edge.
-        let s1 = part(&deck, "ppt/slides/slide1.xml");
-        assert_eq!(s1.matches("<p:cNvSpPr txBox=\"1\"/>").count(), 4, "{s1}");
-        let title = s1.split(">Annual Report</a:t>").next().unwrap().rsplit("<p:sp>").next().unwrap();
-        assert!(title.contains("<a:off x=\"914400\" y=\"863600\"/>"), "{title}");
-        assert!(title.contains("<a:bodyPr wrap=\"none\"") && title.contains("<a:noAutofit/>"), "one PDF line stays one line: {title}");
-        assert!(title.contains("sz=\"2400\" b=\"1\" i=\"0\""), "{title}");
-        assert!(title.contains("<a:srgbClr val=\"000000\"/>"), "{title}");
-        assert!(s1.contains("Some &lt;body&gt; text &amp; more"), "{s1}");
-        // The picture keeps its box: 200 × 150 pt whose top is 192 pt from the top of the slide.
-        assert!(s1.contains("<a:blip r:embed=\"rIdImg1\"/>"), "{s1}");
-        let pic = s1.split("</p:pic>").next().unwrap();
-        assert!(pic.contains("<a:off x=\"914400\" y=\"2438400\"/><a:ext cx=\"2540000\" cy=\"1905000\"/>"), "{pic}");
-        let rels = part(&deck, "ppt/slides/_rels/slide1.xml.rels");
-        assert!(rels.contains("Id=\"rIdImg1\"") && rels.contains("Target=\"../media/image1.png\""), "{rels}");
-        assert!(rels.contains("Target=\"../slideLayouts/slideLayout1.xml\""), "{rels}");
-        // No slides at all is still a valid deck.
-        let empty = pptx(&[], "Empty");
-        let pres = part(&empty, "ppt/presentation.xml");
-        assert!(!pres.contains("sldIdLst") && pres.contains("<p:sldSz cx=\"9144000\" cy=\"6858000\"/>"), "{pres}");
-    }
-
-    #[test]
-    fn pptx_keeps_a_detected_table_as_a_real_table() {
-        let deck = pptx(&[table_page()], "Bill");
-        let s = part(&deck, "ppt/slides/slide1.xml");
-        assert_eq!(s.matches("<a:tbl>").count(), 1, "{s}");
-        assert_eq!(s.matches("<a:gridCol ").count(), 3, "{s}");
-        // Columns are as wide as the gaps between the column edges (160 pt each).
-        assert!(s.contains("<a:gridCol w=\"2032000\"/><a:gridCol w=\"2032000\"/>"), "{s}");
-        let rows: Vec<&str> = s.split("<a:tr ").skip(1).collect();
-        assert_eq!(rows.len(), 4);
-        // Rows are spaced as on the page: tops 30 pt apart, the last as tall as its text.
-        let heights: Vec<&str> = rows.iter().map(|r| r.split('"').nth(1).unwrap()).collect();
-        assert_eq!(heights, ["381000", "381000", "381000", "152400"]);
-        // Every row has a cell per grid column; "Totals" spans two, the second merged into it.
-        assert!(rows.iter().all(|r| r.matches("</a:tc>").count() == 3), "{rows:?}");
-        assert!(rows[3].contains("<a:tc gridSpan=\"2\">") && rows[3].contains("<a:tc hMerge=\"1\">"), "{}", rows[3]);
-        assert!(rows[1].contains(">37414.00</a:t>"), "{}", rows[1]);
-        // The table sits at its page position; the note after it stays a text box.
-        assert!(s.contains("<p:xfrm><a:off x=\"914400\" y=\"2032000\"/>"), "{s}");
-        assert_eq!(s.matches("<p:cNvSpPr txBox=\"1\"/>").count(), 1, "{s}");
-        assert!(s.contains(">Notes follow the table"), "{s}");
-    }
-
-    #[test]
-    fn pptx_clamps_slide_sizes_and_scales_other_pages() {
-        let size = |w: f64, h: f64| {
-            let deck = pptx(&[Page { width: w, height: h, ..Page::default() }], "S");
-            let pres = part(&deck, "ppt/presentation.xml");
-            pres.split("<p:sldSz ").nth(1).unwrap().split("/>").next().unwrap().to_string()
-        };
-        assert_eq!(size(1e9, 10.0), "cx=\"51206400\" cy=\"914400\"");
-        assert_eq!(size(-5.0, f64::NAN), "cx=\"9144000\" cy=\"6858000\"");
-        assert_eq!(size(f64::INFINITY, 0.0), "cx=\"9144000\" cy=\"6858000\"");
-        // A second page half the size is scaled up to fill the slide.
-        let mut small = page();
-        small.width = 306.0;
-        small.height = 396.0;
-        for b in &mut small.blocks {
-            b.rect = b.rect.map(|v| v / 2.0);
-            b.size /= 2.0;
-        }
-        small.images.clear();
-        let deck = pptx(&[page(), small], "Two sizes");
-        let s2 = part(&deck, "ppt/slides/slide2.xml");
-        let title = s2.split(">Annual Report</a:t>").next().unwrap().rsplit("<p:sp>").next().unwrap();
-        assert!(title.contains("<a:off x=\"914400\" y=\"863600\"/>") && title.contains("sz=\"2400\""), "{title}");
-    }
-
-    #[test]
-    fn pptx_drops_control_characters_and_survives_hostile_numbers() {
-        let mut p = page();
-        p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
-            text: "Total\u{0}\u{3}\u{c} 4.50\u{FFFF}\tGBP\nnext line".into(),
-            rect: [f64::NAN, f64::NEG_INFINITY, 1e300, f64::INFINITY],
-            size: f64::NAN,
-            bold: false,
-            italic: false,
-            color: [f64::NAN, 2.0, -1.0],
-            rotation: f64::NAN,
-        });
-        p.blocks.push(Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
-            text: "DRAFT".into(),
-            rect: [100.0, 200.0, 500.0, 600.0],
-            size: 1e9,
-            rotation: 45.0,
-            ..p.blocks[0].clone()
-        });
-        p.images[0].size = [f64::NAN, -1.0];
-        p.images[0].rotation = f64::INFINITY;
-        let deck = pptx(&[p], "Receipt\u{1}");
-        for name in part_names(&deck).iter().filter(|n| n.ends_with(".xml") || n.ends_with(".rels")) {
-            let xml = part(&deck, name);
-            assert!(!xml.chars().any(|c| !allowed(c)), "{name}");
-            assert!(!xml.contains("NaN") && !xml.contains("inf") && !xml.contains("=\"-9223"), "{name}: {xml}");
-        }
-        let s = part(&deck, "ppt/slides/slide1.xml");
-        assert!(s.contains("<a:t>Total 4.50\tGBP</a:t></a:r></a:p><a:p>"), "each line is a paragraph: {s}");
-        assert!(s.contains("sz=\"1100\""), "a NaN size reads as 11 pt");
-        assert!(s.contains("sz=\"400000\""), "huge sizes clamp to 4000 pt");
-        assert!(s.contains("<a:srgbClr val=\"00FF00\"/>"), "colours clamp");
-        // The 45° watermark is rotated clockwise on the y-down slide.
-        assert!(s.contains("<a:xfrm rot=\"18900000\">"), "{s}");
-    }
-
-    #[test]
-    fn pptx_keeps_short_paragraph_rows_spaced_as_on_the_page() {
-        let mut p = page();
-        // A two-row title set tight (leading 0.9 em) in a serif face, and a monospaced line.
-        p.blocks[1] = Block {
-            text: "PrintCraft Showcase".into(),
-            lines: vec!["PrintCraft".into(), "Showcase".into()],
-            leading: 36.0,
-            font: "ABCDEF+PlayfairDisplay-Regular".into(),
-            rect: [72.0, 640.0, 400.0, 724.0],
-            size: 40.0,
-            ..p.blocks[1].clone()
-        };
-        p.blocks[2].font = "JetBrainsMono-Regular".into();
-        p.blocks[3].font = "Inter-Medium".into();
-        let s = part(&pptx(&[p], "Rows"), "ppt/slides/slide1.xml");
-        let title = s.split(">Showcase</a:t>").next().unwrap().rsplit("<p:sp>").next().unwrap();
-        assert!(title.contains("<a:bodyPr wrap=\"none\""), "rows are kept, not rewrapped: {title}");
-        assert_eq!(title.matches("<a:p>").count(), 2, "{title}");
-        assert_eq!(title.matches("<a:lnSpc><a:spcPts val=\"3600\"/></a:lnSpc>").count(), 2, "{title}");
-        assert!(title.contains("<a:latin typeface=\"Times New Roman\"/>"), "{title}");
-        let face = |t: &str| s.split(t).next().unwrap().rsplit("<a:latin typeface=\"").next().unwrap().split('"').next().unwrap().to_string();
-        assert_eq!(face(">Overview</a:t>"), "Courier New");
-        assert_eq!(face(">Some &lt;body&gt;"), "Arial");
-        assert_eq!(pptx::typeface(""), None);
-        assert_eq!(pptx::typeface("EBGaramond-Italic"), Some("Times New Roman"));
-        assert_eq!(pptx::typeface("NotoSans-Regular"), Some("Arial"));
-    }
-
-    #[test]
-    fn pptx_puts_the_rendered_artwork_behind_the_text() {
-        let mut p = page();
-        p.background =
-            Some(Image { ext: "jpg", bytes: b"\xFF\xD8\xFF\xE0 not really a jpeg".to_vec(), rect: [0.0; 4], size: [0.0; 2], rotation: 0.0 });
-        let deck = pptx(&[p.clone(), page()], "Dark cover");
-        let s = part(&deck, "ppt/slides/slide1.xml");
-        // The first shape is a picture covering the whole slide; the page's own pictures are in it.
-        let first = s.split("</p:pic>").next().unwrap();
-        assert!(first.contains("<a:off x=\"0\" y=\"0\"/><a:ext cx=\"7772400\" cy=\"10058400\"/>"), "{first}");
-        assert!(s.find("<p:pic>") < s.find("<p:sp>"), "the background is behind the text");
-        assert_eq!(s.matches("<p:pic>").count(), 1, "pictures aren't placed twice: {s}");
-        let names = part_names(&deck);
-        assert!(names.iter().any(|n| n == "ppt/media/image1.jpg"), "{names:?}");
-        assert!(part(&deck, "ppt/slides/_rels/slide1.xml.rels").contains("Target=\"../media/image1.jpg\""));
-        // The next page has no background: its own picture is placed, with its own media name.
-        assert!(names.iter().any(|n| n == "ppt/media/image2.png"), "{names:?}");
-        // An empty background is ignored.
-        p.background = Some(Image { bytes: Vec::new(), ..p.background.clone().unwrap() });
-        assert_eq!(part(&pptx(&[p], "Empty"), "ppt/slides/slide1.xml").matches("<p:pic>").count(), 1);
-    }
-
     #[test]
     fn two_column_body_text_is_not_mistaken_for_a_table() {
         let para = |t: &str, x: f64, y: f64| Block {
-            lines: Vec::new(),
-            leading: 0.0,
-            font: String::new(),
             text: t.into(),
             rect: [x, y, x + 200.0, y + 90.0], // nine lines tall: body text, not a cell
             size: 11.0,
@@ -1603,9 +1209,53 @@ mod tests {
                 para("Second right block, still a tall flowing paragraph rather than a cell.", 320.0, 400.0),
             ],
             images: Vec::new(),
-            background: None,
         };
         let h = html(&[p], "Paper");
         assert!(!h.contains("<table>"), "tall two-column text must stay paragraphs: {h}");
     }
+
+    /// #1936: every picture Word is told to draw (`r:embed`) names a relationship whose target is a
+    /// file in the package, with a content type; JPEG pictures too, inline or placed.
+    #[test]
+    fn word_pictures_resolve_to_media_in_the_package() {
+        let jpeg = Image { ext: "jpg", bytes: vec![0xFF, 0xD8, 0xFF, 0xD9], ..page().images[0].clone() };
+        for placed in [false, true] {
+            let mut p = page();
+            p.images = vec![jpeg.clone()];
+            if placed {
+                p.images[0].rect = [72.0, 640.0, 272.0, 790.0];
+                p.blocks[0].rect = [72.0, 700.0, 300.0, 760.0];
+            }
+            let zip = docx(&[p], "T");
+            let xml = part(&zip, "word/document.xml");
+            assert_eq!(xml.contains("<wp:anchor "), placed, "{xml}");
+            let rels = part(&zip, "word/_rels/document.xml.rels");
+            let embed = xml.split("r:embed=\"").nth(1).and_then(|r| r.split('"').next()).unwrap();
+            let rel = rels.split(&format!("Id=\"{embed}\"")).nth(1).unwrap();
+            assert!(rel.contains("relationships/image\""), "{rels}");
+            let target = rel.split("Target=\"").nth(1).and_then(|t| t.split('"').next()).unwrap();
+            assert_eq!(target, "media/image1.jpg");
+            assert!(zip.windows(21).any(|w| w == b"word/media/image1.jpg"));
+            assert!(part(&zip, "[Content_Types].xml").contains("Extension=\"jpg\" ContentType=\"image/jpeg\""));
+            assert!(xml.matches("<wp:docPr ").count() == 1 && !xml.contains("<v:imagedata"));
+        }
+    }
+
+    #[test]
+    fn word_export_bounds_the_number_of_pictures_and_skips_empty_ones() {
+        let mut p = page();
+        let one = p.images[0].clone();
+        p.images = vec![Image { bytes: Vec::new(), ..one.clone() }];
+        p.images.extend(std::iter::repeat_n(one, MAX_MEDIA + 10));
+        let zip = docx(&[p], "T");
+        let rels = part(&zip, "word/_rels/document.xml.rels");
+        assert_eq!(rels.matches("relationships/image\"").count(), MAX_MEDIA);
+    }
+}
+
+fn core_xml(title: &str) -> String {
+    format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>{}</dc:title></cp:coreProperties>",
+        esc(title)
+    )
 }

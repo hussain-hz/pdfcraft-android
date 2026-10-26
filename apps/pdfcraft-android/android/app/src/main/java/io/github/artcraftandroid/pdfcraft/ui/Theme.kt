@@ -19,11 +19,14 @@ import androidx.compose.ui.unit.sp
 import io.github.artcraftandroid.pdfcraft.R
 
 /** Inter (OFL, assets/fonts), PdfCraft's UI face, copied in by the build. */
-val Inter = FontFamily(
+private val LatinInter = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
     Font(R.font.inter_medium, FontWeight.Medium),
     Font(R.font.inter_semibold, FontWeight.SemiBold),
 )
+
+/** Android supplies the Arabic fallback face at runtime; no system font is bundled. */
+val Inter: FontFamily get() = if (io.github.artcraftandroid.pdfcraft.AppLanguage.current == "ar") FontFamily.Default else LatinInter
 
 /** The colours the screens use beyond Material's roles (measured from the reference app's screens). */
 @Immutable

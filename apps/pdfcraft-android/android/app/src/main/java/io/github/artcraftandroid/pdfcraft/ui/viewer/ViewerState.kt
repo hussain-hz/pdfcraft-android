@@ -130,6 +130,9 @@ class ViewerState(pages: List<PageSize>) {
         return Offset(dx + (scrollX - ox), dy + (scrollY - oy))
     }
 
+    var fitButtonVisible by mutableStateOf(false)
+        private set
+
     /** Zoom by [factor] about screen point [focus]. */
     fun zoomBy(factor: Float, focus: Offset) = zoomTo(zoom * factor, focus)
 
@@ -137,10 +140,23 @@ class ViewerState(pages: List<PageSize>) {
         val z = target.coerceIn(minZoom, maxZoom)
         val lx = (focus.x + scrollX) / zoom
         val ly = (focus.y + scrollY) / zoom
+        if (kotlin.math.abs(z - zoom) > 0.0001f) fitButtonVisible = true
         zoom = z
         scrollX = lx * z - focus.x
         scrollY = ly * z - focus.y
         clamp()
+    }
+
+    /** Fit the current page between the viewer bars, keeping the viewing mode unchanged. */
+    fun fitPage() {
+        val r = layout.rects.getOrNull(currentPage) ?: return
+        val availableW = (viewW - 2f * margin).coerceAtLeast(1f)
+        val availableH = (viewH - padTop - padBottom - 2f * margin).coerceAtLeast(1f)
+        zoom = minOf(availableW / r.width, availableH / r.height).coerceIn(minZoom, maxZoom)
+        scrollX = (r.left + r.right) * zoom / 2f - viewW / 2f
+        scrollY = (r.top + r.bottom) * zoom / 2f - (padTop + (viewH - padTop - padBottom) / 2f)
+        clamp()
+        fitButtonVisible = false
     }
 
     /** Show page [index] from its top (continuous) or by itself (single page). */
@@ -203,7 +219,12 @@ class ViewerState(pages: List<PageSize>) {
         val cw = l.width * zoom
         val ch = l.height * zoom
         scrollX = if (cw <= viewW) -(viewW - cw) / 2f else scrollX.coerceIn(0f, cw - viewW)
-        scrollY = if (ch <= viewH) -(viewH - ch) / 2f else scrollY.coerceIn(0f, ch - viewH)
+        if (mode == PageMode.Continuous && zoom < 1f && l.rects.isNotEmpty()) {
+            // Zoomed-out first/last pages must still fit between the unscaled toolbar insets.
+            val first = l.rects.first().top * zoom - padTop
+            val last = l.rects.last().bottom * zoom - (viewH - padBottom)
+            scrollY = if (last >= first) scrollY.coerceIn(first, last) else (first + last) / 2f
+        } else scrollY = if (ch <= viewH) -(viewH - ch) / 2f else scrollY.coerceIn(0f, ch - viewH)
         if (mode == PageMode.SinglePage && zoom <= 1.001f) scrollY = 0f
     }
 

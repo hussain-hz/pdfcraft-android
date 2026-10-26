@@ -51,6 +51,10 @@ class OpenDocument(
 
     /** Changes saved into [file] that [source] doesn't have (it couldn't be written): closing offers a copy. */
     var notWrittenBack = false
+    var closed = false
+    var closing = false
+    val saveMutex = kotlinx.coroutines.sync.Mutex()
+    var checkpoint: kotlinx.coroutines.Job? = null
 
     /** The links of each page (0-based), refreshed when the document changes. */
     var links: Map<Int, List<io.github.artcraftandroid.pdfcraft.core.LinkInfo>> = emptyMap()

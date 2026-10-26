@@ -1,5 +1,10 @@
 package io.github.artcraftandroid.pdfcraft.ui.viewer
 
+import io.github.artcraftandroid.pdfcraft.text as appText
+
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+
 import android.app.Activity
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
@@ -235,11 +240,19 @@ fun ViewerScreen(vm: AppViewModel, doc: OpenDocument) {
         vm.fillTextPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postFillText) }
         vm.addTextPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postAddText) }
         vm.fieldEdit?.takeIf { it.doc === doc }?.let { FieldEditor(vm, it) }
-        // a Fill & Sign element can be dragged and, for boxes, resized (a comment's: over its panel, below)
         if (ctl.tool == ViewerTool.FillSign) vm.selectedFill?.let { c ->
-            CommentDragOverlay(doc, c, onMove = { dx, dy -> vm.moveFill(doc, c, dx, dy) }, onResize = { vm.resizeFill(doc, c, it) })
+            var active by remember(c.page, c.index, c.rect) { mutableStateOf(false) }
+            if (c.rect.size == 4 && !c.locked) {
+                ObjectTransformOverlay(doc, c.page to c.index, c.page.toInt(),
+                    androidx.compose.ui.geometry.Rect(c.rect[0], c.rect[1], c.rect[2], c.rect[3]),
+                    minFactor = c.fontSize?.let { 4f / it.coerceAtLeast(4f) } ?: 0.1f,
+                    maxFactor = c.fontSize?.let { 400f / it.coerceAtLeast(1f) } ?: Float.MAX_VALUE,
+                    onMove = { dx, dy, finished -> vm.transformFill(doc, c, dx, dy, 1f, finished) },
+                    onScale = { factor, finished -> vm.transformFill(doc, c, 0f, 0f, factor, finished) },
+                    onActive = { active = it })
+            }
+            if (!active) FillElementMenu(vm, doc, c)
         }
-        if (ctl.tool == ViewerTool.FillSign) vm.selectedFill?.let { FillElementMenu(vm, doc, it) }
 
         // Scrubber and page pill (continuous, three pages or more).
         if (vm.readingMode) {
@@ -261,6 +274,23 @@ fun ViewerScreen(vm: AppViewModel, doc: OpenDocument) {
                 onDrag = { ctl.lastMoved = SystemClock.uptimeMillis() },
                 onTap = { ctl.goToPage = true },
             )
+        }
+
+        if (doc.viewer.fitButtonVisible && ctl.sheet == ViewerSheet.None && !ctl.searching) {
+            Row(
+                Modifier.align(Alignment.BottomEnd)
+                    .padding(end = 12.dp, bottom = with(density) { doc.viewer.padBottom.toDp() } + 12.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
+                    .background(c.surface).border(1.dp, c.divider, androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { doc.viewer.fitPage() }
+                    .semantics { contentDescription = appText(R.string.viewer_fit_page_description) }
+                    .height(48.dp).padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(io.github.artcraftandroid.pdfcraft.ui.LucideIcons.Scan, null, tint = c.icon, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(appText(R.string.viewer_fit_page), color = c.text, fontSize = 14.sp)
+            }
         }
 
         HintToast(hint)

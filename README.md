@@ -4,6 +4,8 @@
 
 <h1 align="center">PdfCraft for Android</h1>
 
+This fork includes the improvements developed in Jahfan while retaining the PdfCraft name and application ID: engine **0.9.0**, Arabic/English/Spanish UI, Arabic PDF editing, improved touch controls, recovery saves and optimized previews. See [the import and build notes](docs/jahfan-import.md). The original Jahfan validation reports are historical; current integration results are recorded separately.
+
 <p align="center">
   <b>An Android native open-source PDF reader and editor written in Rust, built on the same engine as the desktop app, <a href="https://github.com/storytold/pdfcraft">PdfCraft</a>, with a Kotlin/Jetpack Compose UI.</b><br>
   Many credits to the original maintainers, <a href="https://github.com/storytold">storytold</a>.
@@ -19,7 +21,7 @@
   <img alt="Rust engine" src="https://img.shields.io/badge/engine-Rust-lightblue?style=flat&logo=rust&logoColor=white">
   <img alt="Kotlin and Jetpack Compose" src="https://img.shields.io/badge/UI-Kotlin%20%C2%B7%20Jetpack%20Compose-blue?style=flat">
   <img alt="Minimum: Android 10 (API 29)" src="https://img.shields.io/badge/min-Android%2010%20%28API%2029%29-blue?style=flat">
-  <img alt="Target: Android 16 (API 36)" src="https://img.shields.io/badge/target-Android%2016%20%28API%2036%29-blue?style=flat">
+  <img alt="Target: Android 17 (API 37)" src="https://img.shields.io/badge/target-Android%2017%20%28API%2037%29-blue?style=flat">
   <img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue?style=flat">
   <img alt="Status: beta" src="https://img.shields.io/badge/status-beta-lightblue?style=flat">
 </p>

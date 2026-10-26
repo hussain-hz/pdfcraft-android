@@ -16,7 +16,7 @@ internal fun initText(context: Context) {
 }
 
 /** The string [id], formatted with [args]. */
-fun text(@StringRes id: Int, vararg args: Any): String = appContext.getString(id, *args)
+fun text(@StringRes id: Int, vararg args: Any): String = AppLanguage.wrap(appContext).getString(id, *args)
 
 /** The plural string [id] for [count], formatted with [args]. */
-fun plural(@PluralsRes id: Int, count: Int, vararg args: Any): String = appContext.resources.getQuantityString(id, count, *args)
+fun plural(@PluralsRes id: Int, count: Int, vararg args: Any): String = AppLanguage.wrap(appContext).resources.getQuantityString(id, count, *args)

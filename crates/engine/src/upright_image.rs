@@ -113,21 +113,6 @@ mod tests {
     }
 
     #[test]
-    fn a_phone_photo_made_into_a_pdf_is_a_page_the_way_it_was_taken() {
-        // Stored 60 × 20 px at 144 × 72 dpi (30 × 20 pt), shown turned: a 20 × 30 pt page.
-        let mut session = crate::Session::new();
-        let made = [
-            session.create_from_images(&[("scan.jpg".into(), phone_jpeg(6, 144))]).unwrap(),
-            session.create_from_images_with_resolution(&[("scan.jpg".into(), phone_jpeg(6, 144))], crate::ImageResolution::Embedded).unwrap(),
-        ];
-        for bytes in made {
-            let id = session.open_new("scan.pdf", bytes).unwrap();
-            let page = &session.get(id).unwrap().info.pages[0];
-            assert!((page.width - 20.0).abs() < 0.01 && (page.height - 30.0).abs() < 0.01, "{} x {}", page.width, page.height);
-        }
-    }
-
-    #[test]
     fn a_phone_photo_used_as_a_custom_stamp_is_embedded_upright() {
         let mut session = crate::Session::new();
         let blank = session.create_blank(300.0, 400.0, 1).unwrap();

@@ -334,7 +334,7 @@
     <string name="root_author_prompt_body">Añade un nombre para mostrar quién hizo cada comentario. Puedes cambiarlo más tarde en Preferencias.</string>
 
     <!-- App dialogs: a file that can't be written back -->
-    <string name="root_read_only_title">El archivo es de solo lectura</string>
+    <string name="root_read_only_title">No se pudo guardar el archivo original</string>
     <!-- Verb: throw the changes away -->
     <string name="root_discard">Descartar</string>
     <!-- %1$s is the file name -->
@@ -586,9 +586,9 @@
     <string name="sign_email_hint">nombre@ejemplo.com</string>
     <string name="sign_section_organisation">Organización (opcional)</string>
     <string name="sign_organisation_hint">Empresa u organización</string>
-    <string name="sign_password_hint">Al menos 6 caracteres</string>
+    <string name="sign_password_hint">Al menos 8 caracteres</string>
     <string name="sign_password_again">La contraseña otra vez</string>
-    <string name="sign_password_short">La contraseña necesita al menos 6 caracteres.</string>
+    <string name="sign_password_short">La contraseña necesita al menos 8 caracteres.</string>
     <string name="sign_password_mismatch">Las contraseñas no coinciden.</string>
     <string name="sign_password_note">PdfCraft no guarda la contraseña y no puede recuperarla: la escribes cada vez que firmas.</string>
 
@@ -1163,4 +1163,19 @@
     <string name="service_action_forward">Avanzar 15 segundos</string>
     <!-- Translator note: notification button that stops reading aloud -->
     <string name="service_action_stop">Detener</string>
+    <string name="transform_drag_selected">Arrastrar el elemento seleccionado</string>
+    <string name="transform_enlarge">Ampliar</string>
+    <string name="viewer_fit_page">Ajustar página</string>
+    <string name="viewer_fit_page_description">Ajustar la página a la pantalla</string>
+    <string name="home_language">Idioma</string>
+    <string name="transform_move_down">Mover hacia abajo</string>
+    <string name="transform_move_left">Mover a la izquierda</string>
+    <string name="transform_move_right">Mover a la derecha</string>
+    <string name="transform_move_up">Mover hacia arriba</string>
+    <string name="edit_paragraph_row">Línea del párrafo %1$s</string>
+    <string name="msg_recovered_changes">Se han recuperado los cambios sin guardar</string>
+    <string name="transform_resize_selected">Cambiar el tamaño del elemento seleccionado</string>
+    <string name="transform_shrink">Reducir</string>
+    <string name="msg_added_text_format_unsupported">Este formato no es compatible con el texto añadido.</string>
+    <string name="root_licence_noto_arabic">Tipo de letra Noto Sans Arabic</string>
 </resources>

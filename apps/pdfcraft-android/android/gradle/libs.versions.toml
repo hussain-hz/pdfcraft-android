@@ -1,15 +1,15 @@
 [versions]
-agp = "9.2.1"
-kotlin = "2.3.21"
+agp = "9.4.1"
+kotlin = "2.4.21"
 composeBom = "2026.09.00"
-coreKtx = "1.17.0"
-lifecycle = "2.9.4"
-activityCompose = "1.11.0"
-kotlinxCoroutines = "1.10.2"
+coreKtx = "1.19.1"
+lifecycle = "2.11.0"
+activityCompose = "1.13.0"
+kotlinxCoroutines = "1.11.0"
 # UniFFI's Kotlin bindings call the Rust library through JNA (Apache-2.0)
 jna = "5.19.1"
 junit = "4.13.2"
-exifinterface = "1.4.1"
+exifinterface = "1.4.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

@@ -264,6 +264,17 @@ pub(crate) fn picture_turn(d: &Dict) -> i64 {
     d.get(b"PCPictureRotate").and_then(Object::as_int).unwrap_or(0).rem_euclid(360) / 90 * 90
 }
 
+/// The page `/Rotate` a rubber stamp's label is turned back by (`/PCStampRotate`).
+fn stamp_turn(d: &Dict) -> i64 {
+    d.get(b"PCStampRotate").and_then(Object::as_int).unwrap_or(0).rem_euclid(360) / 90 * 90
+}
+
+/// The page `/Rotate` a text box's or Fill & Sign text's lines are turned back by
+/// (`/PCTextRotate`, written when it is added to a turned page).
+fn text_turn(d: &Dict) -> i64 {
+    d.get(b"PCTextRotate").and_then(Object::as_int).unwrap_or(0).rem_euclid(360) / 90 * 90
+}
+
 /// The first text [`build`] would draw in the standard fonts (Helvetica, WinAnsiEncoding) that
 /// they can't, which would come out as `?`: what it is (for the message) and the character. The
 /// text of a text box, callout or Fill & Sign text, a measurement's label, a dynamic stamp's
@@ -279,6 +290,12 @@ pub fn undrawable_text(d: &Dict) -> Option<(&'static str, char)> {
         b"Redact" => ("the redaction's overlay text", text(b"OverlayText")?),
         _ => return None,
     };
+    if d.name(b"Subtype") == Some(b"FreeText")
+        && text.chars().any(|c| matches!(c as u32, 0x0600..=0x06ff | 0x0750..=0x077f | 0x08a0..=0x08ff))
+        && pdfcraft_fonts::document_arabic_font().is_some_and(|f| text.lines().all(|l| pdfcraft_fonts::source_shaping::shape(f.bytes, l).is_ok()))
+    {
+        return None;
+    }
     Some((what, first_undrawable(&text)?))
 }
 
@@ -286,6 +303,14 @@ pub fn undrawable_text(d: &Dict) -> Option<(&'static str, char)> {
 /// Text the standard fonts can't draw comes out as `?`: [`undrawable_text`] says which, and
 /// [`crate::set_appearance`] marks the annotation with it (`pdfcraft_fonts::UNDRAWN_MARK`).
 pub fn build(d: &Dict) -> Option<Stream> {
+    build_inner(d, None)
+}
+
+pub(crate) fn build_for_document(d: &Dict, doc: &mut pdfcraft_cos::Document) -> Option<Stream> {
+    build_inner(d, Some(doc))
+}
+
+fn build_inner(d: &Dict, mut document: Option<&mut pdfcraft_cos::Document>) -> Option<Stream> {
     // Imported measurement appearances may include leaders, captions and formatting that
     // this builder cannot reproduce. Preserve them rather than silently losing detail.
     if d.contains(b"Measure") && !d.contains(b"PCMeasureValue") {
@@ -637,7 +662,26 @@ pub fn build(d: &Dict) -> Option<Stream> {
                     }
                     let kind = crate::StampKind::from_name(other)?;
                     let by = d.get(b"PCByLine").and_then(|o| o.as_string()).map(PdfString::to_text);
-                    return Some(stamp(kind, rect, stroke.unwrap_or(kind.color()), by.as_deref(), opacity, res));
+                    let turn = stamp_turn(d);
+                    let draw = if turn == 0 {
+                        rect
+                    } else {
+                        let (rw, rh) = (rect[2] - rect[0], rect[3] - rect[1]);
+                        let (dw, dh) = if matches!(turn, 90 | 270) { (rh, rw) } else { (rw, rh) };
+                        if dw < 1.0 || dh < 1.0 {
+                            return None;
+                        }
+                        [0.0, 0.0, dw, dh]
+                    };
+                    let mut stream = stamp(kind, draw, stroke.unwrap_or(kind.color()), by.as_deref(), opacity, res);
+                    if turn != 0 {
+                        // Upright in the stamp's displayed box, then mapped into `/Rect` the way
+                        // the page maps display space into user space. Viewers fit that box to
+                        // `/Rect`; the page rotation then shows the label the right way up.
+                        let m = pdfcraft_model::view_matrix_for(turn, rect);
+                        stream.dict.set(b"Matrix".to_vec(), Object::Array(m.iter().copied().map(Object::Real).collect()));
+                    }
+                    return Some(stream);
                 }
             }
         }
@@ -647,6 +691,19 @@ pub fn build(d: &Dict) -> Option<Stream> {
             let bw = if d.contains(b"BS") || d.contains(b"Border") { border_width(d) } else { 0.0 };
             // A callout: the leader line (arrowhead at its first point), and the text box inside
             // `/Rect` by `/RD`.
+            // Text added to a turned page is drawn upright in its displayed box, which the form
+            // `/Matrix` then maps into `/Rect` (as for stamps). Callouts keep user-space axes.
+            let turn = if d.contains(b"CL") { 0 } else { text_turn(d) };
+            let (rect, matrix) = if turn == 0 {
+                (rect, None)
+            } else {
+                let (rw, rh) = (rect[2] - rect[0], rect[3] - rect[1]);
+                let (dw, dh) = if matches!(turn, 90 | 270) { (rh, rw) } else { (rw, rh) };
+                if dw < 1.0 || dh < 1.0 {
+                    return None;
+                }
+                ([0.0, 0.0, dw, dh], Some(pdfcraft_model::view_matrix_for(turn, rect)))
+            };
             let full = rect;
             let mut rect = rect;
             if d.contains(b"CL") {
@@ -697,6 +754,47 @@ pub fn build(d: &Dict) -> Option<Stream> {
             let pad = 2.0 + bw;
             let width = (rect[2] - rect[0] - 2.0 * pad).max(1.0);
             let q = d.int(b"Q").unwrap_or(0);
+            if text.chars().any(|ch| matches!(ch as u32, 0x0600..=0x06ff | 0x0750..=0x077f | 0x08a0..=0x08ff))
+                && let Some(doc) = document.as_deref_mut()
+            {
+                let face = pdfcraft_fonts::document_arabic_font()?;
+                let lines = pdfcraft_fonts::source_shaping::wrap(face.bytes, &text, width / size).ok()?;
+                let mut fonts = Dict::new();
+                c.push_str(&format!("{} {} {} {} re W n\n{}", n(rect[0]), n(rect[1]), n(rect[2] - rect[0]), n(rect[3] - rect[1]), rg(text_color)));
+                let mut y = rect[3] - pad - size * 0.9;
+                for line in lines {
+                    if y < rect[1] - size {
+                        break;
+                    }
+                    let shaped = pdfcraft_fonts::source_shaping::shape(face.bytes, &line).ok()?;
+                    let mappings: Vec<_> = shaped.glyphs.iter().map(|g| (g.text.clone(), g.id)).collect();
+                    if mappings.is_empty() {
+                        y -= size * 1.2;
+                        continue;
+                    }
+                    let font = pdfcraft_fonts::embedding::embed_mapping(doc, &mut fonts, face.bytes, face.family, &mappings).ok()?;
+                    let lw = shaped.advance * size;
+                    let x = match q {
+                        1 => rect[0] + pad + (width - lw) / 2.0,
+                        2 => rect[2] - pad - lw,
+                        _ => rect[0] + pad,
+                    };
+                    // ActualText preserves logical Unicode, including ligatures and diacritics.
+                    let actual = line.encode_utf16().map(|c| format!("{c:04X}")).collect::<String>();
+                    c.push_str(&format!("/Span << /ActualText <FEFF{actual}> >> BDC\nBT /{font} {} Tf\n", n(size)));
+                    for (i, g) in shaped.glyphs.iter().enumerate() {
+                        c.push_str(&format!("1 0 0 1 {} {} Tm <{:04X}> Tj\n", n(x + g.position[0] * size), n(y + g.position[1] * size), i + 1));
+                    }
+                    c.push_str("ET EMC\n");
+                    y -= size * 1.2;
+                }
+                res.set(b"Font".to_vec(), Object::Dict(fonts));
+                let mut stream = form(full, c.as_bytes(), res);
+                if let Some(m) = matrix {
+                    stream.dict.set(b"Matrix".to_vec(), Object::Array(m.iter().copied().map(Object::Real).collect()));
+                }
+                return Some(stream);
+            }
             c.push_str(&format!(
                 "{} {} {} {} re W n\nBT\n/Helv {} Tf\n{}",
                 n(rect[0]),
@@ -732,7 +830,11 @@ pub fn build(d: &Dict) -> Option<Stream> {
             let mut fonts = Dict::new();
             fonts.set(b"Helv".to_vec(), Object::Dict(font));
             res.set(b"Font".to_vec(), Object::Dict(fonts));
-            return Some(form(full, &out, res));
+            let mut stream = form(full, &out, res);
+            if let Some(m) = matrix {
+                stream.dict.set(b"Matrix".to_vec(), Object::Array(m.iter().copied().map(Object::Real).collect()));
+            }
+            return Some(stream);
         }
         _ => return None,
     }

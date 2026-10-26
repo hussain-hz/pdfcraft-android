@@ -26,7 +26,8 @@ mod tests;
 pub enum AnnotError {
     #[error("the document has no page tree")]
     NoPageTree,
-    #[error("page {0} does not exist")]
+    /// Holds the 0-based index; the message names the 1-based page a user counts (#1550).
+    #[error("page {} does not exist", .0.saturating_add(1))]
     NoSuchPage(usize),
     #[error("there is no comment {index} on page {page}")]
     NoSuchAnnotation { page: usize, index: usize },
@@ -1101,6 +1102,11 @@ pub fn add_annotation(doc: &mut Document, new: &NewAnnotation, meta: &Meta) -> R
             if let Some(b) = by {
                 d.set(b"PCByLine".to_vec(), PdfString::text(b));
             }
+            // The label is drawn for the page as displayed. A later page rotation is a new edit.
+            let turn = pdfcraft_model::pages(doc).get(new.page).map_or(0, |p| p.rotation(doc));
+            if matches!(turn, 90 | 180 | 270) {
+                d.set(b"PCStampRotate".to_vec(), Object::Int(turn));
+            }
         }
         Shape::TypedSignature { contours, .. } => {
             d.set(b"C".to_vec(), rgb(style.color));
@@ -1230,6 +1236,13 @@ pub fn add_annotation(doc: &mut Document, new: &NewAnnotation, meta: &Meta) -> R
             }
             border(&mut d);
             rich_text(&mut d);
+            // The text is laid out for the page as displayed, like a stamp's label.
+            if !matches!(new.shape, Shape::Callout { .. }) {
+                let turn = pdfcraft_model::pages(doc).get(new.page).map_or(0, |p| p.rotation(doc));
+                if matches!(turn, 90 | 180 | 270) {
+                    d.set(b"PCTextRotate".to_vec(), Object::Int(turn));
+                }
+            }
         }
         _ => {}
     }
@@ -1266,8 +1279,9 @@ pub fn add_annotation(doc: &mut Document, new: &NewAnnotation, meta: &Meta) -> R
     Ok(index)
 }
 
-/// Counterrotate a newly placed image stamp's appearance into displayed-page axes.
-/// The normal appearance's transformed bounding box is fitted to `/Rect` by PDF viewers.
+/// Counterrotate a newly placed picture stamp's appearance into displayed-page axes.
+/// The picture may be an image or a PDF page. The normal appearance's transformed bounding
+/// box is fitted to `/Rect` by PDF viewers.
 pub fn orient_image_stamp(doc: &mut Document, page: usize, index: usize, rotation: i64) -> Result<(), AnnotError> {
     let matrix = match rotation {
         90 => [0.0, 1.0, -1.0, 0.0, 0.0, 0.0],
@@ -1277,8 +1291,8 @@ pub fn orient_image_stamp(doc: &mut Document, page: usize, index: usize, rotatio
     };
     let (_, r) = annot_ref(doc, page, index)?;
     let d = annot_dict(doc, r);
-    if d.name(b"Subtype") != Some(b"Stamp") || !matches!(d.get(b"PCPictureImage"), Some(Object::Bool(true))) {
-        return Err(AnnotError::Invalid("only an image stamp can be oriented".into()));
+    if d.name(b"Subtype") != Some(b"Stamp") || d.get(b"PCPicture").is_none() {
+        return Err(AnnotError::Invalid("only a picture stamp can be oriented".into()));
     }
     let normal = d
         .get(b"AP")
@@ -1293,6 +1307,21 @@ pub fn orient_image_stamp(doc: &mut Document, page: usize, index: usize, rotatio
     Ok(())
 }
 
+/// A comment another program drew, whose text the standard fonts can't draw. Redrawing it would
+/// replace those characters with `?`, so the edit is refused before the dictionary changes.
+fn refuse_foreign_text(doc: &Document, d: &Dict) -> Result<(), AnnotError> {
+    let drawn_elsewhere =
+        d.get(b"AP").is_some_and(|ap| doc.resolve(ap).as_dict().is_some_and(|ap| ap.contains(b"N"))) && pdfcraft_fonts::undrawn_mark(d).is_none();
+    if drawn_elsewhere && let Some((what, c)) = appearance::undrawable_text(d) {
+        return Err(AnnotError::Undrawable(format!(
+            "PdfCraft can't redraw this comment: the standard fonts can't draw \"{}\" (U+{:04X}) in {what}, which would then show as ? (the comment was left as it is)",
+            c.escape_debug(),
+            u32::from(c)
+        )));
+    }
+    Ok(())
+}
+
 /// (Re)generate `/AP /N` for the annotation `r` from its dictionary, for an edit that keeps its
 /// text (a restyle, a new size or colour).
 ///
@@ -1301,17 +1330,17 @@ pub fn orient_image_stamp(doc: &mut Document, page: usize, index: usize, rotatio
 /// their place, so the edit is refused (`AnnotError::Undrawable`). One PdfCraft drew with `?`
 /// (marked `pdfcraft_fonts::UNDRAWN_MARK`) is redrawn.
 pub fn set_appearance(doc: &mut Document, r: ObjRef) -> Result<(), AnnotError> {
-    let d = annot_dict(doc, r);
-    let drawn_elsewhere =
-        d.get(b"AP").is_some_and(|ap| doc.resolve(ap).as_dict().is_some_and(|ap| ap.contains(b"N"))) && pdfcraft_fonts::undrawn_mark(&d).is_none();
-    if drawn_elsewhere && let Some((what, c)) = appearance::undrawable_text(&d) {
-        return Err(AnnotError::Undrawable(format!(
-            "PdfCraft can't redraw this comment: the standard fonts can't draw \"{}\" (U+{:04X}) in {what}, which would then show as ? (the comment was left as it is)",
-            c.escape_debug(),
-            u32::from(c)
-        )));
-    }
+    refuse_foreign_text(doc, &annot_dict(doc, r))?;
     draw_appearance(doc, r)
+}
+
+/// Put `before` back when redrawing fails, so a refused edit does not keep the new rectangle or style.
+fn redraw_or_restore(doc: &mut Document, r: ObjRef, before: Dict) -> Result<(), AnnotError> {
+    if let Err(e) = set_appearance(doc, r) {
+        doc.set(r, Object::Dict(before));
+        return Err(e);
+    }
+    Ok(())
 }
 
 /// Draw `r`'s normal appearance from its dictionary, whatever its text: characters the standard
@@ -1330,8 +1359,8 @@ fn draw_appearance(doc: &mut Document, r: ObjRef) -> Result<(), AnnotError> {
 /// Pure from the dictionary and the objects it points at, so [`AppearanceCache`] can reuse it.
 fn build_appearance(doc: &Document, d: &Dict) -> Option<Stream> {
     let mut stream = appearance::build(d)?;
-    // Image stamp restyling must retain the placement's page-axis correction.
-    if matches!(d.get(b"PCPictureImage"), Some(Object::Bool(true))) {
+    // Picture-stamp restyling must retain the placement's page-axis correction.
+    if d.get(b"PCPicture").is_some() {
         let matrix = d.get(b"AP").and_then(|ap| {
             let ap = doc.resolve(ap);
             let normal = doc.resolve(ap.as_dict()?.get(b"N")?);
@@ -1348,7 +1377,16 @@ fn build_appearance(doc: &Document, d: &Dict) -> Option<Stream> {
 /// Store a built appearance on the annotation: the cheap half of [`set_appearance`].
 fn apply_appearance(doc: &mut Document, r: ObjRef, d: &Dict, stream: Stream) -> Result<(), AnnotError> {
     // Characters the standard fonts can't draw came out as `?`: mark the annotation with the first.
-    let missing = appearance::undrawable_text(d).map(|(_, c)| c);
+    let unicode = d.name(b"Subtype") == Some(b"FreeText")
+        && d.get(b"Contents")
+            .and_then(Object::as_string)
+            .is_some_and(|s| s.to_text().chars().any(|c| matches!(c as u32, 0x0600..=0x06ff | 0x0750..=0x077f | 0x08a0..=0x08ff)));
+    let stream = if unicode {
+        appearance::build_for_document(d, doc).ok_or_else(|| AnnotError::Unsupported("Arabic text cannot be shaped with the document font".into()))?
+    } else {
+        stream
+    };
+    let missing = if unicode { None } else { appearance::undrawable_text(d).map(|(_, c)| c) };
     let ap = doc.add(Object::Stream(stream));
     // A copy (a shared /AP is left alone) that keeps unknown entries; the old down and rollover
     // appearances would show the previous look on press or hover, so they go with the old /N.
@@ -1596,7 +1634,14 @@ fn fitted_box(doc: &Document, r: ObjRef, text: &str) -> Option<[f64; 4]> {
         let longest = text.lines().map(|l| appearance::text_width(l, size)).fold(0.0, f64::max);
         (longest + 2.0 * pad + 4.0).clamp(40.0, 300.0)
     };
-    let lines = appearance::wrap(text, size, (w - 2.0 * pad).max(1.0)).len().max(1) as f64;
+    let available = (w - 2.0 * pad).max(1.0);
+    let count = if text.chars().any(|c| matches!(c as u32, 0x0600..=0x06ff | 0x0750..=0x077f | 0x08a0..=0x08ff)) {
+        let face = pdfcraft_fonts::document_arabic_font()?;
+        pdfcraft_fonts::source_shaping::wrap(face.bytes, text, available / size).ok()?.len()
+    } else {
+        appearance::wrap(text, size, available).len()
+    };
+    let lines = count.max(1) as f64;
     Some([x0, top - lines * size * 1.2 - 2.0 * pad - 2.0, x0 + w, top])
 }
 
@@ -1812,13 +1857,13 @@ fn resize_ink(doc: &mut Document, r: ObjRef, rect: [f64; 4], meta: &Meta) -> Res
             s.iter().map(|p| [axis(p[0], inner[0], inner[2], target[0], target[2]), axis(p[1], inner[1], inner[3], target[1], target[3])]).collect()
         })
         .collect();
+    let before = annot_dict(doc, r);
     doc.update_dict(r, |d| {
         d.set(b"InkList".to_vec(), Object::Array(scaled.iter().map(|s| num_array(&s.concat())).collect()));
         d.set(b"Rect".to_vec(), num_array(&rect));
         touch(d, meta);
     })?;
-    set_appearance(doc, r)?;
-    Ok(())
+    redraw_or_restore(doc, r, before)
 }
 
 /// Store `rect` as a FreeText annotation's text box (or a square's/oval's rectangle): a callout's
@@ -1830,6 +1875,9 @@ fn apply_text_box(doc: &mut Document, r: ObjRef, rect: [f64; 4], meta: &Meta, ne
         return Err(AnnotError::Invalid("invalid rectangle (too small)".into()));
     }
     let d = annot_dict(doc, r);
+    if !new_text {
+        refuse_foreign_text(doc, &d)?;
+    }
     // A callout's rectangle is its text box: the leader line re-attaches and `/Rect` grows to hold it.
     let callout = d.get(b"CL").and_then(|o| o.as_array()).map(|a| a.iter().filter_map(|x| x.as_f64()).collect::<Vec<f64>>()).filter(|l| l.len() == 6);
     let (outer, cl) = match callout {
@@ -1855,7 +1903,16 @@ fn apply_text_box(doc: &mut Document, r: ObjRef, rect: [f64; 4], meta: &Meta, ne
         }
         touch(d, meta);
     })?;
-    if new_text { draw_appearance(doc, r) } else { set_appearance(doc, r) }
+    let before = d;
+    if new_text {
+        if let Err(e) = draw_appearance(doc, r) {
+            doc.set(r, Object::Dict(before));
+            return Err(e);
+        }
+        Ok(())
+    } else {
+        redraw_or_restore(doc, r, before)
+    }
 }
 
 fn border_width_of(d: &Dict) -> f64 {
@@ -1892,7 +1949,9 @@ pub fn set_style(
             return Err(AnnotError::Invalid("this comment has no line endings to change".into()));
         }
     }
+    refuse_foreign_text(doc, &d)?;
     let free_text = subtype == "FreeText";
+    let before = d;
     doc.update_dict(r, |d| {
         if let Some(c) = color {
             if free_text {
@@ -1930,7 +1989,48 @@ pub fn set_style(
         ensure_ending_room(d);
         touch(d, meta);
     })?;
-    set_appearance(doc, r)
+    redraw_or_restore(doc, r, before)
+}
+
+/// Change the font size of a text box, typewriter text or callout (`/DA` keeps its colour; the
+/// rich-text strings follow) and redraw it. The box grows to hold the wrapped text at the new
+/// size and never shrinks, so a box the user drew large stays large. Sizes are 1 to 400 pt.
+pub fn set_font_size(doc: &mut Document, page: usize, index: usize, size: f64, meta: &Meta) -> Result<(), AnnotError> {
+    let (_, r) = annot_ref(doc, page, index)?;
+    unlocked(doc, r)?;
+    let d = annot_dict(doc, r);
+    if d.name(b"Subtype") != Some(b"FreeText") {
+        return Err(AnnotError::Invalid("only text boxes, typewriter text and callouts have a font size".into()));
+    }
+    if !size.is_finite() || !(1.0..=400.0).contains(&size) {
+        return Err(AnnotError::Invalid("font size must be 1\u{2013}400 pt".into()));
+    }
+    refuse_foreign_text(doc, &d)?;
+    let before = d;
+    doc.update_dict(r, |d| {
+        let (col, _) = appearance::parse_da(d);
+        d.set(b"DA".to_vec(), PdfString::literal(format!("{} {} {} rg /Helv {} Tf", n(col[0]), n(col[1]), n(col[2]), n(size)).into_bytes()));
+        rich_text(d);
+        touch(d, meta);
+    })?;
+    let text = text_value(doc, &annot_dict(doc, r), b"Contents").unwrap_or_default();
+    let result = match fitted_box(doc, r, &text) {
+        Some(fit) => {
+            let cur = annot_dict(doc, r);
+            let nums: Vec<f64> =
+                cur.get(b"Rect").and_then(|o| o.as_array()).map(|a| a.iter().filter_map(|x| x.as_f64()).collect()).unwrap_or_default();
+            // Keep the top and sides; only the bottom edge moves, and only downwards.
+            match four(&nums).map(normalize) {
+                Some(old) if !cur.contains(b"CL") => apply_text_box(doc, r, [fit[0], fit[1].min(old[1]), fit[2], fit[3]], meta, false),
+                _ => apply_text_box(doc, r, fit, meta, false),
+            }
+        }
+        None => redraw_or_restore(doc, r, before.clone()),
+    };
+    if result.is_err() {
+        doc.set(r, Object::Dict(before));
+    }
+    result
 }
 
 /// Whether a comment of this subtype has an interior that can be filled (`/IC`: rectangles,
@@ -1956,6 +2056,8 @@ pub fn set_fill(doc: &mut Document, page: usize, index: usize, fill: Option<Rgb>
     if fill.is_some_and(|c| !finite(&c)) {
         return Err(AnnotError::Invalid("invalid fill colour".into()));
     }
+    refuse_foreign_text(doc, &d)?;
+    let before = d;
     doc.update_dict(r, |d| {
         match fill {
             Some(c) => d.set(b"IC".to_vec(), rgb(c)),
@@ -1965,7 +2067,7 @@ pub fn set_fill(doc: &mut Document, page: usize, index: usize, fill: Option<Rgb>
         }
         touch(d, meta);
     })?;
-    set_appearance(doc, r)
+    redraw_or_restore(doc, r, before)
 }
 
 /// Grow a line or polyline's rectangle so a non-`None` ending is not clipped. Idempotent.
@@ -2026,9 +2128,8 @@ pub struct Summary {
     pub intent: Option<String>,
     /// A Fill & Sign mark ([`is_fill_sign`]).
     pub fill_sign: bool,
-    /// `/CA`, the opacity, 0 to 1 (1 when absent or not a number).
+    /// Mobile comment style values.
     pub opacity: f32,
-    /// The line width in points: `/BS /W`, else the third number of `/Border`.
     pub width: Option<f32>,
 }
 
@@ -2180,6 +2281,8 @@ pub struct Props {
     pub fillable: bool,
     /// `/IC`, the interior colour (`None`: no fill).
     pub fill: Option<Rgb>,
+    /// Text boxes, typewriter text and callouts: the `/DA` font size in points.
+    pub font_size: Option<f64>,
 }
 
 /// The current properties of the comment at `(page, index)`.
@@ -2205,6 +2308,7 @@ pub fn props(doc: &Document, page: usize, index: usize) -> Option<Props> {
         locked: annotation_flags(doc, d) & FLAG_LOCKED != 0,
         fillable: fillable(&subtype),
         fill: fill_of(d),
+        font_size: (subtype == "FreeText").then(|| appearance::parse_da(d).1),
         subtype,
         endings: line_endings_of(d),
     })

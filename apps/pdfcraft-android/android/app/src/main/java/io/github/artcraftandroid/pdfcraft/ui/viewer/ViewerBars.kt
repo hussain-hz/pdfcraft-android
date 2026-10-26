@@ -191,7 +191,7 @@ private fun ReadAloudSwitch(on: Boolean, onToggle: () -> Unit) {
     ) {
         Box(Modifier.size(width = 56.dp, height = 28.dp).background(track, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))) {
             Box(
-                Modifier.offset(x = knob, y = 2.dp).size(width = 32.dp, height = 24.dp).background(Color.White, androidx.compose.foundation.shape.RoundedCornerShape(12.dp)),
+                Modifier.offset { androidx.compose.ui.unit.IntOffset(knob.roundToPx(), 2.dp.roundToPx()) }.size(width = 32.dp, height = 24.dp).background(Color.White, androidx.compose.foundation.shape.RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(if (on) LucideIcons.Volume2 else LucideIcons.VolumeOff, null, tint = Color(0xFF222222), modifier = Modifier.size(16.dp))
@@ -328,7 +328,7 @@ fun QuickToolbar(
     var open by remember { androidx.compose.runtime.mutableStateOf(false) }
     val handleLabel = stringResource(if (open) R.string.viewer_hide_shortcuts else R.string.viewer_show_shortcuts)
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth().background(c.surface)) {
-        val slots = toolbarSlots(androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp)
+        val slots = toolbarSlots(with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.width.toDp().value.toInt() })
         val shown = tools.take(slots)
         val itemW = minOf(72.dp, (maxWidth - 16.dp) / maxOf(7, shown.size + 1))
         Column(

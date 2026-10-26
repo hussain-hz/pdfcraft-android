@@ -95,8 +95,8 @@ fun CommentPanel(vm: AppViewModel, doc: OpenDocument, c: CommentInfo) {
     val snippets = remember(doc.info.generation) { androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.graphics.ImageBitmap>() }
     val scroll = rememberScrollState()
     var expanded by remember(c.page, c.index) { mutableStateOf(false) }
-    LaunchedEffect(scroll.value > 0) { if (scroll.value > 0) expanded = true }
-    val landscape = androidx.compose.ui.platform.LocalConfiguration.current.let { it.screenWidthDp > it.screenHeightDp }
+    LaunchedEffect(scroll) { androidx.compose.runtime.snapshotFlow { scroll.value > 0 }.collect { if (it) expanded = true } }
+    val landscape = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.let { it.width > it.height }
     val fraction by androidx.compose.animation.core.animateFloatAsState(if (expanded) 0.6f else if (landscape) 0.5f else 0.4f, label = "panel")
     PdfSheet(onDismiss = { vm.selectedComment = null }, modifier = Modifier.imePadding(), maxHeightFraction = fraction, background = colors.menu, handleHeight = 12.dp, aboveNavBar = true, fill = true) {
         Column(Modifier.fillMaxWidth().fillMaxHeight()) {
@@ -132,7 +132,7 @@ fun CommentPanel(vm: AppViewModel, doc: OpenDocument, c: CommentInfo) {
                 Spacer(Modifier.height(8.dp))
                 ColorGrid(shown) { vm.recolorComment(doc, c, it) }
                 if (c.subtype != "FreeText") {
-                    var opacity by remember(c.page, c.index) { mutableStateOf(c.opacity) }
+                    var opacity by remember(c.page, c.index) { androidx.compose.runtime.mutableFloatStateOf(c.opacity) }
                     LaunchedEffect(opacity) {
                         if (opacity == c.opacity) return@LaunchedEffect
                         kotlinx.coroutines.delay(300)

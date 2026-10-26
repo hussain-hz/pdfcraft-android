@@ -45,8 +45,7 @@ val appVersionCode: Int = run {
 }
 
 // The release key, when the build is given one (the release workflow passes it from the repository's
-// secrets). Without one a release build is signed with the debug key: it installs, but it can't
-// update a published release; or, with -Ppdfcraft.unsigned=true (F-Droid's build), not signed at
+// secrets). A release build requires that key; with -Ppdfcraft.unsigned=true (F-Droid's build), not signed at
 // all, so the published APK's signature can be checked against it.
 val releaseKeystore: String? = providers.environmentVariable("PDFCRAFT_KEYSTORE").orNull
 val unsignedRelease: Boolean = providers.gradleProperty("pdfcraft.unsigned").orNull == "true"
@@ -70,6 +69,9 @@ abstract class CargoNdkBuild : DefaultTask() {
 
     @TaskAction
     fun build() {
+        require(!System.getenv("CRAFT_FONTS_DIR").isNullOrBlank()) {
+            "PdfCraft requires its Arabic PDF font. Run tools/prepare-arabic-fonts.ps1 with the pinned craft-fonts checkout before building."
+        }
         val targets = abis.get().flatMap { listOf("-t", it) }
         val out = outputDir.get().asFile.absolutePath
         // Reproducible: the library mustn't hold the paths it was built in (panic locations name
@@ -83,6 +85,8 @@ abstract class CargoNdkBuild : DefaultTask() {
         execOperations.exec {
             workingDir(workspaceDir.get())
             environment("ANDROID_NDK_HOME", ndkDir.get())
+            environment("CRAFT_FONTS_REQUIRED", "1")
+            environment("CRAFT_FONT_SCRIPTS", "Arab")
             environment("CARGO_ENCODED_RUSTFLAGS", remap.joinToString("\u001f"))
             commandLine(
                 listOf(cargo.get(), "ndk") + targets +
@@ -233,12 +237,12 @@ abstract class OcrModels : DefaultTask() {
 android {
     namespace = "io.github.artcraftandroid.pdfcraft"
     compileSdk = 37
-    ndkVersion = "29.0.14206865"
+    ndkVersion = providers.gradleProperty("pdfcraft.ndkVersion").getOrElse("29.0.14206865")
 
     defaultConfig {
         applicationId = "io.github.artcraftandroid.pdfcraft"
         minSdk = minApi
-        targetSdk = 36
+        targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersion
         ndk { abiFilters.addAll(rustAbis) }
@@ -265,10 +269,17 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (unsignedRelease) null else signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            signingConfig = if (unsignedRelease) null else signingConfigs.findByName("release")
             // reproducible builds: no record of the checkout in the APK
             vcsInfo { include = false }
         }
+    }
+    // Installable, optimized previews retain the debug app identity and signing key.
+    buildTypes.create("preview") {
+        initWith(buildTypes.getByName("release"))
+        applicationIdSuffix = ".debug"
+        signingConfig = signingConfigs.getByName("debug")
+        matchingFallbacks += listOf("release")
     }
     // reproducible builds: no dependency metadata signing block (F-Droid's check rejects it)
     dependenciesInfo {
@@ -279,6 +290,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    bundle { language { enableSplit = false } }
     buildFeatures {
         compose = true
     }
@@ -300,6 +312,11 @@ androidComponents {
             ndkDir.set(androidComponents.sdkComponents.ndkDirectory.map { it.asFile.absolutePath })
             abis.set(rustAbis)
             apiLevel.set(minApi)
+            if (name.endsWith("Release")) doFirst {
+                require(unsignedRelease || releaseKeystore != null) {
+                    "Production builds require PDFCRAFT_KEYSTORE and its credentials. Use pdfcraft.unsigned=true only for explicit unsigned builds."
+                }
+            }
             // cargo knows what changed
             outputs.upToDateWhen { false }
         }
@@ -325,6 +342,7 @@ androidComponents {
             // the Licences screen shows each (the Adobe CMaps' notice, from a crates.io crate, is a
             // plain asset: app/src/main/assets/licences)
             val map = mapOf(
+                File(assetsDir, "fonts/OFL-NotoSansArabic.txt") to "licences/OFL-Noto-Sans-Arabic.txt",
                 File(assetsDir, "fonts/OFL-Inter.txt") to "licences/OFL-Inter.txt",
                 File(assetsDir, "icons/LICENSE-lucide.txt") to "licences/LICENSE-lucide.txt",
                 File(assetsDir, "fonts/OFL-DancingScript.txt") to "licences/OFL-DancingScript.txt",

@@ -83,7 +83,7 @@ fun PagesScreen(vm: AppViewModel, doc: OpenDocument, onClose: () -> Unit) {
     val selected = remember { mutableStateMapOf<Int, Boolean>() }
     val thumbs = remember(doc.info.generation) { mutableStateMapOf<Int, ImageBitmap>() }
     var insertMenu by remember { mutableStateOf(false) }
-    val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+    val landscape = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.let { it.width > it.height }
     val columns = if (landscape) 4 else 2
     val grid = rememberLazyGridState(initialFirstVisibleItemIndex = doc.viewer.currentPage)
     // dragging a page: its index and where it would drop
