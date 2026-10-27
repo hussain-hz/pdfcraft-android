@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PdfCraft</string>
     <string name="comments_action_arrow">رسم سهمًا</string>
     <string name="comments_action_callout">أضاف تعليقًا توضيحيًا</string>
     <string name="comments_action_cloud">رسم شكل سحابة</string>

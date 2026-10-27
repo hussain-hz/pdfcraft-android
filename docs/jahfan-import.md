@@ -39,3 +39,5 @@ cargo test --locked --profile low-disk -j 2 -p pdfcraft-create -p pdfcraft-expor
 For memory-constrained machines, set `CARGO_BUILD_JOBS=2`, limit Gradle workers and run native tests separately from Android builds. Preview APKs are debug-signed; production release signing uses the existing private signing secrets.
 
 The **PdfCraft preview and compatibility** workflow prepares the pinned Arabic font, runs engine/mobile and Android tests, checks lint and uploads the ARM64 preview APK. Manual checks on physical phones remain necessary for touch interactions, Arabic rendering and language changes with unsaved documents.
+
+See [the current import validation](jahfan-import-validation.md) for test, lint and APK results.

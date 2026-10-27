@@ -4,7 +4,7 @@
 
 <h1 align="center">PdfCraft for Android</h1>
 
-This fork includes the improvements developed in Jahfan while retaining the PdfCraft name and application ID: engine **0.9.0**, Arabic/English/Spanish UI, Arabic PDF editing, improved touch controls, recovery saves and optimized previews. See [the import and build notes](docs/jahfan-import.md). The original Jahfan validation reports are historical; current integration results are recorded separately.
+This fork includes the improvements developed in Jahfan while retaining the PdfCraft name and application ID: engine **0.9.0**, Arabic/English/Spanish UI, Arabic PDF editing, improved touch controls, recovery saves and optimized previews. See [the import and build notes](docs/jahfan-import.md). The original Jahfan validation reports are historical; current integration results are in [the validation report](docs/jahfan-import-validation.md).
 
 <p align="center">
   <b>An Android native open-source PDF reader and editor written in Rust, built on the same engine as the desktop app, <a href="https://github.com/storytold/pdfcraft">PdfCraft</a>, with a Kotlin/Jetpack Compose UI.</b><br>
@@ -217,7 +217,7 @@ PdfCraft for Android is in beta.
 | Export to Word, RTF, Excel, PowerPoint, JPEG and PNG | ✅ · Word 97 ⬜ |
 | Recognize text | ✅ (the Latin alphabet without accents) |
 | A customizable quick toolbar, upright and sideways layouts, light and dark themes | ✅ |
-| Translations: all of the app's text is ready to translate ([how](#translating)) | ✅ · Spanish ✅ · other languages ⬜ |
+| Translations: all of the app's text is ready to translate ([how](#translating)) | ✅ · Arabic ✅ · Spanish ✅ · other languages ⬜ |
 | AI assistant, cloud storage, sharing for review | 🚫 PdfCraft is a local app |
 
 <sub>✅ works today · 🚧 in progress · ⬜ not started · 🚫 not planned</sub>
@@ -228,9 +228,10 @@ PdfCraft for Android is in beta.
 *One Gradle command builds the whole app: it compiles the Rust engine with [cargo-ndk](https://github.com/bbqsrc/cargo-ndk) and generates the Kotlin bindings.*
 
 * Clone this repository
-* Make sure you have at least 3 GB of free disk space
+* Reserve disk space for Rust and Gradle caches, especially when building multiple native profiles.
 * Recognize text's models (12 MB, CC-BY-SA-4.0) are in `assets/models/`; `apps/pdfcraft-android/fetch-models.sh` downloads them again if you need to
-* enter `apps/pdfcraft-android/android` and run `./gradlew assembleRelease`, or open that folder in Android Studio and press Run.
+* Prepare the pinned Arabic font using the [import build instructions](docs/jahfan-import.md#build-and-verify).
+* Enter `apps/pdfcraft-android/android` and run `./gradlew assemblePreview`, or open that folder in Android Studio and press Run. Production `assembleRelease` builds require the configured release signing key (or explicit unsigned packaging).
 
 Build time dependencies:
 

@@ -405,7 +405,7 @@ private fun BoxScope.SelectedParagraph(vm: AppViewModel, doc: OpenDocument, para
         val a = doc.viewer.pageToScreen(para.page, rect.left, rect.top)
         val b = doc.viewer.pageToScreen(para.page, rect.right, rect.bottom)
         FloatingMenu(a, b, doc.viewer.padTop, doc.viewer.viewW) {
-            MenuText(appText(R.string.viewer_edit_text)) { vm.startInlineEdit(para, selectAll = false) }
+            MenuText(appText(R.string.edit_edit_text)) { vm.startInlineEdit(para, selectAll = false) }
             MenuSplit()
             if (para.rows.isEmpty()) {
                 MenuText(appText(R.string.edit_select_all)) { vm.startInlineEdit(para, selectAll = true) }
