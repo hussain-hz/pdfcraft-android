@@ -213,7 +213,7 @@ pub fn digital_id_info(path: String, password: String) -> Result<DigitalIdInfo, 
     })
 }
 
-/// The engine version (`0.6.0`).
+/// The bundled engine version, inherited from the workspace package.
 #[uniffi::export]
 pub fn engine_version() -> String {
     env!("CARGO_PKG_VERSION").into()
