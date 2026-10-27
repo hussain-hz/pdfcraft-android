@@ -51,7 +51,7 @@ jobs:
       - name: Test mobile engine compatibility
         run: cargo test --locked --profile low-disk -p pdfcraft-android --lib
       - name: Test upgraded engine libraries
-        run: cargo test --locked --profile low-disk -p pdfcraft-create -p pdfcraft-export -p pdfcraft-annot -p pdfcraft-render -p pdfcraft-edit --lib
+        run: cargo test --locked --profile low-disk -p pdfcraft-create -p pdfcraft-export -p pdfcraft-annot -p pdfcraft-render -p pdfcraft-edit -p pdfcraft-engine -p pdfcraft-fonts -p pdfcraft-cos --lib
       - name: Prepare Android tools
         shell: pwsh
         run: |

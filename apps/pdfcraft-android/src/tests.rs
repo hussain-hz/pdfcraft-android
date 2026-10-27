@@ -773,3 +773,24 @@ fn private_fragmented_arabic_selection_roundtrip() {
     let reopened = s.open(out, None).unwrap().id;
     assert_eq!(expected, s.render_page(reopened, 0, 1.0, None).unwrap().rgba);
 }
+
+#[test]
+fn upright_comment_hit_boxes_match_the_engine_on_rotated_pages() {
+    for rotation in [0, 90, 180, 270] {
+        let session = MobileSession::new();
+        let doc = session.open(blank_pdf(1), None).unwrap().id;
+        if rotation != 0 {
+            session.execute("page_rotate".into(), json!({"doc": doc, "degrees": rotation}).to_string()).unwrap();
+        }
+        session
+            .execute("comment_add".into(), json!({"doc": doc, "page": 1, "type": "note", "at": [100, 120], "contents": "upright"}).to_string())
+            .unwrap();
+        let comments = session.comments(doc).unwrap();
+        let rect = &comments[0].rect;
+        assert!((rect[0] - 100.0).abs() < 0.1 && (rect[1] - 120.0).abs() < 0.1, "rotation {rotation}: {rect:?}");
+        assert!((rect[2] - rect[0] - 20.0).abs() < 0.1 && (rect[3] - rect[1] - 20.0).abs() < 0.1, "rotation {rotation}: {rect:?}");
+        let listed: Value = serde_json::from_str(&session.execute("comment_list".into(), json!({"doc": doc}).to_string()).unwrap()).unwrap();
+        let listed_rect: Vec<f64> = listed["comments"][0]["rect"].as_array().unwrap().iter().map(|v| v.as_f64().unwrap()).collect();
+        assert!(rect.iter().zip(listed_rect).all(|(a, b)| (*a as f64 - b).abs() < 0.1), "rotation {rotation}");
+    }
+}

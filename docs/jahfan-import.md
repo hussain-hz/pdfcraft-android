@@ -2,6 +2,8 @@
 
 The local Jahfan source at commit `a23c160d662a8828e105b2346b1fe73fa68dfc2f` was merged with this repository's `main` at `723fb92`. Their common Android ancestor is `62f378a`.
 
+For the subsequent upgrade to engine 0.14.0, see [the engine upgrade notes](engine-0.14.0.md). The 0.9.0 details below describe the original import.
+
 ## Included improvements
 
 - PdfCraft engine 0.9.0, based on upstream release commit `645016addcfb9078c557f0189559ab47cdcee057`, including Jahfan's Android compatibility extensions for voice comments, Office import, Excel export and photo-edge detection.
