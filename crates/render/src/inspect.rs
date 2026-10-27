@@ -2611,6 +2611,7 @@ mod tests {
             author: None,
             contents: None,
             modified: None,
+            modified_raw: None,
             name: None,
             in_reply_to: None,
             parent: None,
@@ -2623,6 +2624,8 @@ mod tests {
             locked: false,
             intent: None,
             fill_sign: false,
+            opacity: 1.0,
+            width: None,
             no_rotate: true,
             points: Vec::new(),
         };

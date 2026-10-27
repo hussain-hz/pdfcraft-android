@@ -768,6 +768,12 @@ pub(super) fn rewrite_styled_block(
                 && a.origin.state.word_spacing == b.origin.state.word_spacing
                 && a.origin.state.rise == b.origin.state.rise
                 && a.origin.state.render_mode == b.origin.state.render_mode
+                && a.origin.state.stroke == b.origin.state.stroke
+                && a.origin.state.line_width == b.origin.state.line_width
+                && a.origin.state.dash == b.origin.state.dash
+                && a.origin.state.line_cap == b.origin.state.line_cap
+                && a.paint == b.paint
+                && a.scope == b.scope
                 && a.origin.ctm == b.origin.ctm
                 && (chars[start].2 == chars[*i].2 || chars[start].0.is_whitespace())
         });
