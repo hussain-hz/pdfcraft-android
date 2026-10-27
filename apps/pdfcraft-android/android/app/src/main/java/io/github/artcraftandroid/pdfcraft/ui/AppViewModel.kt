@@ -858,7 +858,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (out.name.lowercase().endsWith(".pdf")) {
                     open(Uri.fromFile(out))
                 } else {
-                    val uri = files.shareable(out, out.name)
+                    val uri = withContext(Dispatchers.IO) { files.shareable(out, out.name) }
                     val type = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(out.extension.lowercase()) ?: "*/*"
                     intents.trySend(Intent.createChooser(Intent(Intent.ACTION_VIEW).setDataAndType(uri, type).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), null))
                 }

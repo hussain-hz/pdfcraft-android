@@ -43,3 +43,11 @@ The updated local `testDebugUnitTest lintPreview assemblePreview` build passed. 
 - CI previously hit its one-hour limit. The timeout is now two hours, with Rust cache saving enabled on failed runs; the test suites are retained.
 
 The updated preview is `0.1.0-beta.11` (ARM64 version code `100112`), with the same PdfCraft label, package and debug signing identity. APK SHA-256: `95eb95757f408740eb05a6ac79409aee1a04008799fcbfa543b4e7ffc7a48c8a`.
+
+## Final attachment dispatch correction - 0.1.0-beta.12
+
+Review of all share call sites found one non-PDF attachment path calling the synchronous share preparation from the UI coroutine. It now uses Dispatchers.IO, matching the other share paths and keeping storage allocation/copying off the UI thread.
+
+The final beta.12 local build, all 69 JVM tests and lint passed again: zero errors, zero warnings. The native source remains unchanged. The preceding beta.11 GitHub run 40442015537 completed successfully, including the full native and Android suites; a fresh run will validate this last dispatch correction before merging.
+
+Preview version: 0.1.0-beta.12; ARM64 version code 100122. APK SHA-256: `ca399cfe68f7073391b1b268437b240da358b47bb208ef5a818e5e13d3a9d4ac`.
