@@ -12,6 +12,9 @@ import java.util.Locale
 
 /** Interface language only: PDF contents, engine commands and speech voices stay independent. */
 object AppLanguage {
+    /** Empty means follow the device language, independently of the resolved UI language. */
+    @Volatile var selected: String = ""
+        private set
     @Volatile var current: String = "en"
         private set
 
@@ -21,7 +24,8 @@ object AppLanguage {
                 ?.takeUnless { it.isEmpty }?.get(0)?.language
         } else context.getSharedPreferences("interface_language", Context.MODE_PRIVATE)
             .getString("language", null)
-        val language = saved?.takeIf { it in setOf("ar", "en", "es") }
+        selected = saved?.takeIf { it in setOf("ar", "en", "es") }.orEmpty()
+        val language = selected.takeIf { it.isNotEmpty() }
             ?: context.resources.configuration.locales[0].language.takeIf { it in setOf("ar", "en", "es") } ?: "en"
         current = language
         val locale = Locale.forLanguageTag(language)
@@ -33,14 +37,15 @@ object AppLanguage {
     }
 
     fun select(activity: Activity, language: String) {
-        if (language !in setOf("ar", "en", "es") || language == current) return
+        if (language !in setOf("", "ar", "en", "es") || language == selected) return
+        selected = language
         if (Build.VERSION.SDK_INT >= 33) {
             activity.getSystemService(LocaleManager::class.java).applicationLocales =
                 LocaleList.forLanguageTags(language)
             return
         }
         activity.getSharedPreferences("interface_language", Context.MODE_PRIVATE)
-            .edit { putString("language", language) }
+            .edit { if (language.isEmpty()) remove("language") else putString("language", language) }
         // Recreate only the Activity. Its ViewModel keeps open documents and unsaved work.
         activity.recreate()
     }

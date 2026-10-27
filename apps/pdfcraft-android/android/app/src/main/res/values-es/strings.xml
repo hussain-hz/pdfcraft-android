@@ -1213,6 +1213,11 @@
     <string name="updates_download_failed">No se pudo descargar la actualización. Comprueba la conexión y el almacenamiento disponible e inténtalo de nuevo.</string>
     <string name="home_theme">Apariencia</string>
     <string name="home_theme_system">Según el sistema</string>
-    <string name="home_theme_light">Claro</string>
-    <string name="home_theme_dark">Oscuro</string>
+    <string name="home_theme_light">Blanco</string>
+    <string name="home_theme_dark">Negro</string>
+    <string name="home_display_preferences">Preferencias de pantalla</string>
+    <string name="home_choose_theme">Elige la apariencia de la aplicación</string>
+    <string name="home_choose_language">Elige el idioma de la aplicación</string>
+    <string name="home_theme_colored">Color</string>
+    <string name="home_theme_gray">Gris oscuro</string>
 </resources>

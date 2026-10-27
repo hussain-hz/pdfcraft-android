@@ -152,17 +152,34 @@ val LocalPdfColors = staticCompositionLocalOf { LightPdfColors }
 /** The colours in effect. */
 val pdfColors: PdfColors @Composable get() = LocalPdfColors.current
 
-/** How the app chooses light or dark (Preferences ▸ Theme). */
-enum class ThemeChoice { System, Light, Dark }
+/** Persisted appearance choices; System follows the device and remains the default. */
+enum class ThemeChoice { System, Colored, Light, DarkGray, Dark }
+
+/** Keep the existing Light/Dark preference names so earlier selections remain valid. */
+val DarkGrayPdfColors = DarkPdfColors.copy(
+    surface = Color(0xFF292929), surfaceRaised = Color(0xFF383838),
+    pressed = Color(0xFF454550), home = Color(0xFF292929), desk = Color(0xFF202020),
+    menu = Color(0xFF383838), navBand = Color(0xFF323232), pageCard = Color(0xFF383838),
+)
+
+val ColoredPdfColors = LightPdfColors.copy(
+    surface = Color(0xFFF5F6FF), surfaceRaised = Color(0xFFE9ECFC),
+    pressed = Color(0xFFDCE2FB), home = Color(0xFFEEF1FF), navBand = Color(0xFFE8EDFF),
+    accent = Color(0xFF405CC7), button = Color(0xFF405CC7), toolAccent = Color(0xFF405CC7),
+)
 
 @Composable
 fun PdfcraftTheme(choice: ThemeChoice = ThemeChoice.System, content: @Composable () -> Unit) {
     val dark = when (choice) {
         ThemeChoice.System -> isSystemInDarkTheme()
-        ThemeChoice.Light -> false
-        ThemeChoice.Dark -> true
+        ThemeChoice.Colored, ThemeChoice.Light -> false
+        ThemeChoice.DarkGray, ThemeChoice.Dark -> true
     }
-    val c = if (dark) DarkPdfColors else LightPdfColors
+    val c = when (choice) {
+        ThemeChoice.Colored -> ColoredPdfColors
+        ThemeChoice.DarkGray -> DarkGrayPdfColors
+        else -> if (dark) DarkPdfColors else LightPdfColors
+    }
     val scheme: ColorScheme = if (dark) {
         darkColorScheme(primary = c.accent, onPrimary = c.onAccent, surface = c.surface, onSurface = c.text, background = c.surface, onBackground = c.text,
             surfaceVariant = c.surfaceRaised, onSurfaceVariant = c.textSecondary, outline = c.divider, error = c.red, surfaceContainer = c.surfaceRaised,

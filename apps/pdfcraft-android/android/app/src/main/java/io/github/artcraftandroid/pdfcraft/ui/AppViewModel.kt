@@ -828,7 +828,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         appPrefs.edit { putBoolean("keyboardShortcuts", on) }
     }
 
-    /** The app's theme (Preferences ▸ Theme): the system's, or always light or dark. */
+    /** Persisted appearance; earlier Light/Dark selections keep their original meaning. */
     var theme by mutableStateOf(runCatching { ThemeChoice.valueOf(appPrefs.getString("theme", "System") ?: "System") }.getOrDefault(ThemeChoice.System))
         private set
 

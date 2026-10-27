@@ -1203,6 +1203,11 @@
     <string name="updates_download_failed">Could not download the update. Check your connection and available storage, then try again.</string>
     <string name="home_theme">Appearance</string>
     <string name="home_theme_system">Follow system</string>
-    <string name="home_theme_light">Light</string>
-    <string name="home_theme_dark">Dark</string>
+    <string name="home_theme_light">White</string>
+    <string name="home_theme_dark">Black</string>
+    <string name="home_display_preferences">Display preferences</string>
+    <string name="home_choose_theme">Choose the app appearance</string>
+    <string name="home_choose_language">Choose the app language</string>
+    <string name="home_theme_colored">Colored</string>
+    <string name="home_theme_gray">Dark gray</string>
 </resources>

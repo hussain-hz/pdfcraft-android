@@ -362,16 +362,12 @@ fun SettingsScreen(vm: AppViewModel) {
 private fun Preferences(vm: AppViewModel) {
     val c = pdfColors
     var authorDialog by remember { mutableStateOf(false) }
+    var appearanceDialog by remember { mutableStateOf(false) }
+    var languageDialog by remember { mutableStateOf(false) }
     val activity = androidx.activity.compose.LocalActivity.current
-    Section(stringResource(R.string.home_theme))
-    SheetRow(null, stringResource(R.string.home_theme_system), { vm.setThemeChoice(io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.System) }, checked = vm.theme == io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.System)
-    SheetRow(null, stringResource(R.string.home_theme_light), { vm.setThemeChoice(io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Light) }, checked = vm.theme == io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Light)
-    SheetRow(null, stringResource(R.string.home_theme_dark), { vm.setThemeChoice(io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Dark) }, checked = vm.theme == io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Dark)
-    SheetDivider()
-    Section(appText(R.string.home_language))
-    SheetRow(null, "العربية", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "ar") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "ar")
-    SheetRow(null, "English", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "en") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "en")
-    SheetRow(null, "Español", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "es") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "es")
+    Section(stringResource(R.string.home_display_preferences))
+    PreferenceSummary(stringResource(R.string.home_theme), stringResource(themeLabel(vm.theme))) { appearanceDialog = true }
+    PreferenceSummary(stringResource(R.string.home_language), languageLabel(io.github.artcraftandroid.pdfcraft.AppLanguage.selected)) { languageDialog = true }
     SheetDivider()
     Section(stringResource(R.string.home_section_notifications))
     Text(stringResource(R.string.home_no_notifications), color = c.textSecondary, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
@@ -401,6 +397,14 @@ private fun Preferences(vm: AppViewModel) {
         color = c.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp),
     )
     Spacer(Modifier.height(24.dp))
+    if (appearanceDialog) AppearancePicker(vm.theme, { appearanceDialog = false }) {
+        vm.setThemeChoice(it)
+        appearanceDialog = false
+    }
+    if (languageDialog) LanguagePicker(io.github.artcraftandroid.pdfcraft.AppLanguage.selected, { languageDialog = false }) { language ->
+        languageDialog = false
+        activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, language) }
+    }
     if (authorDialog) {
         var name by remember { mutableStateOf(vm.toolPrefs.author) }
         io.github.artcraftandroid.pdfcraft.ui.PdfDialog(

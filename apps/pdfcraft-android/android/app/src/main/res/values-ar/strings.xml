@@ -828,6 +828,11 @@
     <string name="updates_download_failed">تعذّر تنزيل التحديث. تحقق من الاتصال والمساحة المتاحة وحاول مجددًا.</string>
     <string name="home_theme">المظهر</string>
     <string name="home_theme_system">حسب النظام</string>
-    <string name="home_theme_light">فاتح</string>
-    <string name="home_theme_dark">داكن</string>
+    <string name="home_theme_light">أبيض</string>
+    <string name="home_theme_dark">أسود</string>
+    <string name="home_display_preferences">تفضيلات العرض</string>
+    <string name="home_choose_theme">اختر مظهر التطبيق</string>
+    <string name="home_choose_language">اختر لغة التطبيق</string>
+    <string name="home_theme_colored">ملوّن</string>
+    <string name="home_theme_gray">رمادي داكن</string>
 </resources>
