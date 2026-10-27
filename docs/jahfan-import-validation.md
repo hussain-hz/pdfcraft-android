@@ -29,7 +29,7 @@ Final local `testDebugUnitTest lintPreview assemblePreview` succeeded using Rust
 - The generated app-languages configuration contains English, Arabic and Spanish. Resource checks found no missing string references, duplicate resource keys or Arabic format-placeholder mismatches.
 - APK SHA-256: `83e28a2e46273e284f57ac28fc13f9895d7eef37497eb078f04e19275a1e8139`.
 
-The earlier local concurrent native/Android build exhausted memory. Final checks ran with limited parallelism and passed. Manual physical-phone checks, especially language changes with unsaved documents and Arabic touch editing, remain outside this validation. Historical `VALIDATION.md` reports describe the original Jahfan builds separately.
+The earlier local concurrent native/Android build exhausted memory. Final checks ran with limited parallelism and passed. Manual physical-phone checks, especially language changes with unsaved documents and Arabic touch editing, remain outside this validation.
 
 ## Warning fixes - 0.1.0-beta.11
 

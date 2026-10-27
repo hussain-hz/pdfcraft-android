@@ -19,7 +19,7 @@ The destination's Spanish translation, resource-based UI text, storage-error han
 
 The engine remains **0.9.0**. This import does not upgrade it to 0.14.0. The imported native engine and mobile bridge sources are unchanged from the Jahfan source commit.
 
-`JAHFAN.md`, `AUDIT-FIXES.md` and `VALIDATION.md` describe the original Jahfan work and its historical checks. Their app identity and past test results refer to Jahfan, not a newly verified PdfCraft build. This document describes the destination integration.
+This document describes the PdfCraft integration. See [the import validation](jahfan-import-validation.md) for the associated build and test results.
 
 ## Build and verify
 
