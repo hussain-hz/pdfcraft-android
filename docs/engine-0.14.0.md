@@ -18,4 +18,20 @@ Historical 0.9.0 import/build results are in [the original integration report](j
 
 ## Validation
 
-Validation of this upgrade is in progress. Results will be recorded after native, Android, lint and APK checks complete. The earlier beta.12 physical-phone result does not validate engine 0.14.0.
+Local `cargo check --locked --profile low-disk -p pdfcraft-android` passed. The native/mobile library suites passed **1436 tests**, with **6 ignored** and no failures:
+
+| Suite | Passed | Ignored |
+| --- | ---: | ---: |
+| Android bridge | 28 | 4 |
+| Annotations | 74 | 0 |
+| COS | 92 | 0 |
+| Creation and Office import | 67 | 0 |
+| Editing | 283 | 0 |
+| Engine | 366 | 2 |
+| Export | 34 | 0 |
+| Fonts | 91 | 0 |
+| Rendering | 401 | 0 |
+
+Migration checks caught and fixed an interaction between Arabic style canonicalization and upstream dashed/stroked paint boundaries. Office conversion tests now distinguish unsupported ODT input from damaged supported DOCX input, and check valid RTF conversion for Combine. The Arabic line-edit path retains upstream clipping-path refusal and fallback limits.
+
+The full Android/CI status and APK validation results are recorded in [pull request 2](https://github.com/hussain-hz/pdfcraft-android/pull/2) and the corresponding preview release. The earlier beta.12 physical-phone result does not validate engine 0.14.0.

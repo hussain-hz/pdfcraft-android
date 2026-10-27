@@ -4675,8 +4675,8 @@ impl Session {
     }
 
     /// A new document from a Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or RTF file,
-    /// converted on the device (`pdfcraft_create::from_office`). Text is set in the standard
-    /// fonts: characters outside Western European scripts show as `?`.
+    /// converted on the device (`pdfcraft_create::from_office`) using the importer
+    /// and its bundled font fallbacks.
     pub fn create_from_office(&self, name: &str, bytes: &[u8]) -> Result<Arc<Vec<u8>>, EditError> {
         self.write_new(&pdfcraft_create::from_office(name, bytes)?)
     }
@@ -4685,7 +4685,9 @@ impl Session {
     /// (it must open and allow copying pages) and returned as it is.
     pub fn convert_to_pdf(&self, name: &str, bytes: &Arc<Vec<u8>>) -> Result<(SourceKind, Arc<Vec<u8>>), EditError> {
         let Some(kind) = source_kind(name, bytes) else {
-            return Err(EditError::Source(format!("{name}: this file type can't be converted; use a PDF, an image or a .txt file")));
+            return Err(EditError::Source(format!(
+                "{name}: this file type can't be converted; use a PDF, an image, a .txt file or a supported Office file"
+            )));
         };
         let title = name.rsplit_once('.').map_or(name, |(s, _)| s);
         // Image decoders read untrusted bytes: a panic in one must not take the app down.
