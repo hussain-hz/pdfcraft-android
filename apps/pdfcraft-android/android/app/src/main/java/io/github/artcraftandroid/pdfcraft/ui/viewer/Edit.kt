@@ -1,5 +1,9 @@
 package io.github.artcraftandroid.pdfcraft.ui.viewer
 
+import io.github.artcraftandroid.pdfcraft.text as appText
+
+import androidx.core.graphics.toColorInt
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -35,6 +39,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.ime
@@ -90,6 +95,9 @@ data class Paragraph(
     val bold: Boolean,
     val italic: Boolean,
     val color: String?,
+    val addedIndex: Int? = null,
+    val placementBox: FloatArray? = null,
+    val rows: List<InlineRow> = emptyList(),
 )
 
 /** A picture Edit PDF has selected: its number on the page and where it sits (points). */
@@ -386,86 +394,40 @@ private fun screenBox(doc: OpenDocument, page: Int, box: FloatArray, pad: Float)
 
 @Composable
 private fun BoxScope.SelectedParagraph(vm: AppViewModel, doc: OpenDocument, para: Paragraph) {
-    val density = LocalDensity.current
-    val pad = with(density) { 3.dp.toPx() }
-    val (a0, b0) = screenBox(doc, para.page, para.box, pad)
-    // a drag in progress: the move, or the width change from either side
-    var move by remember(para) { mutableStateOf(Offset.Zero) }
-    var grow by remember(para) { mutableFloatStateOf(0f) }
-    var growLeft by remember(para) { mutableStateOf(false) }
-    val a = Offset(a0.x + move.x + if (growLeft) grow else 0f, a0.y + move.y)
-    val b = Offset(b0.x + move.x + if (growLeft) 0f else grow, b0.y + move.y)
-    val ppp = doc.viewer.pixelsPerPoint(para.page).coerceAtLeast(0.01f)
-    Canvas(Modifier.fillMaxSize()) {
-        drawRect(SelectionBlue, topLeft = a, size = Size(b.x - a.x, b.y - a.y), style = Stroke(2.dp.toPx()))
-        for (h in listOf(a, Offset(b.x, a.y), b, Offset(a.x, b.y))) {
-            drawCircle(Color.White, 7.dp.toPx(), h)
-            drawCircle(SelectionBlue, 7.dp.toPx(), h, style = Stroke(2.dp.toPx()))
-        }
-    }
-    // the body: tap to type in it, drag to move it
-    with(density) {
-        Box(
-            Modifier.offset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.size((b.x - a.x).toDp(), (b.y - a.y).toDp())
-                .pointerInput(para) { detectTapGestures { vm.startInlineEdit(para, selectAll = false) } }
-                .pointerInput(para) {
-                    detectDragGestures(
-                        onDragEnd = {
-                            val m = move
-                            move = Offset.Zero
-                            if (m.getDistance() > 2f) vm.moveParagraph(doc, para, m.x / ppp, m.y / ppp)
-                        },
-                        onDragCancel = { move = Offset.Zero },
-                    ) { change, d ->
-                        change.consume()
-                        move += d
-                    }
-                },
-        )
-        // the four corners change the width (the left ones from the left)
-        for ((corner, left) in listOf(a to true, Offset(b.x, a.y) to false, b to false, Offset(a.x, b.y) to true)) {
-            Box(
-                Modifier.offset { IntOffset((corner.x - 22.dp.toPx()).roundToInt(), (corner.y - 22.dp.toPx()).roundToInt()) }.size(44.dp)
-                    .pointerInput(para, left) {
-                        detectDragGestures(
-                            onDragStart = { growLeft = left },
-                            onDragEnd = {
-                                val g = grow
-                                grow = 0f
-                                val w = (para.box[2] - para.box[0]) + (if (left) -g else g) / ppp
-                                if (kotlin.math.abs(g) > 2f && w > 12f) vm.resizeParagraph(doc, para, w, if (left) g / ppp else 0f)
-                            },
-                            onDragCancel = { grow = 0f },
-                        ) { change, d ->
-                            change.consume()
-                            grow += d.x
-                        }
-                    },
-            )
-        }
-    }
-    if (move == Offset.Zero && grow == 0f) {
-        FloatingMenu(a, b, doc.viewer.padTop) {
-            MenuText(stringResource(R.string.edit_edit_text)) { vm.startInlineEdit(para, selectAll = false) }
+    var active by remember(para) { mutableStateOf(false) }
+    val rect = androidx.compose.ui.geometry.Rect(para.box[0], para.box[1], para.box[2], para.box[3])
+    ObjectTransformOverlay(doc, para.page to para.number, para.page, rect,
+        minFactor = 4f / para.size.coerceAtLeast(4f), maxFactor = 500f / para.size.coerceAtLeast(1f),
+        onMove = { dx, dy, finished -> vm.transformParagraph(doc, para, dx, dy, 1f, finished) },
+        onScale = { factor, finished -> vm.transformParagraph(doc, para, 0f, 0f, factor, finished) },
+        onActive = { active = it })
+    if (!active) {
+        val a = doc.viewer.pageToScreen(para.page, rect.left, rect.top)
+        val b = doc.viewer.pageToScreen(para.page, rect.right, rect.bottom)
+        FloatingMenu(a, b, doc.viewer.padTop, doc.viewer.viewW) {
+            MenuText(appText(R.string.edit_edit_text)) { vm.startInlineEdit(para, selectAll = false) }
             MenuSplit()
-            MenuText(stringResource(R.string.edit_select_all)) { vm.startInlineEdit(para, selectAll = true) }
-            MenuSplit()
-            MenuText(stringResource(R.string.common_delete)) { vm.deleteParagraph(doc, para) }
+            if (para.rows.isEmpty()) {
+                MenuText(appText(R.string.edit_select_all)) { vm.startInlineEdit(para, selectAll = true) }
+                MenuSplit()
+            }
+            MenuText(appText(R.string.common_delete)) { vm.deleteParagraph(doc, para) }
         }
     }
 }
 
 /** The dark menu the reference floats over a selection: centred above it, or below when there's no room. */
 @Composable
-private fun BoxScope.FloatingMenu(a: Offset, b: Offset, top: Float, content: @Composable () -> Unit) {
+private fun BoxScope.FloatingMenu(a: Offset, b: Offset, top: Float, viewWidth: Float, content: @Composable () -> Unit) {
     val density = LocalDensity.current
     var menu by remember { mutableStateOf(IntSize.Zero) }
     val gap = with(density) { 12.dp.toPx() }
-    val x = ((a.x + b.x) / 2f - menu.width / 2f).coerceAtLeast(with(density) { 8.dp.toPx() })
+    val edge = with(density) { 8.dp.toPx() }
+    val x = ((a.x + b.x) / 2f - menu.width / 2f).coerceIn(edge, maxOf(edge, viewWidth - menu.width - edge))
     val above = a.y - gap - menu.height
     val y = if (above > top) above else b.y + gap
     Row(
-        Modifier.offset { IntOffset(x.roundToInt(), y.roundToInt()) }.onSizeChanged { menu = it }
+        Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(x.roundToInt(), y.roundToInt()) }.onSizeChanged { menu = it }
             .shadow(6.dp, RoundedCornerShape(4.dp)).background(Color(0xFF303030), RoundedCornerShape(4.dp)).height(48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) { content() }
@@ -498,6 +460,10 @@ private fun Modifier.fillMaxHeightRow(): Modifier = this.height(48.dp)
  */
 @Composable
 private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Paragraph) {
+    if (para.rows.isNotEmpty()) {
+        PositionedInlineEditor(vm, doc, para)
+        return
+    }
     val density = LocalDensity.current
     val (a, b) = screenBox(doc, para.page, para.box, with(density) { 3.dp.toPx() })
     val ppp = doc.viewer.pixelsPerPoint(para.page)
@@ -536,7 +502,7 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
     }
     with(density) {
         Box(
-            Modifier.offset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.width((b.x - a.x).toDp()).heightIn(min = (b.y - a.y).toDp())
+            Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.width((b.x - a.x).toDp()).heightIn(min = (b.y - a.y).toDp())
                 .background(paper ?: Color.White).drawBehind { drawRect(SelectionBlue, size = size, style = Stroke(2.dp.toPx())) }
                 .padding(3.dp),
         ) {
@@ -545,6 +511,8 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
                 onValueChange = { value = it },
                 textStyle = TextStyle(
                     color = parseHex(para.color ?: "#000000"), fontSize = sp, lineHeight = sp * 1.2f, fontFamily = family,
+                    textDirection = androidx.compose.ui.text.style.TextDirection.Content,
+                    textAlign = if (inlineRtl(value.text)) TextAlign.Right else TextAlign.Left,
                     fontWeight = if (para.bold) FontWeight.Bold else FontWeight.Normal,
                     fontStyle = if (para.italic) FontStyle.Italic else FontStyle.Normal,
                     textDecoration = if (vm.editUnderline[para.page to para.number] == true) TextDecoration.Underline else null,
@@ -571,7 +539,7 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
         val typo = typos.firstOrNull { value.selection.collapsed && at in it.start..it.end && it.suggestions.isNotEmpty() }
         if (typo != null) {
             Row(
-                Modifier.offset { IntOffset(a.x.roundToInt(), (a.y - 48.dp.toPx()).roundToInt()) }
+                Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(a.x.roundToInt(), (a.y - 48.dp.toPx()).roundToInt()) }
                     .background(Color(0xFF2C2C2C), androidx.compose.foundation.shape.RoundedCornerShape(4.dp)).padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -626,7 +594,7 @@ private fun BoxScope.SelectedImage(vm: AppViewModel, doc: OpenDocument, img: Edi
     }
     with(density) {
         Box(
-            Modifier.offset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.size((b.x - a.x).toDp(), (b.y - a.y).toDp())
+            Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.size((b.x - a.x).toDp(), (b.y - a.y).toDp())
                 .pointerInput(img) {
                     detectDragGestures(
                         onDragEnd = {
@@ -647,7 +615,7 @@ private fun BoxScope.SelectedImage(vm: AppViewModel, doc: OpenDocument, img: Edi
         )
         // the lower right corner resizes, keeping the picture's shape
         Box(
-            Modifier.offset { IntOffset((b.x - 22.dp.toPx()).roundToInt(), (b.y - 22.dp.toPx()).roundToInt()) }.size(44.dp)
+            Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset((b.x - 22.dp.toPx()).roundToInt(), (b.y - 22.dp.toPx()).roundToInt()) }.size(44.dp)
                 .pointerInput(img) {
                     detectDragGestures(
                         onDragEnd = {
@@ -668,10 +636,10 @@ private fun BoxScope.SelectedImage(vm: AppViewModel, doc: OpenDocument, img: Edi
         )
     }
     if (move == Offset.Zero && scale == 1f) {
-        FloatingMenu(a, b, doc.viewer.padTop) {
-            MenuIconButton(LucideIcons.RotateCcw, stringResource(R.string.edit_turn_left)) { vm.turnImage(doc, img, 3) }
-            MenuIconButton(LucideIcons.RotateCw, stringResource(R.string.edit_turn_right)) { vm.turnImage(doc, img, 1) }
-            MenuIconButton(LucideIcons.Trash2, stringResource(R.string.common_delete)) { vm.deleteImage(doc, img) }
+        FloatingMenu(a, b, doc.viewer.padTop, doc.viewer.viewW) {
+            MenuIconButton(LucideIcons.RotateCcw, appText(R.string.edit_turn_left)) { vm.turnImage(doc, img, 3) }
+            MenuIconButton(LucideIcons.RotateCw, appText(R.string.edit_turn_right)) { vm.turnImage(doc, img, 1) }
+            MenuIconButton(LucideIcons.Trash2, appText(R.string.common_delete)) { vm.deleteImage(doc, img) }
         }
     }
 }
@@ -712,4 +680,4 @@ fun baseFont(name: String): String {
     }
 }
 
-fun parseHex(s: String): Color = runCatching { Color(android.graphics.Color.parseColor(s)) }.getOrDefault(Color.Black)
+fun parseHex(s: String): Color = runCatching { Color(s.toColorInt()) }.getOrDefault(Color.Black)

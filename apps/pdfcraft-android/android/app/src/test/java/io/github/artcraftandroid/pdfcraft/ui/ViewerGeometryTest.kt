@@ -181,4 +181,30 @@ class ViewerGeometryTest {
         assertEquals(6 * 1080f, s.snapTarget(-2000f), 0.5f)
         assertEquals(5 * 1080f, s.snapTarget(0f), 0.5f)
     }
+    @Test fun fitButtonAppearsOnlyAfterZoomAndFitsCurrentPageBetweenBars() {
+        for (mode in listOf(PageMode.Continuous, PageMode.SinglePage)) {
+            val v = state(List(4) { letter }, h = 1400f).apply { this.mode = mode; setPadding(130f, 250f); goToPage(2) }
+            assertTrue(!v.fitButtonVisible)
+            v.zoomBy(2f, Offset(540f, 900f))
+            assertTrue(v.fitButtonVisible)
+            val current = v.currentPage
+            v.fitPage()
+            assertTrue(!v.fitButtonVisible)
+            val r = v.pageRectOnScreen(current)
+            assertTrue(r.left >= -0.1f && r.right <= v.viewW + 0.1f)
+            assertTrue("$mode $r", r.top >= v.padTop - 0.1f && r.bottom <= v.viewH - v.padBottom + 0.1f)
+            val before = r
+            v.clamp()
+            assertEquals(before, v.pageRectOnScreen(current))
+        }
+    }
+    @Test fun fitFirstAndLastPagesClearsBothBars() {
+        for (page in listOf(0, 3)) {
+            val v = state(List(4) { letter }, h = 1200f).apply { setPadding(130f, 250f); goToPage(page) }
+            v.fitPage()
+            val r = v.pageRectOnScreen(page)
+            assertTrue(r.top >= 129.9f && r.bottom <= v.viewH - v.padBottom + 0.1f)
+        }
+    }
+
 }

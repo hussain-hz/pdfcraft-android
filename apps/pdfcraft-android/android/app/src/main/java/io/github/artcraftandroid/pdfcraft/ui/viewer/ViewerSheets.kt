@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui.viewer
 
+import io.github.artcraftandroid.pdfcraft.text as appText
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -83,7 +85,7 @@ fun MoreSheet(vm: AppViewModel, doc: OpenDocument) {
     // like the reference, the sheet opens part way and rises to full height once its list scrolls
     val scroll = rememberScrollState()
     var expanded by remember { mutableStateOf(false) }
-    LaunchedEffect(scroll.value > 0) { if (scroll.value > 0) expanded = true }
+    LaunchedEffect(scroll) { androidx.compose.runtime.snapshotFlow { scroll.value > 0 }.collect { if (it) expanded = true } }
     val fraction by androidx.compose.animation.core.animateFloatAsState(if (expanded) 1f else 0.69f, label = "sheet")
     val density = androidx.compose.ui.platform.LocalDensity.current
     val top = with(density) {
@@ -133,8 +135,8 @@ fun MoreSheet(vm: AppViewModel, doc: OpenDocument) {
             SheetRow(LucideIcons.FilePlus2, stringResource(R.string.common_tool_create_pdf), { close(); vm.openCreate() })
             if (doc.info.undo != null || doc.info.redo != null) {
                 GroupDivider()
-                doc.info.undo?.let { SheetRow(LucideIcons.Undo2, stringResource(R.string.sheet_undo_action, it), { close(); vm.undo(doc) }) }
-                doc.info.redo?.let { SheetRow(LucideIcons.Redo2, stringResource(R.string.sheet_redo_action, it), { close(); vm.redo(doc) }) }
+                doc.info.undo?.let { SheetRow(LucideIcons.Undo2, stringResource(R.string.sheet_undo_action, io.github.artcraftandroid.pdfcraft.ui.arabicEngineLabel(it)), { close(); vm.undo(doc) }) }
+                doc.info.redo?.let { SheetRow(LucideIcons.Redo2, stringResource(R.string.sheet_redo_action, io.github.artcraftandroid.pdfcraft.ui.arabicEngineLabel(it)), { close(); vm.redo(doc) }) }
             }
             GroupDivider()
             SheetRow(LucideIcons.Copy, stringResource(R.string.common_save_copy), { close(); vm.saveCopyAs(doc) })
@@ -190,9 +192,9 @@ fun BookmarksSheet(vm: AppViewModel, doc: OpenDocument) {
     var outline by remember { mutableStateOf<List<OutlineEntry>?>(null) }
     LaunchedEffect(doc.info.generation) { outline = vm.outline(doc) }
     val hasOutline = doc.info.hasOutline
-    var tab by remember { mutableStateOf(if (hasOutline) 0 else 1) }
+    var tab by remember { androidx.compose.runtime.mutableIntStateOf(if (hasOutline) 0 else 1) }
     // the outline level shown: the index of its parent entry (-1: the top level)
-    var parent by remember { mutableStateOf(-1) }
+    var parent by remember { androidx.compose.runtime.mutableIntStateOf(-1) }
     var renaming by remember { mutableStateOf<Int?>(null) }
     PdfSheet(onDismiss = { ctl.sheet = ViewerSheet.None }, maxHeightFraction = 0.69f, fill = true) {
         SheetBackHeader(stringResource(R.string.sheet_bookmarks_contents), onBack = { ctl.sheet = ViewerSheet.More })
@@ -456,8 +458,8 @@ fun MoreToolsSheet(vm: AppViewModel, doc: OpenDocument) {
             CustomizeToolbar(vm) { customizing = false }
             return@PdfSheet
         }
-        SheetTitle(stringResource(R.string.common_tool_more_tools))
-        val slots = toolbarSlots(androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp)
+        SheetTitle(appText(R.string.common_tool_more_tools))
+        val slots = toolbarSlots(with(androidx.compose.ui.platform.LocalDensity.current) { androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.width.toDp().value.toInt() })
         val prefs = vm.quickToolbar
         val tools = prefs.bar.drop(slots) + prefs.grid
         // six to a row in 85 dp columns, as the reference lays them out

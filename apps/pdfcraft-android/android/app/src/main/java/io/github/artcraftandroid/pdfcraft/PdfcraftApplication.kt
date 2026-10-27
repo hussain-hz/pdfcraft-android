@@ -11,6 +11,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 
 class PdfcraftApplication : Application() {
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguage.wrap(base))
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** The engine, loaded once per process on a background thread and shared by the activities. */

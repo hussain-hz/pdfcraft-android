@@ -86,7 +86,7 @@ class TrustedCertificates(dir: File) {
     private val root = File(dir, "trusted").apply { mkdirs() }
 
     /** Bumped on every change, for what shows whether a signer is trusted. */
-    var version by mutableStateOf(0)
+    var version by androidx.compose.runtime.mutableIntStateOf(0)
         private set
 
     fun files(): List<File> = root.listFiles { f -> f.isFile && f.extension == "cer" }.orEmpty().sortedBy { it.name }

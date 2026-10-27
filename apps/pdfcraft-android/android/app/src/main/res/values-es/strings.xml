@@ -115,11 +115,13 @@
     <string name="home_clear_selection">Borrar selección</string>
     <plurals name="home_files_selected">
         <item quantity="one">%d archivo seleccionado</item>
+        <item quantity="many">%d archivos seleccionados</item>
         <item quantity="other">%d archivos seleccionados</item>
     </plurals>
     <string name="home_remove_from_recent">Quitar de recientes</string>
     <plurals name="home_delete_files_title">
         <item quantity="one">¿Eliminar %d archivo?</item>
+        <item quantity="many">¿Eliminar %d archivos?</item>
         <item quantity="other">¿Eliminar %d archivos?</item>
     </plurals>
     <string name="home_delete_files_body">Se quitan de este teléfono.</string>
@@ -128,7 +130,7 @@
 
     <!-- A file's menu sheet -->
     <!-- Opens Export PDF for this file; the three dots mean more choices follow -->
-    <string name="home_export_as">Exportar como...</string>
+    <string name="home_export_as">Exportar como…</string>
     <string name="home_print">Imprimir</string>
     <string name="home_open_with">Abrir con</string>
     <!-- Verb: add the file to Starred -->
@@ -188,6 +190,7 @@
     <string name="home_remove_search">Quitar %1$s</string>
     <plurals name="home_search_results">
         <item quantity="one">%d resultado en este dispositivo</item>
+        <item quantity="many">%d resultados en este dispositivo</item>
         <item quantity="other">%d resultados en este dispositivo</item>
     </plurals>
     <!-- Search result order -->
@@ -286,6 +289,7 @@
     <!-- Title once two or more files are chosen -->
     <plurals name="tools_file_count">
         <item quantity="one">%d archivo</item>
+        <item quantity="many">%d archivos</item>
         <item quantity="other">%d archivos</item>
     </plurals>
     <string name="tools_add_files">Añadir archivos</string>
@@ -334,7 +338,7 @@
     <string name="root_author_prompt_body">Añade un nombre para mostrar quién hizo cada comentario. Puedes cambiarlo más tarde en Preferencias.</string>
 
     <!-- App dialogs: a file that can't be written back -->
-    <string name="root_read_only_title">El archivo es de solo lectura</string>
+    <string name="root_read_only_title">No se pudo guardar el archivo original</string>
     <!-- Verb: throw the changes away -->
     <string name="root_discard">Descartar</string>
     <!-- %1$s is the file name -->
@@ -497,6 +501,7 @@
     <!-- Translator note: the title while organizing; %1$d is how many pages are ticked. -->
     <plurals name="pages_selected_count">
         <item quantity="one">%1$d seleccionadas</item>
+        <item quantity="many">%1$d seleccionadas</item>
         <item quantity="other">%1$d seleccionadas</item>
     </plurals>
     <!-- Translator note: accessibility label of a page's thumbnail; %1$d is its number. -->
@@ -586,9 +591,9 @@
     <string name="sign_email_hint">nombre@ejemplo.com</string>
     <string name="sign_section_organisation">Organización (opcional)</string>
     <string name="sign_organisation_hint">Empresa u organización</string>
-    <string name="sign_password_hint">Al menos 6 caracteres</string>
+    <string name="sign_password_hint">Al menos 8 caracteres</string>
     <string name="sign_password_again">La contraseña otra vez</string>
-    <string name="sign_password_short">La contraseña necesita al menos 6 caracteres.</string>
+    <string name="sign_password_short">La contraseña necesita al menos 8 caracteres.</string>
     <string name="sign_password_mismatch">Las contraseñas no coinciden.</string>
     <string name="sign_password_note">PdfCraft no guarda la contraseña y no puede recuperarla: la escribes cada vez que firmas.</string>
 
@@ -649,7 +654,7 @@
     <string name="sheet_comment_list">Lista de comentarios</string>
     <string name="sheet_add_bookmark">Añadir marcador</string>
     <string name="sheet_remove_bookmark">Quitar marcador</string>
-    <string name="sheet_export_as">Exportar como...</string>
+    <string name="sheet_export_as">Exportar como…</string>
     <!-- Translator note: %1$s names the change, as the PDF engine describes it -->
     <string name="sheet_undo_action">Deshacer %1$s</string>
     <!-- Translator note: %1$s names the change, as the PDF engine describes it -->
@@ -685,6 +690,7 @@
     <!-- Viewer sheets: file sizes -->
     <plurals name="sheet_size_bytes">
         <item quantity="one">%1$d byte</item>
+        <item quantity="many">%1$d bytes</item>
         <item quantity="other">%1$d bytes</item>
     </plurals>
     <!-- Translator note: %1$.1f is a number with one decimal; KB is kilobytes -->
@@ -698,6 +704,7 @@
     <!-- Translator note: replies aren't counted; a thread is a comment with its replies -->
     <plurals name="comments_threads">
         <item quantity="one">%1$d hilo de comentarios</item>
+        <item quantity="many">%1$d hilos de comentarios</item>
         <item quantity="other">%1$d hilos de comentarios</item>
     </plurals>
     <!-- Translator note: accessibility labels of a page's fold button -->
@@ -784,6 +791,7 @@
     <!-- Note: %1$d is how many tools fit on the toolbar (6 to 8) -->
     <plurals name="toolbar_customize_hint">
         <item quantity="one">Arrastra herramientas entre la barra y Más herramientas. La barra admite %1$d.</item>
+        <item quantity="many">Arrastra herramientas entre la barra y Más herramientas. La barra admite %1$d.</item>
         <item quantity="other">Arrastra herramientas entre la barra y Más herramientas. La barra admite %1$d.</item>
     </plurals>
     <!-- Note: heading over the tools that are on the bottom toolbar -->
@@ -1051,6 +1059,7 @@
     <!-- Shown only when the document has two or more signatures. -->
     <plurals name="msg_sig_all_valid">
         <item quantity="one">%1$d firma es válida.</item>
+        <item quantity="many">Las %1$d firmas son válidas.</item>
         <item quantity="other">Las %1$d firmas son válidas.</item>
     </plurals>
     <string name="msg_sig_unverified">Firmado por %1$s. El documento no ha cambiado desde entonces, pero el firmante no está verificado.</string>
@@ -1092,12 +1101,14 @@
     <!-- Pictures/PdfCraft is a folder on the phone: keep it as it is. -->
     <plurals name="msg_images_saved">
         <item quantity="one">%1$d imagen guardada en Pictures/PdfCraft</item>
+        <item quantity="many">%1$d imágenes guardadas en Pictures/PdfCraft</item>
         <item quantity="other">%1$d imágenes guardadas en Pictures/PdfCraft</item>
     </plurals>
     <string name="msg_busy_creating_pdf">Creando PDF…</string>
     <!-- Create PDF takes at most this many files at once. -->
     <plurals name="msg_create_first_files">
         <item quantity="one">Solo se usó %1$d archivo.</item>
+        <item quantity="many">Solo se usaron los primeros %1$d archivos.</item>
         <item quantity="other">Solo se usaron los primeros %1$d archivos.</item>
     </plurals>
     <string name="msg_busy_extracting">Extrayendo…</string>
@@ -1163,4 +1174,19 @@
     <string name="service_action_forward">Avanzar 15 segundos</string>
     <!-- Translator note: notification button that stops reading aloud -->
     <string name="service_action_stop">Detener</string>
+    <string name="transform_drag_selected">Arrastrar el elemento seleccionado</string>
+    <string name="transform_enlarge">Ampliar</string>
+    <string name="viewer_fit_page">Ajustar página</string>
+    <string name="viewer_fit_page_description">Ajustar la página a la pantalla</string>
+    <string name="home_language">Idioma</string>
+    <string name="transform_move_down">Mover hacia abajo</string>
+    <string name="transform_move_left">Mover a la izquierda</string>
+    <string name="transform_move_right">Mover a la derecha</string>
+    <string name="transform_move_up">Mover hacia arriba</string>
+    <string name="edit_paragraph_row">Línea del párrafo %1$s</string>
+    <string name="msg_recovered_changes">Se han recuperado los cambios sin guardar</string>
+    <string name="transform_resize_selected">Cambiar el tamaño del elemento seleccionado</string>
+    <string name="transform_shrink">Reducir</string>
+    <string name="msg_added_text_format_unsupported">Este formato no es compatible con el texto añadido.</string>
+    <string name="root_licence_noto_arabic">Tipo de letra Noto Sans Arabic</string>
 </resources>

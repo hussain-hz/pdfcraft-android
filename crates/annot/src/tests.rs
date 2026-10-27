@@ -187,6 +187,7 @@ fn invalid_geometry_is_rejected() {
         assert!(matches!(add_annotation(&mut doc, &new(0, s.clone()), &meta("x")), Err(AnnotError::Invalid(_))), "{s:?}");
     }
     assert_eq!(add_annotation(&mut doc, &new(5, Shape::Rectangle { rect: [0.0, 0.0, 10.0, 10.0] }), &meta("x")), Err(AnnotError::NoSuchPage(5)));
+    assert_eq!(AnnotError::NoSuchPage(5).to_string(), "page 6 does not exist", "the message counts pages from 1 (#1550)");
     assert!(!doc.is_modified(), "failed adds change nothing");
 }
 
@@ -889,7 +890,11 @@ fn comments_without_appearances_get_one_for_display_only() {
     let display = with_missing_appearances(&doc).expect("four comments need an appearance");
     let has_ap = |doc: &Document| list(doc, 0).iter().map(|d| d.get(b"AP").is_some()).collect::<Vec<_>>();
     assert_eq!(has_ap(&doc), [false, false, false, true, false, false, false], "the document itself is untouched");
-    assert_eq!(has_ap(&display), [true, true, true, true, false, false, true], "FreeText, Ink, Text and Sound get one; links and widgets don't");
+    assert_eq!(
+        has_ap(&display),
+        [true, true, true, true, false, false, true],
+        "FreeText, Ink, Text and Sound get appearances; links and widgets do not"
+    );
     let shown = list(&display, 0);
     let free_text = ap_content(&display, &shown[0]);
     assert!(free_text.contains("re f") && free_text.contains("Tj"), "background box and text: {free_text}");
@@ -1219,9 +1224,13 @@ fn comment_text_the_standard_fonts_cannot_draw_is_kept_and_marked() {
     on_page.push(Object::Ref(r));
     set_annots(&mut doc, page, on_page).unwrap();
     let k = list(&doc, 0).len() - 1;
-    let err = set_style(&mut doc, 0, k, Some([1.0, 0.0, 0.0]), None, None, None, &meta("")).unwrap_err();
+    let before = list(&doc, 0)[k].clone();
+    let err = set_style(&mut doc, 0, k, Some([1.0, 0.0, 0.0]), Some(0.4), Some(6.0), None, &meta("")).unwrap_err();
     assert!(matches!(&err, AnnotError::Undrawable(m) if m.contains("can't redraw") && m.contains("\"欢\" (U+6B22)")), "{err:?}");
-    assert_eq!(list(&doc, 0)[k].get(b"AP").and_then(|a| a.as_dict()).and_then(|a| a.reference(b"N")), Some(drawn), "its appearance is kept");
+    assert_eq!(list(&doc, 0)[k], before, "a refused restyle keeps the colour, opacity, width and appearance");
+    let err = set_rect(&mut doc, 0, k, [40.0, 40.0, 180.0, 90.0], &meta("")).unwrap_err();
+    assert!(matches!(&err, AnnotError::Undrawable(_)), "{err:?}");
+    assert_eq!(list(&doc, 0)[k], before, "a refused resize keeps the rectangle");
     // New text from the user is taken (and marked), as for any comment.
     set_contents(&mut doc, 0, k, "欢迎光临", &meta("")).unwrap();
     assert_eq!(mark(&doc, k), Some('欢'));
@@ -1269,18 +1278,37 @@ fn cached_appearances_are_reused_while_annotations_are_unchanged() {
     assert_eq!(a, b, "the reused appearance is byte-identical");
 }
 
-/// The comment panel shows a comment's own opacity and line width: summaries read `/CA` and the
-/// border width, and default to fully opaque with no width when they are missing or malformed.
+/// #1908: a text box's font size changes in `/DA` (colour kept), the rich text follows, the box
+/// grows to hold the bigger text but never shrinks, and bad sizes and other subtypes are refused.
 #[test]
-fn summaries_report_opacity_and_line_width() {
+fn text_box_font_size_changes_the_da_and_grows_the_box() {
     let mut doc = fixture();
-    let mut ink = new(0, Shape::Ink { strokes: vec![vec![[10.0, 10.0], [20.0, 20.0]]] });
-    ink.style.opacity = 0.5;
-    ink.style.width = 4.0;
-    add_annotation(&mut doc, &ink, &meta("ink")).unwrap();
+    let t = add_annotation(&mut doc, &new(0, Shape::TextBox { rect: [100.0, 680.0, 220.0, 692.0], font_size: 12.0 }), &meta("t")).unwrap();
+    set_style(&mut doc, 0, t, Some([1.0, 0.0, 0.0]), None, None, None, &meta("")).unwrap();
+    set_contents(&mut doc, 0, t, "one two three four five six seven eight nine ten eleven twelve", &meta("")).unwrap();
+    let height = |doc: &Document| {
+        let rect: Vec<f64> = list(doc, 0)[t].get(b"Rect").unwrap().as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
+        rect[3] - rect[1]
+    };
+    let before = height(&doc);
+    set_font_size(&mut doc, 0, t, 24.0, &meta("")).unwrap();
     let doc = reopen(&doc);
-    let all = summaries(&doc);
-    let s = all.iter().find(|s| s.subtype == "Ink").expect("the ink comment is listed");
-    assert!((s.opacity - 0.5).abs() < 1e-6, "{}", s.opacity);
-    assert_eq!(s.width, Some(4.0));
+    let d = &list(&doc, 0)[t];
+    assert_eq!(text(d, b"DA"), "1 0 0 rg /Helv 24 Tf");
+    assert!(text(d, b"DS").contains("24pt") && text(d, b"RC").contains("font-size:24pt"));
+    assert_eq!(props(&doc, 0, t).unwrap().font_size, Some(24.0));
+    assert!(height(&doc) > before, "the box grows");
+    let mut doc = doc;
+    let grown = height(&doc);
+    set_font_size(&mut doc, 0, t, 6.0, &meta("")).unwrap();
+    assert!(height(&doc) >= grown, "the box never shrinks");
+    for bad in [0.0, 0.5, 401.0, f64::NAN, f64::INFINITY] {
+        assert!(matches!(set_font_size(&mut doc, 0, t, bad, &meta("")), Err(AnnotError::Invalid(_))), "{bad}");
+    }
+    assert_eq!(props(&doc, 0, t).unwrap().font_size, Some(6.0));
+    let note = add_annotation(&mut doc, &new(0, Shape::Note { at: [50.0, 50.0], icon: NoteIcon::Note }), &meta("t"));
+    if let Ok(i) = note {
+        assert!(set_font_size(&mut doc, 0, i, 12.0, &meta("")).is_err());
+        assert_eq!(props(&doc, 0, i).unwrap().font_size, None);
+    }
 }

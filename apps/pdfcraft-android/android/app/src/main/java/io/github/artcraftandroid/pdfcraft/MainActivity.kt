@@ -34,6 +34,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguage.wrap(base))
+    }
+
     private val vm: AppViewModel by viewModels()
 
     /** Browse: any PDF a document provider offers, opened with write access when it allows. */
@@ -60,6 +64,7 @@ class MainActivity : ComponentActivity() {
         )
         window.isNavigationBarContrastEnforced = false
         super.onCreate(savedInstanceState)
+        initText(this)
         if (savedInstanceState == null) openFromIntent(intent)
         collectRequests()
         setContent {

@@ -66,11 +66,13 @@ fn style(a: &Args, t: &mut AddedText) -> Result<()> {
 
 impl Automation {
     pub(crate) fn content_list(&self, a: &Args) -> Result<Value> {
+        let selected_page = if a.get("page").is_some() { Some(self.page(a)?) } else { None };
         let doc = self.doc(a)?;
         let mut per_page: std::collections::HashMap<usize, usize> = Default::default();
         let items: Vec<Value> = doc
-            .added
+            .added()
             .iter()
+            .filter(|it| selected_page.is_none_or(|p| it.page == p))
             .map(|it| {
                 let index = per_page.entry(it.page).or_default();
                 let ph = doc.info.pages[it.page].height as f64;
@@ -85,6 +87,18 @@ impl Automation {
                         v["size"] = json!(t.size);
                         v["bold"] = json!(t.bold);
                         v["italic"] = json!(t.italic);
+                        // Keep the editable wrapping box, but give touch UIs a compact selection.
+                        let mut ink = to_view(pdfcraft_engine::added_text_rect(t), ph);
+                        let available = (ink[2] - ink[0]).max(0.0);
+                        let width = if t.align == TextAlign::Justify { available } else { pdfcraft_engine::added_text_width(t).min(available) };
+                        let offset = match t.align {
+                            TextAlign::Center => (available - width) / 2.0,
+                            TextAlign::Right => available - width,
+                            _ => 0.0,
+                        };
+                        ink[0] += offset;
+                        ink[2] = ink[0] + width.max(1.0);
+                        v["ink_rect"] = json!(ink.map(|x| (x * 100.0).round() / 100.0));
                     }
                     AddedContent::Image(_) => v["type"] = json!("image"),
                 }
@@ -110,7 +124,7 @@ impl Automation {
         let mut t = AddedText { rect, text: a.str("text")?.to_string(), ..AddedText::default() };
         style(a, &mut t)?;
         let mut out = self.apply(a, Edit::AddText { page, text: t })?;
-        out["index"] = json!(self.doc(a)?.added.iter().filter(|x| x.page == page).count());
+        out["index"] = json!(self.doc(a)?.added().iter().filter(|x| x.page == page).count());
         Ok(out)
     }
 
@@ -123,7 +137,7 @@ impl Automation {
         let rect = rect_arg(a, "rect")?.map(|r| to_display(r, ph));
         let mut out = self.apply(a, Edit::AddImage { page, rect, name, bytes: std::sync::Arc::new(bytes) })?;
         let doc = self.doc(a)?;
-        let mine: Vec<_> = doc.added.iter().filter(|x| x.page == page).collect();
+        let mine: Vec<_> = doc.added().iter().filter(|x| x.page == page).collect();
         out["index"] = json!(mine.len());
         out["rect"] = json!(mine.last().map(|x| to_view(x.content.rect(), ph)));
         Ok(out)
@@ -135,7 +149,7 @@ impl Automation {
         let index = a.int("index")?;
         let ph = doc.info.pages[page].height as f64;
         let it = doc
-            .added
+            .added()
             .iter()
             .filter(|x| x.page == page)
             .nth((index - 1).max(0) as usize)
@@ -163,6 +177,9 @@ impl Automation {
             AddedContent::Image(i) => {
                 if a.get("text").is_some() {
                     return Err(bad("images have no text"));
+                }
+                if ["font", "size", "bold", "italic", "color", "align"].iter().any(|k| a.get(k).is_some()) {
+                    return Err(bad("font, size, bold, italic, color and align apply to text"));
                 }
                 if let Some(deg) = a.opt_int("rotate")? {
                     if deg.rem_euclid(90) != 0 {

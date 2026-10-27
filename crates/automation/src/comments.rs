@@ -296,7 +296,30 @@ impl Automation {
                 "oval" => Shape::Oval { rect: rect_to_user(&info, a.need::<4>("rect", "an oval")?) },
                 "textbox" => {
                     let font_size = a.opt_num("font_size")?.unwrap_or(12.0);
-                    Shape::TextBox { rect: rect_to_user(&info, a.need::<4>("rect", "a text box")?), font_size }
+                    let mut rect = a.need::<4>("rect", "a text box")?;
+                    if a.opt_bool("auto_fit")?.unwrap_or(false) {
+                        let text = a.str("contents")?;
+                        if !font_size.is_finite() || font_size <= 0.0 {
+                            return Err(ToolError::InvalidArgs("invalid font size".into()));
+                        }
+                        let face =
+                            pdfcraft_fonts::document_arabic_font().ok_or_else(|| ToolError::InvalidArgs("Arabic document font is missing".into()))?;
+                        let width = (rect[2] - rect[0] - 4.0).max(1.0);
+                        let lines = pdfcraft_fonts::source_shaping::wrap(face.bytes, text, width / font_size).map_err(ToolError::InvalidArgs)?;
+                        let mut longest: f64 = 0.0;
+                        for line in &lines {
+                            longest = longest
+                                .max(pdfcraft_fonts::source_shaping::shape(face.bytes, line).map_err(ToolError::InvalidArgs)?.advance * font_size);
+                        }
+                        rect[2] = (rect[0] + longest + 5.0).min(rect[2]);
+                        let height = lines.len().max(1) as f64 * font_size * 1.2 + 6.0;
+                        if height > info.height as f64 {
+                            return Err(ToolError::InvalidArgs("text is taller than the page; reduce its size".into()));
+                        }
+                        rect[1] = rect[1].min(info.height as f64 - height).max(0.0);
+                        rect[3] = rect[1] + height;
+                    }
+                    Shape::TextBox { rect: rect_to_user(&info, rect), font_size }
                 }
                 "line" | "arrow" => {
                     let (f, t) = (a.need::<2>("from", "a line")?, a.need::<2>("to", "a line")?);
@@ -484,6 +507,14 @@ impl Automation {
         if sensitivity.is_some() && !scan {
             return Err(ToolError::InvalidArgs("sensitivity is only for scan: true".into()));
         }
+        let requested_size = a.opt_num("font_size")?;
+        if requested_size.is_some() && !matches!(kind, "text" | "date") {
+            return Err(ToolError::InvalidArgs("font_size is only for type text or date".into()));
+        }
+        let size = requested_size.unwrap_or(10.0);
+        if !(4.0..=300.0).contains(&size) {
+            return Err(ToolError::InvalidArgs("font_size must be 4–300 pt".into()));
+        }
         if let Some(path) = a.opt_str("path")? {
             if !matches!(kind, "signature" | "initials") || a.opt_str("text")?.is_some() {
                 return Err(ToolError::InvalidArgs("path is only for an image signature or initials; pass either path or text".into()));
@@ -507,11 +538,11 @@ impl Automation {
             let edit = image.edit(page, &info, at, kind == "initials", &author).ok_or_else(|| ToolError::InvalidArgs("at must be finite".into()))?;
             return self.apply(a, edit);
         }
-        let size = 10.0;
         let text_at = |t: &str| {
             let w = (pdfcraft_engine::annot_text::text_width(t, size) + 8.0).clamp(20.0, 600.0);
             let h = size * 1.2 + 6.0;
-            Shape::Typewriter { rect: [at[0], at[1] - h, at[0] + w, at[1]], font_size: size }
+            let rect = pdfcraft_engine::text_box_at(i64::from(info.rotation), at, w, h).unwrap_or([at[0], at[1] - h, at[0] + w, at[1]]);
+            Shape::Typewriter { rect, font_size: size }
         };
         let (shape, contents) = match kind {
             "text" => {
@@ -618,6 +649,12 @@ impl Automation {
             let fill = if f.eq_ignore_ascii_case("none") { None } else { Some(parse_color(f)?) };
             edits.push(Edit::FillAnnotation { page, index, fill });
         }
+        if let Some(size) = a.opt_num("font_size")? {
+            if !(1.0..=400.0).contains(&size) {
+                return Err(ToolError::InvalidArgs("font_size must be 1–400 pt".into()));
+            }
+            edits.push(Edit::FontSizeAnnotation { page, index, size });
+        }
         if let Some(r) = a.nums::<4>("rect")? {
             edits.push(Edit::ResizeAnnotation { page, index, rect: rect_to_user(&info, r) });
         }
@@ -626,7 +663,7 @@ impl Automation {
             edits.push(Edit::MoveAnnotation { page, index, dx: d[0] - o[0], dy: d[1] - o[1] });
         }
         if edits.is_empty() {
-            return Err(ToolError::InvalidArgs("nothing to change: pass contents, color, opacity, width, rect or move".into()));
+            return Err(ToolError::InvalidArgs("nothing to change: pass contents, color, opacity, width, fill, font_size, rect or move".into()));
         }
         let edit = if edits.len() == 1 { edits.remove(0) } else { Edit::Batch { label: "Edit comment".into(), edits } };
         self.apply(a, edit)

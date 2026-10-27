@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui
 
+import io.github.artcraftandroid.pdfcraft.text as appText
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -250,7 +252,7 @@ private fun ToolChoice(selected: Boolean, name: String, description: String?, on
 @Composable
 fun CompressScreen(vm: AppViewModel, doc: OpenDocument) {
     val c = pdfColors
-    var level by remember { mutableStateOf(1) }
+    var level by remember { androidx.compose.runtime.mutableIntStateOf(1) }
     val levels = listOf(
         stringResource(R.string.tools_compress_high) to stringResource(R.string.tools_compress_high_desc),
         stringResource(R.string.tools_compress_medium) to stringResource(R.string.tools_compress_medium_desc),
@@ -320,9 +322,9 @@ fun ProtectScreen(vm: AppViewModel, doc: OpenDocument) {
 @Composable
 fun ExportScreen(vm: AppViewModel, doc: OpenDocument) {
     val c = pdfColors
-    var tab by remember { mutableStateOf(0) }
+    var tab by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     // the image format used last time comes first chosen
-    var format by remember(tab) { mutableStateOf(if (tab == 1 && vm.lastImageFormat == "png") 1 else 0) }
+    var format by remember(tab) { androidx.compose.runtime.mutableIntStateOf(if (tab == 1 && vm.lastImageFormat == "png") 1 else 0) }
     val formats = if (tab == 0) {
         listOf(
             stringResource(R.string.tools_format_word) to "docx", stringResource(R.string.tools_format_rtf) to "rtf",
@@ -405,7 +407,6 @@ fun ToolScreenHost(vm: AppViewModel, screen: ToolScreen) {
         ToolScreen.Create -> CreateSourcesScreen(vm)
     }
 }
-
 
 /**
  * Combine files, as the reference's: "Combine files" with an outlined Add files at the top, the
@@ -492,20 +493,18 @@ fun CombineScreen(vm: AppViewModel) {
             val focus = remember { androidx.compose.ui.focus.FocusRequester() }
             PdfDialog(
                 onDismiss = { naming = false }, title = stringResource(R.string.tools_combine_name_title), confirm = stringResource(R.string.common_save),
-                onConfirm = { naming = false; vm.combine(name.trim().ifEmpty { "Combine" }) },
+                onConfirm = { naming = false; vm.combine(name.trim().ifEmpty { appText(R.string.toolbar_label_combine) }) },
                 confirmEnabled = name.isNotBlank(),
             ) { PdfField(name, { name = it }, stringResource(R.string.common_file_name), focus = focus) }
         }
     }
 }
 
-
 /** A file picked for a tool: where it is, its name and size. */
 data class PickedFile(val uri: android.net.Uri, val name: String, val size: Long?)
 
 /** What a file picker was opened for. */
 enum class FilePickKind { Combine, Create, Insert, Open, DigitalId }
-
 
 /**
  * Crop pages, laid out as the reference's: the page inset 32 dp on black, a crop frame with ringed
@@ -515,7 +514,7 @@ enum class FilePickKind { Combine, Create, Insert, Open, DigitalId }
 @Composable
 fun CropScreen(vm: AppViewModel, doc: OpenDocument) {
     val c = pdfColors
-    var page by remember { mutableStateOf(doc.viewer.currentPage) }
+    var page by remember { androidx.compose.runtime.mutableIntStateOf(doc.viewer.currentPage) }
     var allPages by remember { mutableStateOf(false) }
     // the crop as fractions of the page: left, top, right, bottom
     var rect by remember { mutableStateOf(floatArrayOf(0f, 0f, 1f, 1f)) }
@@ -654,7 +653,6 @@ fun CropScreen(vm: AppViewModel, doc: OpenDocument) {
     }
 }
 
-
 /**
  * A scanned page: the photo's file, its thumbnail (as taken) and the part of it kept: [corners]
  * as shares of the photo's width and height (x1, y1 … x4, y4 from the top left, clockwise), the
@@ -681,12 +679,12 @@ fun ScanScreen(vm: AppViewModel) {
     val c = pdfColors
     val pages = vm.scanPages
     var filter by remember { mutableStateOf(ScanFilter.AutoColor) }
-    var current by remember { mutableStateOf(0) }
+    var current by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var cropping by remember { mutableStateOf<java.io.File?>(null) }
     var naming by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { if (pages.isEmpty()) vm.takeScanPhoto() }
     // a page just taken is the one shown
-    var seen by remember { mutableStateOf(pages.size) }
+    var seen by remember { androidx.compose.runtime.mutableIntStateOf(pages.size) }
     LaunchedEffect(pages.size) {
         if (pages.size > seen) current = pages.lastIndex
         seen = pages.size

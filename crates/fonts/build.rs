@@ -10,6 +10,7 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo::rerun-if-env-changed=CRAFT_FONTS_DIR");
     println!("cargo::rerun-if-env-changed=CRAFT_FONTS_REQUIRED");
+    println!("cargo::rerun-if-env-changed=CRAFT_FONT_SCRIPTS");
     let mut src = String::from("pub static CRAFT_FONTS: &[CraftFont] = &[\n");
     if let Some(dir) = std::env::var_os("CRAFT_FONTS_DIR").map(PathBuf::from) {
         match craft_fonts(&dir) {
@@ -19,6 +20,8 @@ fn main() {
             }
             Err(e) => println!("cargo::warning=building without craft-fonts: CRAFT_FONTS_DIR={}: {e}", dir.display()),
         }
+    } else if std::env::var_os("CRAFT_FONTS_REQUIRED").is_some() {
+        println!("cargo::error=CRAFT_FONTS_DIR must point to the pinned craft-fonts checkout");
     }
     src.push_str("];\n");
     let out = PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("craft_fonts.rs");
@@ -38,11 +41,15 @@ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
     let text = std::fs::read_to_string(&manifest).map_err(|e| format!("{}: {e}", manifest.display()))?;
     let wasm = std::env::var("CARGO_CFG_TARGET_ARCH").is_ok_and(|a| a == "wasm32");
     let mut out = String::new();
+    let selected = std::env::var("CRAFT_FONT_SCRIPTS").unwrap_or_default();
     for line in text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')) {
         let f: Vec<&str> = line.split(" | ").map(str::trim).collect();
         let [family, style, file, scripts, ..] = f.as_slice() else {
             return Err(format!("malformed manifest line: {line}"));
         };
+        if !selected.is_empty() && !scripts.split(',').any(|script| selected.split(',').any(|wanted| wanted.trim() == script.trim())) {
+            continue;
+        }
         // AGENTS.md §1.1 bars Adobe's type designs whatever their licence, so a checkout that
         // carries one (craft-fonts has Noto Sans CJK, which is Source Han) never embeds it.
         if BARRED_FAMILIES.iter().any(|barred| family.starts_with(barred)) {
@@ -69,6 +76,9 @@ fn craft_fonts(dir: &std::path::Path) -> Result<String, String> {
             scripts.join(", "),
             path.display().to_string(),
         );
+    }
+    if out.is_empty() && std::env::var_os("CRAFT_FONTS_REQUIRED").is_some() {
+        return Err(format!("no permitted fonts found for requested scripts {selected:?}"));
     }
     Ok(out)
 }

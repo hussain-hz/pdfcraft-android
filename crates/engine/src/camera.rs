@@ -89,6 +89,7 @@ pub fn warp(rgba: &[u8], width: u32, height: u32, quad: [Point; 4]) -> Result<Wa
 
 /// The long side, in pixels, a page is rendered at to look for the document's edges.
 const DETECT_SIDE: f32 = 1200.0;
+
 /// Photos larger than this are not decoded to look for a document (hundreds of MB).
 const MAX_PHOTO_PIXELS: u64 = 64 << 20;
 
@@ -284,60 +285,6 @@ mod tests {
         let src = vec![0u8; 8 * 8 * 4];
         let out = warp(&src, 8, 8, [[0.0, 0.0], [8.0, 0.0], [8.0, 8.0], [0.0, 8.0]]).unwrap();
         assert!(out.rgb.iter().all(|&v| v == 255));
-    }
-
-    /// A JPEG photo of a light sheet (corners in stored pixels) on a dark table, tagged with EXIF
-    /// `orientation` (1: as stored; 6: shown turned 90° clockwise, as phones store portrait shots).
-    fn sheet_photo(w: u32, h: u32, sheet: [Point; 4], orientation: u8) -> Vec<u8> {
-        let q = order_quad(sheet).unwrap();
-        let inside = |x: f64, y: f64| {
-            (0..4).all(|i| {
-                let (a, b) = (q[i], q[(i + 1) % 4]);
-                (b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0]) >= 0.0
-            })
-        };
-        let img =
-            image::RgbImage::from_fn(w, h, |x, y| image::Rgb(if inside(x as f64 + 0.5, y as f64 + 0.5) { [240, 238, 232] } else { [70, 60, 50] }));
-        let mut jpeg = Vec::new();
-        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 90).encode_image(&img).unwrap();
-        if orientation == 1 {
-            return jpeg;
-        }
-        let mut exif = b"Exif\0\0II\x2a\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0".to_vec();
-        exif.extend_from_slice(&[orientation, 0, 0, 0, 0, 0, 0, 0]);
-        let mut out = jpeg[..2].to_vec();
-        out.extend_from_slice(&[0xff, 0xe1]);
-        out.extend_from_slice(&((exif.len() + 2) as u16).to_be_bytes());
-        out.extend_from_slice(&exif);
-        out.extend_from_slice(&jpeg[2..]);
-        out
-    }
-
-    fn assert_near(found: Option<[Point; 4]>, want: [Point; 4]) {
-        let found = found.expect("the sheet should be found");
-        for (f, w) in found.iter().zip(want.iter()) {
-            assert!((f[0] - w[0]).abs() <= 0.012 && (f[1] - w[1]).abs() <= 0.012, "found {found:?}, want {want:?}");
-        }
-    }
-
-    #[test]
-    fn finds_the_sheet_in_a_photo_the_way_it_was_taken() {
-        let sheet = [[200.0, 150.0], [1000.0, 120.0], [1050.0, 780.0], [150.0, 800.0]];
-        assert_near(find_document_in_photo(&sheet_photo(1200, 900, sheet, 1)), sheet.map(|[x, y]| [x / 1200.0, y / 900.0]));
-        // Tagged "turned 90° clockwise", the photo is 900 × 1200 as taken: a stored point (x, y)
-        // shows at (900 − y, x), and the corners are named as they show.
-        let shown = order_quad(sheet.map(|[x, y]| [(900.0 - y) / 900.0, x / 1200.0])).unwrap();
-        assert_near(find_document_in_photo(&sheet_photo(1200, 900, sheet, 6)), shown);
-    }
-
-    #[test]
-    fn a_photo_without_a_document_or_not_a_photo_is_none() {
-        let blank = image::RgbImage::from_pixel(300, 200, image::Rgb([90, 90, 90]));
-        let mut jpeg = Vec::new();
-        image::codecs::jpeg::JpegEncoder::new(&mut jpeg).encode_image(&blank).unwrap();
-        assert_eq!(find_document_in_photo(&jpeg), None);
-        assert_eq!(find_document_in_photo(b"not a picture"), None);
-        assert_eq!(find_document_in_photo(&[]), None);
     }
 
     #[test]

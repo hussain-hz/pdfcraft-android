@@ -24,6 +24,9 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
+  CRAFT_FONTS_DIR: ${{ github.workspace }}/.build-inputs/craft-fonts
+  CRAFT_FONTS_REQUIRED: '1'
+  CRAFT_FONT_SCRIPTS: Arab
 
 jobs:
   apk:
@@ -31,6 +34,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Check out pinned Arabic font source
+        uses: actions/checkout@v7
+        with:
+          repository: storytold/craft-fonts
+          ref: d1cf47d05e04426615fbda1d637b9ca6b1e7af35
+          path: .build-inputs/craft-fonts
+      - name: Verify Arabic font and licence
+        shell: pwsh
+        run: ./tools/prepare-arabic-fonts.ps1 -SourceDirectory $env:CRAFT_FONTS_DIR
 
       - id: v
         name: Resolve version

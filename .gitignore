@@ -1,7 +1,10 @@
 *~
 /target
 /target-*/
+/hs_err_pid*.log
+/replay_pid*.log
 /dist
+/.build-inputs/
 .DS_Store
 .claude/
 # the phone parity tracker stays on this computer, out of the repo

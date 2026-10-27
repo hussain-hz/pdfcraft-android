@@ -1,8 +1,12 @@
 package io.github.artcraftandroid.pdfcraft.engine
 
+import io.github.artcraftandroid.pdfcraft.text as appText
+
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.os.StatFs
+import android.os.storage.StorageManager
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.MediaStore
@@ -20,12 +24,13 @@ import java.security.MessageDigest
  */
 class DocumentFiles(private val context: Context) {
     private val resolver: ContentResolver get() = context.contentResolver
+    val recovery = RecoveryStore()
 
     /** Working copies of opened documents, one folder per source. */
     private val workDir = File(context.filesDir, "Documents").apply { mkdirs() }
 
-    /** Files handed to other apps (share, print), through the FileProvider. */
-    private val shareDir = File(context.cacheDir, "share").apply { mkdirs() }
+    /** Retained copies for other apps; storage allocation must not reclaim an active share. */
+    private val shareDir = File(context.filesDir, "share").apply { mkdirs() }
 
     /** Files the app creates itself (combine, create, scans) before the user saves them somewhere. */
     val createdDir = File(context.filesDir, "Created").apply { mkdirs() }
@@ -33,15 +38,16 @@ class DocumentFiles(private val context: Context) {
     /** The working copy of [uri]: copied in (again) unless it is a file the app already owns. */
     fun workingCopy(uri: Uri): File {
         if (uri.scheme == ContentResolver.SCHEME_FILE) {
-            val f = File(requireNotNull(uri.path) { context.getString(R.string.files_error_no_path) })
-            if (f.canonicalPath.startsWith(context.filesDir.canonicalPath)) return f
+            val f = File(requireNotNull(uri.path) { appText(R.string.files_error_no_path) })
+            if (f.canonicalPath.startsWith(context.filesDir.canonicalPath + File.separator)) return f
         }
+        existingCopy(uri)?.takeIf { recovery.pending(it) }?.let { return it }
         val name = displayName(uri)
         val dir = File(workDir, sha(uri.toString())).apply { mkdirs() }
         val target = File(dir, name)
         val tmp = File(dir, ".$name.part")
         resolver.openInputStream(uri).use { input ->
-            requireNotNull(input) { context.getString(R.string.common_file_unreadable) }
+            requireNotNull(input) { appText(R.string.common_file_unreadable) }
             tmp.outputStream().use { input.copyTo(it) }
         }
         if (!tmp.renameTo(target)) {
@@ -100,7 +106,7 @@ class DocumentFiles(private val context: Context) {
         // granted (Android's media documents, which the picker's Recent shows: "Media is read-only")
         if (DocumentsContract.isDocumentUri(context, uri) && documentFlags(uri)?.let { it and DocumentsContract.Document.FLAG_SUPPORTS_WRITE == 0 } == true) return false
         val granted = resolver.persistedUriPermissions.any { it.uri == uri && it.isWritePermission }
-        return granted || runCatching { resolver.openFileDescriptor(uri, "wa")?.close(); true }.getOrDefault(false)
+        return granted || runCatching { resolver.openFileDescriptor(uri, "wa")?.use { true } ?: false }.getOrDefault(false)
     }
 
     /** A document's flags (DocumentsContract.Document.FLAG_*), when its provider says. */
@@ -110,8 +116,11 @@ class DocumentFiles(private val context: Context) {
 
     /** Write [file] over [uri] (truncating it). */
     fun writeBack(file: File, uri: Uri) {
-        val out = resolver.openOutputStream(uri, "wt") ?: error(context.getString(R.string.files_error_write))
-        out.use { o -> file.inputStream().use { it.copyTo(o) } }
+        // Open our intact recovery copy before touching the destination.
+        file.inputStream().use { input ->
+            val out = resolver.openOutputStream(uri, "wt") ?: error(appText(R.string.files_error_write))
+            out.use { input.copyTo(it) }
+        }
     }
 
     /** Keep access to [uri] across restarts, for Recent files (when the provider allows it). */
@@ -126,24 +135,42 @@ class DocumentFiles(private val context: Context) {
 
     /**
      * Copies of [files] that other apps may read (a document, pictures of pages), each under its
-     * own name, and their URIs. The last ones handed out are cleared first. When the copies can't
+     * own name, and their URIs. Previously shared copies are retained while other apps may still be reading them. When the copies can't
      * be made (a full phone has no room for them), the error says so in words.
      */
     fun shareableAll(files: List<Pair<File, String>>): List<Uri> {
-        shareDir.listFiles()?.forEach { it.deleteRecursively() }
+        cleanOldShares(shareDir)
+        cleanOldShares(File(context.cacheDir, "share"))
         val dir = File(shareDir, System.nanoTime().toString())
-        try {
-            if (!dir.mkdirs()) throw IOException("can't make $dir")
-            return files.map { (file, name) ->
-                val copy = File(dir, name.replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]"), "_").ifBlank { file.name })
-                file.copyTo(copy, overwrite = true)
-                FileProvider.getUriForFile(context, "${context.packageName}.files", copy)
-            }
-        } catch (e: IOException) {
-            dir.deleteRecursively()
-            val full = shareDir.usableSpace < files.sumOf { it.first.length() } + 1024 * 1024
-            throw IOException(context.getString(if (full) R.string.files_error_share_no_space else R.string.files_error_share), e)
+        val names = files.map { (file, name) ->
+            file to name.replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]"), "_").ifBlank { file.name }
         }
+        try {
+            val storage = context.getSystemService(StorageManager::class.java)
+            val copies = copyShareFiles(dir, names) { output, bytes ->
+                try {
+                    if (storage != null && bytes > 0 && storage.isAllocationSupported(output.fd)) {
+                        // Reserve the actual output file; Android can reclaim eligible cache.
+                        storage.allocateBytes(output.fd, bytes)
+                    }
+                } catch (_: SecurityException) {
+                    // If allocation isn't permitted, the copy still tests real writable space.
+                }
+            }
+            return copies.map { FileProvider.getUriForFile(context, "${context.packageName}.files", it) }
+        } catch (e: IOException) {
+            val requested = files.sumOf { it.first.length() }
+            val full = allocatableShareBytes()?.let { it < requested } == true
+            throw IOException(appText(if (full) R.string.files_error_share_no_space else R.string.files_error_share), e)
+        }
+    }
+
+    private fun allocatableShareBytes(): Long? {
+        val storage = context.getSystemService(StorageManager::class.java)
+        val allocatable = runCatching {
+            storage?.getAllocatableBytes(storage.getUuidForPath(shareDir))
+        }.getOrNull()
+        return allocatable ?: runCatching { StatFs(shareDir.absolutePath).availableBytes }.getOrNull()
     }
 
     /** A new file in the app's own space for a document it makes, named [name] (made unique). */
@@ -167,10 +194,10 @@ class DocumentFiles(private val context: Context) {
             put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val collection = android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI
-        val uri = resolver.insert(collection, values) ?: error(context.getString(R.string.files_error_save_downloads))
+        val uri = resolver.insert(collection, values) ?: error(appText(R.string.files_error_save_downloads))
         try {
             resolver.openOutputStream(uri).use { out ->
-                requireNotNull(out) { context.getString(R.string.files_error_save_downloads) }
+                requireNotNull(out) { appText(R.string.files_error_save_downloads) }
                 file.inputStream().use { it.copyTo(out) }
             }
             resolver.update(uri, android.content.ContentValues().apply { put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
@@ -188,9 +215,9 @@ class DocumentFiles(private val context: Context) {
             put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
             put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/PdfCraft")
         }
-        val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error(context.getString(R.string.files_error_save_image))
+        val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error(appText(R.string.files_error_save_image))
         resolver.openOutputStream(uri).use { out ->
-            requireNotNull(out) { context.getString(R.string.files_error_save_image) }
+            requireNotNull(out) { appText(R.string.files_error_save_image) }
             file.inputStream().use { it.copyTo(out) }
         }
         return uri
@@ -198,14 +225,14 @@ class DocumentFiles(private val context: Context) {
 
     /** Where [uri] is, as a person would say it: a folder path, or the app that provided it. */
     fun displayLocation(uri: Uri): String = when (uri.scheme) {
-        ContentResolver.SCHEME_FILE -> uri.path?.substringBeforeLast('/')?.replace("/storage/emulated/0", context.getString(R.string.files_location_internal_storage)) ?: context.getString(R.string.files_location_this_device)
+        ContentResolver.SCHEME_FILE -> uri.path?.substringBeforeLast('/')?.replace("/storage/emulated/0", appText(R.string.files_location_internal_storage)) ?: appText(R.string.files_location_this_device)
         else -> {
             val auth = uri.authority.orEmpty()
             when {
-                auth.contains("downloads") -> context.getString(R.string.files_location_downloads)
-                auth.contains("externalstorage") -> context.getString(R.string.files_location_internal_storage) + (Uri.decode(uri.lastPathSegment ?: "").substringAfter(':', "").substringBeforeLast('/', "").let { if (it.isEmpty()) "" else "/$it" })
-                auth.contains("media") -> context.getString(R.string.files_location_media)
-                else -> context.packageManager.resolveContentProvider(auth, 0)?.loadLabel(context.packageManager)?.toString() ?: context.getString(R.string.files_location_another_app)
+                auth.contains("downloads") -> appText(R.string.files_location_downloads)
+                auth.contains("externalstorage") -> appText(R.string.files_location_internal_storage) + (Uri.decode(uri.lastPathSegment ?: "").substringAfter(':', "").substringBeforeLast('/', "").let { if (it.isEmpty()) "" else "/$it" })
+                auth.contains("media") -> appText(R.string.files_location_media)
+                else -> context.packageManager.resolveContentProvider(auth, 0)?.loadLabel(context.packageManager)?.toString() ?: appText(R.string.files_location_another_app)
             }
         }
     }

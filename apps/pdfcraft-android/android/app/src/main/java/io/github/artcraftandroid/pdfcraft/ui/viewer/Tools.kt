@@ -214,7 +214,7 @@ private fun DrawLayer(vm: AppViewModel, doc: OpenDocument) {
     }
     // press and hold: where the finger has been still since, and when it last moved further
     var stillAt by remember { mutableStateOf(Offset.Zero) }
-    var movedAt by remember { mutableStateOf(0L) }
+    var movedAt by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
     val slop = with(LocalDensity.current) { SNAP_SLOP.toPx() }
     LaunchedEffect(current) {
         val s = current ?: return@LaunchedEffect

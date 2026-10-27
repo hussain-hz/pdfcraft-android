@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui.home
 
+import io.github.artcraftandroid.pdfcraft.text as appText
+
 import io.github.artcraftandroid.pdfcraft.ui.safeTopPadding
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -112,7 +114,7 @@ private fun OnThisDevice(vm: AppViewModel) {
     val c = pdfColors
     BackHandler { vm.filesShowLocal = false }
     LaunchedEffect(Unit) { vm.scanLocal() }
-    var sort by remember { mutableStateOf(0) }
+    var sort by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var menu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeTopPadding()) {
         Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -233,7 +235,7 @@ fun ToolsTab(vm: AppViewModel) {
 fun SearchTab(vm: AppViewModel) {
     val c = pdfColors
     var query by remember { mutableStateOf("") }
-    var sort by remember { mutableStateOf(0) }
+    var sort by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var menu by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { vm.scanLocal() }
     val searchHint = stringResource(R.string.home_search_your_files)
@@ -356,6 +358,12 @@ fun SettingsScreen(vm: AppViewModel) {
 private fun Preferences(vm: AppViewModel) {
     val c = pdfColors
     var authorDialog by remember { mutableStateOf(false) }
+    val activity = androidx.activity.compose.LocalActivity.current
+    Section(appText(R.string.home_language))
+    SheetRow(null, "العربية", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "ar") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "ar")
+    SheetRow(null, "English", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "en") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "en")
+    SheetRow(null, "Español", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "es") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "es")
+    SheetDivider()
     Section(stringResource(R.string.home_section_notifications))
     Text(stringResource(R.string.home_no_notifications), color = c.textSecondary, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
     SheetDivider()
@@ -394,7 +402,7 @@ private fun Preferences(vm: AppViewModel) {
 }
 
 /** PdfCraft for Android's own repository: its help, its issues and its source. */
-private const val APP_REPO = "https://github.com/artcraft-android/pdfcraft-android"
+private const val APP_REPO = "https://github.com/hussain-hz/pdfcraft-android"
 
 @Composable
 private fun Section(title: String) {

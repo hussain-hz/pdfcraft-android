@@ -1,5 +1,9 @@
 package io.github.artcraftandroid.pdfcraft.engine
 
+import io.github.artcraftandroid.pdfcraft.text as appText
+
+import androidx.core.graphics.createBitmap
+
 import android.graphics.Bitmap
 import io.github.artcraftandroid.pdfcraft.R
 import io.github.artcraftandroid.pdfcraft.core.MobileException
@@ -88,7 +92,7 @@ class Engine private constructor(val session: MobileSession) {
 
 /** The pixels as a bitmap: the engine's premultiplied RGBA bytes are the `ARGB_8888` memory layout. */
 fun RenderedImage.toBitmap(): Bitmap {
-    val bitmap = Bitmap.createBitmap(width.toInt().coerceAtLeast(1), height.toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(width.toInt().coerceAtLeast(1), height.toInt().coerceAtLeast(1))
     if (rgba.size >= bitmap.byteCount) bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(rgba))
     return bitmap
 }
@@ -98,5 +102,18 @@ val Throwable.userMessage: String
     get() = when (this) {
         is MobileException.NeedsPassword -> text(R.string.files_error_needs_password)
         is MobileException.WrongPassword -> text(R.string.common_wrong_password)
-        else -> message?.takeIf { it.isNotBlank() } ?: text(R.string.files_error_generic)
+        else -> localizedEngineError(message)
     }
+
+/** Localize actionable failures while keeping unknown diagnostics available. */
+internal fun localizedEngineError(message: String?): String {
+    val raw = message?.takeIf { it.isNotBlank() } ?: return appText(R.string.files_error_generic)
+    if (io.github.artcraftandroid.pdfcraft.AppLanguage.current != "ar") return raw
+    return when {
+        raw.contains("complete source", true) || raw.contains("mixed contextual", true) -> "يحتاج هذا النص إلى خط كامل متوافق أو تنسيق موحد. لم تُغيّر الفقرة."
+        raw.contains("glyph", true) || raw.contains("can't show", true) -> "الخط الحالي لا يدعم بعض الأحرف. جرّب خطًا متوافقًا."
+        raw.contains("read-only", true) || raw.contains("Permission denied", true) -> "لا يمكن الكتابة إلى هذا الملف. احفظ نسخة في موقع آخر."
+        raw.contains("No space", true) || raw.contains("ENOSPC", true) -> "مساحة التخزين غير كافية. حرّر مساحة ثم أعد الحفظ؛ احتُفظ بنسخة الاسترداد إن اكتمل حفظها المحلي."
+        else -> raw
+    }
+}

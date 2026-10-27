@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui
 
+import androidx.core.net.toUri
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -84,7 +86,7 @@ fun AppRoot(vm: AppViewModel, onBrowse: () -> Unit, onPickSignatureImage: () -> 
     val doc = vm.document
     // outside the viewer (which sets its own) the bar icons follow the app's theme, not the system's
     val view = androidx.compose.ui.platform.LocalView.current
-    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    val activity = androidx.activity.compose.LocalActivity.current
     androidx.compose.runtime.SideEffect {
         val window = activity?.window ?: return@SideEffect
         if (doc == null) {
@@ -141,7 +143,7 @@ fun AppRoot(vm: AppViewModel, onBrowse: () -> Unit, onPickSignatureImage: () -> 
             ) { Text(stringResource(R.string.root_read_only_body, d.name), color = c.text, fontSize = 14.sp) }
         }
         vm.linkPrompt?.let { url ->
-            val shown = runCatching { android.net.Uri.parse(url).let { u -> "${u.scheme}://${u.host}${if (u.port > 0) ":${u.port}" else ""}" } }.getOrDefault(url)
+            val shown = runCatching { url.toUri().let { u -> "${u.scheme}://${u.host}${if (u.port > 0) ":${u.port}" else ""}" } }.getOrDefault(url)
             PdfDialog(onDismiss = { vm.answerLink(false) }, title = stringResource(R.string.root_open_link_title), confirm = stringResource(R.string.common_open), onConfirm = { vm.answerLink(true) }) {
                 Text(stringResource(R.string.root_open_link_body, shown), color = c.text, fontSize = 14.sp)
             }
@@ -206,7 +208,7 @@ private fun LicencesScreen(vm: AppViewModel) {
     androidx.activity.compose.BackHandler { vm.showLicences = false }
     // the full texts of the bundled notices, in the order of the entries below
     val texts = remember {
-        listOf("LICENSE-lucide.txt", "OFL-Inter.txt", "OFL-DancingScript.txt", "LICENSE-foxit.txt", "LICENSE-adobe-cmaps.txt").map { name ->
+        listOf("LICENSE-lucide.txt", "OFL-Inter.txt", "OFL-DancingScript.txt", "LICENSE-foxit.txt", "LICENSE-adobe-cmaps.txt", "OFL-Noto-Sans-Arabic.txt").map { name ->
             runCatching { context.assets.open("licences/$name").bufferedReader().readText() }.getOrDefault("")
         }
     }
@@ -226,6 +228,7 @@ private fun LicencesScreen(vm: AppViewModel) {
             entry("JNA", "Apache-2.0")
             entry("AndroidX, Jetpack Compose, Kotlin coroutines", "Apache-2.0")
             entry(stringResource(R.string.root_licence_lucide), "ISC, Lucide Contributors")
+            entry(stringResource(R.string.root_licence_noto_arabic), "SIL Open Font License 1.1, The Noto Project Authors")
             entry(stringResource(R.string.root_licence_inter), "SIL Open Font License 1.1, The Inter Project Authors")
             entry(stringResource(R.string.root_licence_dancing_script), "SIL Open Font License 1.1, The Dancing Script Project Authors")
             entry(stringResource(R.string.root_licence_foxit), "BSD-3-Clause, Foxit Software Inc. and the PDFium Authors")

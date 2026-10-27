@@ -24,7 +24,7 @@ mod writer;
 pub use bytes::Bytes;
 pub use document::{Document, Revision, SourceIdentity, XrefEntry};
 pub use object::{Dict, MAX_DECODED, Name, ObjRef, Object, PdfString, Stream};
-pub use parser::{Lexer, parse_indirect};
+pub use parser::{Lexer, is_whitespace, parse_indirect};
 pub use pdfcraft_crypt::{
     Algorithm, Auth, Method as CryptMethod, NewEncryption, Permissions, SecurityHandler, effective_password, pdfdoc_byte, pdfdoc_char,
 };
@@ -52,25 +52,4 @@ pub enum CosError {
     Poisoned,
     #[error("this document was opened read-only with a decode limit and cannot be saved")]
     ReadOnlyLimit,
-}
-
-#[cfg(test)]
-mod decode_limit_tests {
-    use super::CosError;
-
-    #[test]
-    fn a_decode_cap_is_told_from_damage() {
-        assert!(CosError::Filter(pdfcraft_filters::FilterError::LimitExceeded(8).to_string()).is_decode_limit());
-        assert!(!CosError::Filter("invalid deflate data".into()).is_decode_limit());
-        assert!(!CosError::MissingObject(3).is_decode_limit());
-    }
-}
-
-impl CosError {
-    /// Whether stream data was refused only because it decodes to more than the reader's cap
-    /// (a resource guard, as for a decompression bomb), not because it is damaged. The filter
-    /// error's text is what [`CosError::Filter`] carries.
-    pub fn is_decode_limit(&self) -> bool {
-        matches!(self, CosError::Filter(m) if m.starts_with("decoded output exceeds the limit"))
-    }
 }

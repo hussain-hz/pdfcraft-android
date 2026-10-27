@@ -1,5 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui.viewer
 
+import androidx.core.content.edit
+
 import android.content.Context
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -64,13 +66,13 @@ class ToolPrefs(context: Context) {
     fun setColor(t: StyledTool, c: Color) {
         val argb = c.toArgbInt()
         colors.getValue(t).intValue = argb
-        prefs.edit().putInt("${t.key}.color", argb).apply()
+        prefs.edit { putInt("${t.key}.color", argb) }
     }
 
     fun setOpacity(t: StyledTool, o: Float) {
         val v = o.coerceIn(0.25f, 1f)
         opacities.getValue(t).floatValue = v
-        prefs.edit().putFloat("${t.key}.opacity", v).apply()
+        prefs.edit { putFloat("${t.key}.opacity", v) }
     }
 
     /** Draw ▸ Snap to shape: strokes that look like a line, box, oval or polygon become one. */
@@ -79,7 +81,7 @@ class ToolPrefs(context: Context) {
 
     fun updateSnapToShape(on: Boolean) {
         snapToShape = on
-        prefs.edit().putBoolean("ink.snap", on).apply()
+        prefs.edit { putBoolean("ink.snap", on) }
     }
 
     /** Shows the "Snap to shape on" hint on entering Draw, the first few times only. */
@@ -87,46 +89,46 @@ class ToolPrefs(context: Context) {
     fun takeToolHint(key: String): Boolean {
         val n = prefs.getInt("hint.$key", 0)
         if (n >= 4) return false
-        prefs.edit().putInt("hint.$key", n + 1).apply()
+        prefs.edit { putInt("hint.$key", n + 1) }
         return true
     }
 
     fun takeSnapHint(): Boolean {
         val n = prefs.getInt("ink.snapHints", 0)
         if (n >= 3) return false
-        prefs.edit().putInt("ink.snapHints", n + 1).apply()
+        prefs.edit { putInt("ink.snapHints", n + 1) }
         return true
     }
 
     fun updateInkWidth(w: Float) {
         inkWidth = w
-        prefs.edit().putFloat("ink.width", w).apply()
+        prefs.edit { putFloat("ink.width", w) }
     }
 
     fun updateTextSize(s: Float) {
         textSize = s
-        prefs.edit().putFloat("freetext.size", s).apply()
+        prefs.edit { putFloat("freetext.size", s) }
     }
 
     fun setFillColor(c: Color) {
         fillColor = c.toArgbInt()
-        prefs.edit().putInt("fill.color", fillColor).apply()
+        prefs.edit { putInt("fill.color", fillColor) }
     }
 
     fun updateFillTextSize(s: Float) {
         fillTextSize = s.coerceIn(3f, 100f)
-        prefs.edit().putFloat("fill.size", fillTextSize).apply()
+        prefs.edit { putFloat("fill.size", fillTextSize) }
     }
 
     /** The author name put on comments (Preferences ▸ Author name). */
     var author: String
         get() = prefs.getString("author", "") ?: ""
-        set(v) = prefs.edit().putString("author", v).apply()
+        set(v) = prefs.edit { putString("author", v) }
 
     /** Whether the reader has been asked for their name once (the first time they comment). */
     var authorAsked: Boolean
         get() = prefs.getBoolean("authorAsked", false)
-        set(v) = prefs.edit().putBoolean("authorAsked", v).apply()
+        set(v) = prefs.edit { putBoolean("authorAsked", v) }
 }
 
 /** `#RRGGBB` for the engine's tools. */
