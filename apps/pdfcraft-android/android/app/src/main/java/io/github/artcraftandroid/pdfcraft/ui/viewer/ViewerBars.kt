@@ -167,11 +167,11 @@ fun UndoMenuButton(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onRed
         }
         androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = c.menu) {
             androidx.compose.material3.DropdownMenuItem(
-                text = { Text(undoLabel?.let { stringResource(R.string.viewer_undo_named, it) } ?: stringResource(R.string.common_undo), color = c.text) }, enabled = canUndo,
+                text = { Text(undoLabel?.let { stringResource(R.string.viewer_undo_named, io.github.artcraftandroid.pdfcraft.ui.arabicEngineLabel(it)) } ?: stringResource(R.string.common_undo), color = c.text) }, enabled = canUndo,
                 leadingIcon = { Icon(LucideIcons.Undo2, null, tint = c.icon) }, onClick = { open = false; onUndo() },
             )
             androidx.compose.material3.DropdownMenuItem(
-                text = { Text(redoLabel?.let { stringResource(R.string.viewer_redo_named, it) } ?: stringResource(R.string.common_redo), color = c.text) }, enabled = canRedo,
+                text = { Text(redoLabel?.let { stringResource(R.string.viewer_redo_named, io.github.artcraftandroid.pdfcraft.ui.arabicEngineLabel(it)) } ?: stringResource(R.string.common_redo), color = c.text) }, enabled = canRedo,
                 leadingIcon = { Icon(LucideIcons.Redo2, null, tint = c.icon) }, onClick = { open = false; onRedo() },
             )
         }
