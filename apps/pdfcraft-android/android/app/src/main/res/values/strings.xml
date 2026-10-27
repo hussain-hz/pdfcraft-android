@@ -202,7 +202,7 @@
 
     <!-- Settings -->
     <string name="home_about_app">About PdfCraft</string>
-    <string name="home_preferences">Preferences</string>
+    <string name="home_preferences">Settings</string>
     <string name="home_help_support">Help &amp; Support</string>
     <string name="home_help">Help</string>
     <string name="home_report_problem">Report a problem or request a feature</string>
@@ -212,7 +212,7 @@
 
     <!-- Settings: Preferences -->
     <string name="home_section_notifications">Notifications</string>
-    <string name="home_no_notifications">PdfCraft doesn\'t send notifications.</string>
+    <string name="home_no_notifications">Update notices appear in the bell next to Settings.</string>
     <string name="home_section_suggestions">Auto-suggestions</string>
     <string name="home_offer_suggestions">Offer words you used before when filling in forms</string>
     <string name="home_clear_suggestions">Clear suggestions</string>
@@ -332,7 +332,7 @@
     <!-- App dialogs: the first comment's name prompt -->
     <!-- Verb: go on without entering a name -->
     <string name="root_skip">Skip</string>
-    <string name="root_author_prompt_body">Add a name to show who made each comment. You can change it later in Preferences.</string>
+    <string name="root_author_prompt_body">Add a name to show who made each comment. You can change it later in Settings.</string>
 
     <!-- App dialogs: a file that can't be written back -->
     <string name="root_read_only_title">Could not save the original</string>
@@ -1179,4 +1179,28 @@
     <string name="transform_shrink">Shrink</string>
     <string name="msg_added_text_format_unsupported">This formatting isn\'t supported for added text.</string>
     <string name="root_licence_noto_arabic">Noto Sans Arabic typeface</string>
+    <string name="updates_section">App updates</string>
+    <string name="updates_check">Check for updates</string>
+    <string name="updates_checking">Checking for updates…</string>
+    <string name="updates_current">No newer stable release is available.</string>
+    <string name="updates_available">Stable version %1$s is available.</string>
+    <string name="updates_no_apk">Stable version %1$s is available, but no APK matches this device. You can view the release page.</string>
+    <string name="updates_rate_limited">Too many update checks. Please try again later.</string>
+    <string name="updates_failed">Could not check for updates. Check your internet connection and try again.</string>
+    <string name="updates_manual_hint">The app checks on opening for stable releases only.</string>
+    <string name="updates_download">Download stable release</string>
+    <string name="updates_view_release">View release</string>
+    <string name="updates_open_failed">Could not open the download link.</string>
+    <string name="updates_installed">Installed version %1$s</string>
+    <string name="updates_notifications">Update notifications</string>
+    <string name="updates_notification_available">An app update is available</string>
+    <string name="updates_download_title">PdfCraft update</string>
+    <string name="updates_downloading">Downloading update…</string>
+    <string name="updates_progress">Downloading update %1$d%%</string>
+    <string name="updates_cancel_download">Cancel download</string>
+    <string name="updates_verifying">Verifying update…</string>
+    <string name="updates_ready">Version %1$s has been downloaded.</string>
+    <string name="updates_install">Install update</string>
+    <string name="updates_incompatible">The update file does not match the installed app or failed verification.</string>
+    <string name="updates_download_failed">Could not download the update. Check your connection and available storage, then try again.</string>
 </resources>

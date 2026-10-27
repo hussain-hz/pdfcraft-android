@@ -175,6 +175,15 @@ private fun HomeTabScreen(vm: AppViewModel, onBrowse: () -> Unit) {
                 Image(painterResource(R.drawable.ic_launcher_tile), null, modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)))
                 Spacer(Modifier.width(10.dp))
                 Text(stringResource(R.string.app_name), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                val hasUpdate = vm.availableAppUpdate != null || vm.appUpdateDownload.status is io.github.artcraftandroid.pdfcraft.updates.AppDownloadStatus.Downloading ||
+                    vm.appUpdateDownload.status == io.github.artcraftandroid.pdfcraft.updates.AppDownloadStatus.Verifying || vm.appUpdateDownload.status is io.github.artcraftandroid.pdfcraft.updates.AppDownloadStatus.Ready
+                val updateLabel = stringResource(if (hasUpdate) R.string.updates_notification_available else R.string.updates_notifications)
+                Box(Modifier.size(40.dp).clip(CircleShape).background(c.surfaceRaised).clickable { vm.appUpdatesOpen = true }.semantics { contentDescription = updateLabel },
+                    contentAlignment = Alignment.Center) {
+                    Icon(LucideIcons.Bell, null, tint = c.icon, modifier = Modifier.size(22.dp))
+                    if (hasUpdate) Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size(8.dp).background(c.red, CircleShape))
+                }
+                Spacer(Modifier.width(8.dp))
                 Box(
                     Modifier.size(40.dp).clip(CircleShape).background(c.surfaceRaised).clickable { vm.settingsOpen = true }.semantics { contentDescription = settingsLabel },
                     contentAlignment = Alignment.Center,

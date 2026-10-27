@@ -78,6 +78,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        vm.onAppOpened()
+    }
+
     /** The view model's requests that need the activity: other apps, pickers, the camera, printing. */
     private fun collectRequests() {
         lifecycleScope.launch { for (i in vm.intents) launchSafely { startActivity(i) } }

@@ -316,7 +316,7 @@ fun SearchTab(vm: AppViewModel) {
     }
 }
 
-/** Settings: About, Preferences, Help & Support. */
+/** Settings, Help & Support, then About. */
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
     val c = pdfColors
@@ -332,9 +332,9 @@ fun SettingsScreen(vm: AppViewModel) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             when (page) {
                 "root" -> {
-                    SheetRow(LucideIcons.Info, stringResource(R.string.home_about_app), { page = "about" }, chevron = true)
                     SheetRow(LucideIcons.Settings, stringResource(R.string.home_preferences), { page = "prefs" }, chevron = true)
                     SheetRow(LucideIcons.CircleHelp, stringResource(R.string.home_help_support), { page = "help" }, chevron = true)
+                    SheetRow(LucideIcons.Info, stringResource(R.string.home_about_app), { page = "about" }, chevron = true)
                 }
                 "prefs" -> Preferences(vm)
                 "about" -> About(vm)
@@ -423,6 +423,8 @@ private fun About(vm: AppViewModel) {
             .pointerInput(version) { detectTapGestures(onLongPress = { clipboard.setText(AnnotatedString(version)); vm.tell(copied) }) }
             .padding(horizontal = 20.dp, vertical = 12.dp),
     )
+    SheetDivider()
+    AppUpdatesSection(vm)
     SheetDivider()
     Section(stringResource(R.string.home_section_legal))
     SheetRow(null, stringResource(R.string.home_licences), { vm.showLicences = true })

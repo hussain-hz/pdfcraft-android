@@ -5,6 +5,10 @@
     <!-- No storage permission: files come through the system's pickers (On this device lists the
          folders the user picks), and what the app saves goes to Downloads through the media store -->
 
+    <!-- GitHub release checks and user-requested APK downloads. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Comment ▸ Voice: recording a voice comment (asked for when first used) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
