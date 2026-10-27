@@ -671,7 +671,7 @@ impl MobileSession {
                     author: a.author.clone(),
                     contents: a.contents.clone(),
                     modified: a.modified_raw.clone().or_else(|| a.modified.clone()),
-                    rect: d.info.pages.get(a.page).map(|p| view_rect(p, a.rect)).unwrap_or_default(),
+                    rect: d.info.pages.get(a.page).map(|p| view_rect(p, a.shown_rect(p.rotation))).unwrap_or_default(),
                     color: a.color.map(rgb),
                     name: a.name.clone(),
                     reply_to: a.in_reply_to.clone(),
