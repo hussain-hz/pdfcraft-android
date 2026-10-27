@@ -2432,7 +2432,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return all.filter { q in it.name.lowercase() }.distinctBy { it.key }.distinctBy { sameFile(it.name, it.size) }
     }
 
-    private fun locationOf(uri: String): String = runCatching { files.displayLocation(Uri.parse(uri)) }.getOrDefault(text(R.string.files_location_this_device))
+    private fun locationOf(uri: String): String = runCatching { files.displayLocation(uri.toUri()) }.getOrDefault(text(R.string.files_location_this_device))
 
     fun clearRecents() {
         viewModelScope.launch {
@@ -2668,7 +2668,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearFormSuggestions() {
-        appPrefs.edit().remove("suggestions").apply()
+        appPrefs.edit { remove("suggestions") }
         tell(text(R.string.msg_suggestions_cleared))
     }
 

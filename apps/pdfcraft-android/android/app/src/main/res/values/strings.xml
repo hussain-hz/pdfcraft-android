@@ -129,7 +129,7 @@
 
     <!-- A file's menu sheet -->
     <!-- Opens Export PDF for this file; the three dots mean more choices follow -->
-    <string name="home_export_as">Export as...</string>
+    <string name="home_export_as">Export as…</string>
     <string name="home_print">Print</string>
     <string name="home_open_with">Open with</string>
     <!-- Verb: add the file to Starred -->
@@ -650,7 +650,7 @@
     <string name="sheet_comment_list">Comment List</string>
     <string name="sheet_add_bookmark">Add bookmark</string>
     <string name="sheet_remove_bookmark">Remove bookmark</string>
-    <string name="sheet_export_as">Export as...</string>
+    <string name="sheet_export_as">Export as…</string>
     <!-- Translator note: %1$s names the change, as the PDF engine describes it -->
     <string name="sheet_undo_action">Undo %1$s</string>
     <!-- Translator note: %1$s names the change, as the PDF engine describes it -->

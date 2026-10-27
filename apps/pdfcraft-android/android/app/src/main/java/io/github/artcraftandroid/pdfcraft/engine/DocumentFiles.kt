@@ -5,6 +5,8 @@ import io.github.artcraftandroid.pdfcraft.text as appText
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.os.StatFs
+import android.os.storage.StorageManager
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.MediaStore
@@ -27,8 +29,8 @@ class DocumentFiles(private val context: Context) {
     /** Working copies of opened documents, one folder per source. */
     private val workDir = File(context.filesDir, "Documents").apply { mkdirs() }
 
-    /** Files handed to other apps (share, print), through the FileProvider. */
-    private val shareDir = File(context.cacheDir, "share").apply { mkdirs() }
+    /** Retained copies for other apps; storage allocation must not reclaim an active share. */
+    private val shareDir = File(context.filesDir, "share").apply { mkdirs() }
 
     /** Files the app creates itself (combine, create, scans) before the user saves them somewhere. */
     val createdDir = File(context.filesDir, "Created").apply { mkdirs() }
@@ -138,19 +140,37 @@ class DocumentFiles(private val context: Context) {
      */
     fun shareableAll(files: List<Pair<File, String>>): List<Uri> {
         cleanOldShares(shareDir)
+        cleanOldShares(File(context.cacheDir, "share"))
         val dir = File(shareDir, System.nanoTime().toString())
+        val names = files.map { (file, name) ->
+            file to name.replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]"), "_").ifBlank { file.name }
+        }
         try {
-            if (!dir.mkdirs()) throw IOException("can't make $dir")
-            return files.map { (file, name) ->
-                val copy = File(dir, name.replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]"), "_").ifBlank { file.name })
-                file.copyTo(copy, overwrite = true)
-                FileProvider.getUriForFile(context, "${context.packageName}.files", copy)
+            val storage = context.getSystemService(StorageManager::class.java)
+            val copies = copyShareFiles(dir, names) { output, bytes ->
+                try {
+                    if (storage != null && bytes > 0 && storage.isAllocationSupported(output.fd)) {
+                        // Reserve the actual output file; Android can reclaim eligible cache.
+                        storage.allocateBytes(output.fd, bytes)
+                    }
+                } catch (_: SecurityException) {
+                    // If allocation isn't permitted, the copy still tests real writable space.
+                }
             }
+            return copies.map { FileProvider.getUriForFile(context, "${context.packageName}.files", it) }
         } catch (e: IOException) {
-            dir.deleteRecursively()
-            val full = shareDir.usableSpace < files.sumOf { it.first.length() } + 1024 * 1024
+            val requested = files.sumOf { it.first.length() }
+            val full = allocatableShareBytes()?.let { it < requested } == true
             throw IOException(appText(if (full) R.string.files_error_share_no_space else R.string.files_error_share), e)
         }
+    }
+
+    private fun allocatableShareBytes(): Long? {
+        val storage = context.getSystemService(StorageManager::class.java)
+        val allocatable = runCatching {
+            storage?.getAllocatableBytes(storage.getUuidForPath(shareDir))
+        }.getOrNull()
+        return allocatable ?: runCatching { StatFs(shareDir.absolutePath).availableBytes }.getOrNull()
     }
 
     /** A new file in the app's own space for a document it makes, named [name] (made unique). */

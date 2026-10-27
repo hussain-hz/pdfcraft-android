@@ -30,3 +30,16 @@ Final local `testDebugUnitTest lintPreview assemblePreview` succeeded using Rust
 - APK SHA-256: `83e28a2e46273e284f57ac28fc13f9895d7eef37497eb078f04e19275a1e8139`.
 
 The earlier local concurrent native/Android build exhausted memory. Final checks ran with limited parallelism and passed. Manual physical-phone checks, especially language changes with unsaved documents and Arabic touch editing, remain outside this validation. Historical `VALIDATION.md` reports describe the original Jahfan builds separately.
+
+## Warning fixes - 0.1.0-beta.11
+
+The updated local `testDebugUnitTest lintPreview assemblePreview` build passed. All **69 JVM tests passed**, including four new share-copy regression cases. **Lint: no issues found (0 errors, 0 warnings).** The 619 native tests are unchanged and will be rechecked by the updated GitHub workflow.
+
+- Added the Spanish `many` plural forms using the existing plural translations and placeholders; replaced four three-dot menu suffixes with the ellipsis character; adopted the three suggested Kotlin extensions.
+- Kept the intentional predictive-back opt-in. The manifest explicitly documents `tools:targetApi="33"` so lint understands that older platforms are expected to ignore this API-33 attribute. This is a scoped compatibility declaration, not a runtime behavior change or a global lint disable.
+- Sharing now reserves each output file through `StorageManager.allocateBytes` where supported, and diagnoses failure using allocatable space with a filesystem fallback. Allocation and copying run on the existing I/O paths.
+- New share copies live under private app files so cache reclamation cannot remove them while receivers are reading. Existing cache-based FileProvider grants remain supported. All source streams are opened before allocation, and failed batches clean up their own partial copies while preserving sources and earlier shares.
+- Regression cases cover successful reservation/copy/truncation, allocation failure after a partial batch, a missing source before any allocation and refusal to overwrite a previous share directory.
+- CI previously hit its one-hour limit. The timeout is now two hours, with Rust cache saving enabled on failed runs; the test suites are retained.
+
+The updated preview is `0.1.0-beta.11` (ARM64 version code `100112`), with the same PdfCraft label, package and debug signing identity. APK SHA-256: `95eb95757f408740eb05a6ac79409aee1a04008799fcbfa543b4e7ffc7a48c8a`.

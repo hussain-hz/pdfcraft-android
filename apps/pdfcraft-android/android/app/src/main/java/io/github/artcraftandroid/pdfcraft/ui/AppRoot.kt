@@ -143,7 +143,7 @@ fun AppRoot(vm: AppViewModel, onBrowse: () -> Unit, onPickSignatureImage: () -> 
             ) { Text(stringResource(R.string.root_read_only_body, d.name), color = c.text, fontSize = 14.sp) }
         }
         vm.linkPrompt?.let { url ->
-            val shown = runCatching { android.net.Uri.parse(url).let { u -> "${u.scheme}://${u.host}${if (u.port > 0) ":${u.port}" else ""}" } }.getOrDefault(url)
+            val shown = runCatching { url.toUri().let { u -> "${u.scheme}://${u.host}${if (u.port > 0) ":${u.port}" else ""}" } }.getOrDefault(url)
             PdfDialog(onDismiss = { vm.answerLink(false) }, title = stringResource(R.string.root_open_link_title), confirm = stringResource(R.string.common_open), onConfirm = { vm.answerLink(true) }) {
                 Text(stringResource(R.string.root_open_link_body, shown), color = c.text, fontSize = 14.sp)
             }
