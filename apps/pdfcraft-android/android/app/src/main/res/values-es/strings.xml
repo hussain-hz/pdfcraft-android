@@ -204,7 +204,6 @@
 
     <!-- Settings -->
     <string name="home_about_app">Acerca de PdfCraft</string>
-    <string name="home_preferences">Ajustes</string>
     <string name="home_help_support">Ayuda y soporte</string>
     <string name="home_help">Ayuda</string>
     <string name="home_report_problem">Informar de un problema o pedir una función</string>
@@ -214,7 +213,7 @@
 
     <!-- Settings: Preferences -->
     <string name="home_section_notifications">Notificaciones</string>
-    <string name="home_no_notifications">Los avisos de actualizaciones aparecen en la campana junto a Ajustes.</string>
+    <string name="home_no_notifications">El botón circular de descarga aparece junto a Ajustes solo si hay una actualización estable disponible.</string>
     <string name="home_section_suggestions">Sugerencias automáticas</string>
     <string name="home_offer_suggestions">Sugerir palabras que ya usaste al rellenar formularios</string>
     <string name="home_clear_suggestions">Borrar sugerencias</string>
@@ -1202,7 +1201,6 @@
     <string name="updates_view_release">Ver versión</string>
     <string name="updates_open_failed">No se pudo abrir el enlace de descarga.</string>
     <string name="updates_installed">Versión instalada %1$s</string>
-    <string name="updates_notifications">Notificaciones de actualizaciones</string>
     <string name="updates_notification_available">Hay una actualización disponible</string>
     <string name="updates_download_title">Actualización de PdfCraft</string>
     <string name="updates_downloading">Descargando actualización…</string>
@@ -1213,4 +1211,8 @@
     <string name="updates_install">Instalar actualización</string>
     <string name="updates_incompatible">El archivo no corresponde a la aplicación instalada o no superó la verificación.</string>
     <string name="updates_download_failed">No se pudo descargar la actualización. Comprueba la conexión y el almacenamiento disponible e inténtalo de nuevo.</string>
+    <string name="home_theme">Apariencia</string>
+    <string name="home_theme_system">Según el sistema</string>
+    <string name="home_theme_light">Claro</string>
+    <string name="home_theme_dark">Oscuro</string>
 </resources>

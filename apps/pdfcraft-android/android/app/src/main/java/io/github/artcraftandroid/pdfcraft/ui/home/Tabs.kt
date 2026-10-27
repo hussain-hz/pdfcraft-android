@@ -316,27 +316,31 @@ fun SearchTab(vm: AppViewModel) {
     }
 }
 
-/** Settings, Help & Support, then About. */
+/** Preferences open directly; Help & Support and About are footer destinations. */
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
     val c = pdfColors
     var page by remember { mutableStateOf("root") }
+    val settingsScroll = rememberScrollState()
+    val aboutScroll = rememberScrollState()
+    val helpScroll = rememberScrollState()
     BackHandler { if (page == "root") vm.settingsOpen = false else page = "root" }
     Column(Modifier.fillMaxSize().background(c.surface).safeTopPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(56.dp), contentAlignment = Alignment.Center) {
                 BarIcon(LucideIcons.ArrowLeft, stringResource(R.string.common_back), { if (page == "root") vm.settingsOpen = false else page = "root" })
             }
-            Text(stringResource(when (page) { "about" -> R.string.home_about_app; "prefs" -> R.string.home_preferences; "help" -> R.string.home_help_support; else -> R.string.home_settings }), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(when (page) { "about" -> R.string.home_about_app; "help" -> R.string.home_help_support; else -> R.string.home_settings }), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         }
-        Column(Modifier.verticalScroll(rememberScrollState())) {
+        Column(Modifier.verticalScroll(when (page) { "about" -> aboutScroll; "help" -> helpScroll; else -> settingsScroll })) {
             when (page) {
                 "root" -> {
-                    SheetRow(LucideIcons.Settings, stringResource(R.string.home_preferences), { page = "prefs" }, chevron = true)
+                    Preferences(vm)
+                    SheetDivider()
                     SheetRow(LucideIcons.CircleHelp, stringResource(R.string.home_help_support), { page = "help" }, chevron = true)
                     SheetRow(LucideIcons.Info, stringResource(R.string.home_about_app), { page = "about" }, chevron = true)
+                    Spacer(Modifier.height(24.dp))
                 }
-                "prefs" -> Preferences(vm)
                 "about" -> About(vm)
                 "help" -> {
                     val uri = LocalUriHandler.current
@@ -359,6 +363,11 @@ private fun Preferences(vm: AppViewModel) {
     val c = pdfColors
     var authorDialog by remember { mutableStateOf(false) }
     val activity = androidx.activity.compose.LocalActivity.current
+    Section(stringResource(R.string.home_theme))
+    SheetRow(null, stringResource(R.string.home_theme_system), { vm.setThemeChoice(io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.System) }, checked = vm.theme == io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.System)
+    SheetRow(null, stringResource(R.string.home_theme_light), { vm.setThemeChoice(io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Light) }, checked = vm.theme == io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Light)
+    SheetRow(null, stringResource(R.string.home_theme_dark), { vm.setThemeChoice(io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Dark) }, checked = vm.theme == io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Dark)
+    SheetDivider()
     Section(appText(R.string.home_language))
     SheetRow(null, "العربية", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "ar") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "ar")
     SheetRow(null, "English", { activity?.let { io.github.artcraftandroid.pdfcraft.AppLanguage.select(it, "en") } }, checked = io.github.artcraftandroid.pdfcraft.AppLanguage.current == "en")

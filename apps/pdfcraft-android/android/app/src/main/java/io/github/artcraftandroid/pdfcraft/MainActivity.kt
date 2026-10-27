@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) openFromIntent(intent)
         collectRequests()
         setContent {
-            PdfcraftTheme {
+            PdfcraftTheme(choice = vm.theme) {
                 AppRoot(
                     vm,
                     onBrowse = { launchSafely { pickPdf.launch(arrayOf("application/pdf")) } },

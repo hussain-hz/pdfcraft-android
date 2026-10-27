@@ -25,7 +25,8 @@ object AppLanguage {
             ?: context.resources.configuration.locales[0].language.takeIf { it in setOf("ar", "en", "es") } ?: "en"
         current = language
         val locale = Locale.forLanguageTag(language)
-        val config = Configuration(context.resources.configuration)
+        // Override only language and direction so system appearance, font scale and density stay live.
+        val config = Configuration()
         config.setLocales(LocaleList(locale))
         config.setLayoutDirection(locale)
         return context.createConfigurationContext(config)

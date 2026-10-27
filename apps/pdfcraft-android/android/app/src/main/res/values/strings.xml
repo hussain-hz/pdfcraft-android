@@ -202,7 +202,6 @@
 
     <!-- Settings -->
     <string name="home_about_app">About PdfCraft</string>
-    <string name="home_preferences">Settings</string>
     <string name="home_help_support">Help &amp; Support</string>
     <string name="home_help">Help</string>
     <string name="home_report_problem">Report a problem or request a feature</string>
@@ -212,7 +211,7 @@
 
     <!-- Settings: Preferences -->
     <string name="home_section_notifications">Notifications</string>
-    <string name="home_no_notifications">Update notices appear in the bell next to Settings.</string>
+    <string name="home_no_notifications">A circular download button appears next to Settings only when a stable update is available.</string>
     <string name="home_section_suggestions">Auto-suggestions</string>
     <string name="home_offer_suggestions">Offer words you used before when filling in forms</string>
     <string name="home_clear_suggestions">Clear suggestions</string>
@@ -1192,7 +1191,6 @@
     <string name="updates_view_release">View release</string>
     <string name="updates_open_failed">Could not open the download link.</string>
     <string name="updates_installed">Installed version %1$s</string>
-    <string name="updates_notifications">Update notifications</string>
     <string name="updates_notification_available">An app update is available</string>
     <string name="updates_download_title">PdfCraft update</string>
     <string name="updates_downloading">Downloading update…</string>
@@ -1203,4 +1201,8 @@
     <string name="updates_install">Install update</string>
     <string name="updates_incompatible">The update file does not match the installed app or failed verification.</string>
     <string name="updates_download_failed">Could not download the update. Check your connection and available storage, then try again.</string>
+    <string name="home_theme">Appearance</string>
+    <string name="home_theme_system">Follow system</string>
+    <string name="home_theme_light">Light</string>
+    <string name="home_theme_dark">Dark</string>
 </resources>

@@ -282,4 +282,4 @@ messages. Use `feat:` / `fix:` / `chore:` / `docs:` / etc.
 
 ## Application updates
 
-Release 0.0.1 uses the production application identity and release signing key. Opening the app checks for stable releases only; the bell next to Settings shows update notices. About also offers a manual check. Updates download inside the app and are verified before Android asks to install them. See [the update and release notes](docs/app-updates.md).
+Release 0.0.1 uses the production application identity and release signing key. Opening the app checks for stable releases only; a circular download button next to Settings appears only when an update is available. About also offers a manual check. Updates download inside the app and are verified before Android asks to install them. See [the update and release notes](docs/app-updates.md).
