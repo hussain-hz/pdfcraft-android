@@ -39,3 +39,15 @@ RC.5 validation: signed ARM64 build, preview QA build, 84 JVM tests and release 
 RC.6 replaces the separate pale background shades with one shared color constant taken from Home. Interactive feedback, icons, text and dividers retain their distinct colors for readability.
 
 RC.6 validation: signed ARM64 and preview QA builds passed with 84 JVM tests and no release lint issues. Screenshot pixel sampling verified identical RGB (238, 241, 255), #EEF1FF, in Home, Settings, both viewer toolbars, viewer surround, paper and the navigation band on the rendered Arabic PDF.
+
+## Upstream Android additions (27 October 2026)
+
+Adapted artcraft-android/pdfcraft-android commits ab961ef853a014979803191e1447a1847cf0f20a (extended Latin/Greek/Cyrillic text), c9243a7a49bf38e9be7ab690f2306ce0964f13f9 (navigation band) and 1efb657f008e3867613caa786a60d0f9f542fdb9 (optional status bar in documents). The upstream 0.13.0 engine import is excluded; this fork stays on 0.14.0.
+
+The status-bar option is off by default, persisted in preferences and translated into Arabic, English and Spanish. When enabled, the system status bar follows viewer toolbars, and hidden toolbars let the page occupy the top edge. The navigation-band fix applies to the base Light/System-dark palettes while Colored, Dark gray and OLED keep their explicit palettes.
+
+The Unicode fix adds bundled Inter outlines/shaping for added text, comments and form appearances. The Arabic shaping, source-font embedding, logical ActualText, Hebrew support, exact standard-14 metrics, form overflow guards, annotation rotation matrices and Acrobat marked-content frames are retained. Engine 0.14's existing Latin replacement fallback and unused-font cleanup are kept instead of importing the older upstream implementation. Regression coverage adds Arabic mixed with Turkish/Greek/Cyrillic through save, reopen and re-edit.
+
+Native validation of the upstream integration: 1,074 tests passed across fonts, edit, annot, forms, automation, engine and Android Rust bindings; 6 existing tests ignored, no failures. This includes Arabic joining/embedding, logical text order, positioned Arabic, mixed Arabic with Inter letters through save/reopen/update, form overflow/background guards and existing fallback-font cleanup.
+
+RC.7 final Android validation: 84 JVM tests passed, release lint reported no issues, and signed ARM64/preview QA builds succeeded. Emulator checks verified the Arabic Extra Features option, on/off behavior, visible clock/battery with viewer bars, hiding/restoring system bars together with toolbars, persistence after APK update/process restart and rendering an Arabic PDF. Explicit Colored/OLED backgrounds remain unchanged.

@@ -1802,11 +1802,13 @@ fn fitted_box(doc: &Document, r: ObjRef, text: &str) -> Option<[f64; 4]> {
     };
     let (x0, top) = (tb[0].min(tb[2]), tb[1].max(tb[3]));
     let w = tb[2] - tb[0];
+    // Measured the way the appearance lays it out (in Inter for text the standard fonts can't hold).
+    let measure = appearance::text_measure(text);
     let w = if w.is_finite() && w >= 1.0 {
         w
     } else {
         // No usable old width: fall back to the creation-time width (at most 300 pt).
-        let longest = text.lines().map(|l| appearance::text_width(l, size)).fold(0.0, f64::max);
+        let longest = text.lines().map(|l| measure(l, size)).fold(0.0, f64::max);
         (longest + 2.0 * pad + 4.0).clamp(40.0, 300.0)
     };
     let available = (w - 2.0 * pad).max(1.0);
@@ -1814,7 +1816,7 @@ fn fitted_box(doc: &Document, r: ObjRef, text: &str) -> Option<[f64; 4]> {
         let face = pdfcraft_fonts::document_arabic_font()?;
         pdfcraft_fonts::source_shaping::wrap(face.bytes, text, available / size).ok()?.len()
     } else {
-        appearance::wrap(text, size, available).len()
+        pdfcraft_fonts::wrap_with(text, size, available, measure).len()
     };
     let lines = count.max(1) as f64;
     Some([x0, top - lines * size * 1.2 - 2.0 * pad - 2.0, x0 + w, top])
