@@ -34,6 +34,8 @@ data class PdfColors(
     val dark: Boolean,
     /** Pure-black surfaces for the explicit OLED appearance. */
     val oled: Boolean = false,
+    /** Display-only tint of rendered paper; never written to the document. */
+    val paper: Color = Color.White,
     /** The app's surfaces: screens, bars and sheets. */
     val surface: Color,
     /** Slightly raised: cards, the search field, selected rows. */
@@ -174,8 +176,9 @@ val DarkGrayPdfColors = DarkPdfColors.copy(
 )
 
 val ColoredPdfColors = LightPdfColors.copy(
-    surface = Color(0xFFF5F6FF), surfaceRaised = Color(0xFFE9ECFC),
-    pressed = Color(0xFFDCE2FB), home = Color(0xFFEEF1FF), navBand = Color(0xFFE8EDFF),
+    surface = Color(0xFFD9E3FF), surfaceRaised = Color(0xFFE4EBFF),
+    pressed = Color(0xFFC4D1F7), home = Color(0xFFEEF1FF), navBand = Color(0xFFC7D5FA),
+    desk = Color(0xFFBAC8EE), paper = Color(0xFFF0F3FF), pageCard = Color(0xFFCED9F5),
     accent = Color(0xFF405CC7), button = Color(0xFF405CC7), toolAccent = Color(0xFF405CC7),
 )
 

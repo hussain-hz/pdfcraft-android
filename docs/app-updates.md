@@ -27,3 +27,7 @@ Emulator checks covered direct entry to preferences, System as the default appea
 RC.3 emulator validation also covered rounded appearance/language dialogs, all five appearance choices, checked selection semantics, system/Arabic/Spanish language changes and persistence after process restart.
 
 RC.4 validation: 84 JVM tests passed and release lint reported no issues. Emulator pixels confirm #000000 in Dark Settings and the appearance dialog, with the retained داكن label and no Notifications section.
+
+Colored appearance also colors the viewer surround (#BAC8EE), toolbars (#D9E3FF) and paper (#F0F3FF). Paper tint is a display-only multiply filter shared by the base image and zoom tiles; cached source pixels and saved/shared PDF bytes are unchanged. Explicit viewer Night Mode takes priority. Reading Mode uses the same paper color. Returning to White restores untinted rendering.
+
+Final RC.4 PDF checks verified all three colored viewer tones on a rendered Arabic PDF, paper tint after double-tap zoom, and removal of the tint when switching to White. The source PDF SHA-256 remained f5cc8c555c262372f94a0e2510806b079b69d0902ce34ffa397c9415cb6e8198.

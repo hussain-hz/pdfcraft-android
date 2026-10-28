@@ -165,7 +165,7 @@ fun ViewerScreen(vm: AppViewModel, doc: OpenDocument) {
 
     val search = doc.search
     val selection = doc.selection
-    val canvasLook = CanvasLook(background = c.desk, pageShadow = c.pageEdge, invert = ctl.nightMode)
+    val canvasLook = CanvasLook(background = c.desk, pageShadow = c.pageEdge, invert = ctl.nightMode, paper = c.paper)
 
     BackHandler(enabled = ctl.searching || ctl.tool != ViewerTool.None || selection.selection != null) {
         when {
