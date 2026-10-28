@@ -65,7 +65,7 @@ private fun ChoiceDialog(title: String, subtitle: String, onDismiss: () -> Unit,
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             Modifier.widthIn(max = 440.dp).fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp)
-                .clip(RoundedCornerShape(24.dp)).background(if (c.dark) Color(0xFF383838) else c.surface)
+                .clip(RoundedCornerShape(24.dp)).background(if (c.oled) Color.Black else if (c.dark) Color(0xFF383838) else c.surface)
                 .padding(20.dp).verticalScroll(rememberScrollState()),
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

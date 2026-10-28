@@ -209,7 +209,6 @@
     <string name="home_looking_for_pdfs">جارٍ البحث عن ملفات PDF…</string>
     <string name="home_more_options_for">خيارات إضافية للملف %1$s</string>
     <string name="home_new_scan">مسح ضوئي جديد</string>
-    <string name="home_no_notifications">يظهر زر تنزيل دائري بجانب الإعدادات فقط عند توفر تحديث مستقر.</string>
     <string name="home_no_pdfs_body">ستظهر هنا ملفات PDF الموجودة في المجلدات التي أضفتها.</string>
     <string name="home_no_pdfs_title">لا توجد ملفات PDF في مجلداتك</string>
     <string name="home_no_recent_body">ستظهر هنا الملفات التي تفتحها.</string>
@@ -235,7 +234,6 @@
     <string name="home_section_about">حول التطبيق</string>
     <string name="home_section_keyboard">لوحة المفاتيح</string>
     <string name="home_section_legal">معلومات قانونية</string>
-    <string name="home_section_notifications">الإشعارات</string>
     <string name="home_section_screen">إعداد الشاشة</string>
     <string name="home_section_suggestions">الاقتراحات التلقائية</string>
     <string name="home_settings">الإعدادات</string>
@@ -829,7 +827,7 @@
     <string name="home_theme">المظهر</string>
     <string name="home_theme_system">حسب النظام</string>
     <string name="home_theme_light">أبيض</string>
-    <string name="home_theme_dark">أسود</string>
+    <string name="home_theme_dark">داكن</string>
     <string name="home_display_preferences">تفضيلات العرض</string>
     <string name="home_choose_theme">اختر مظهر التطبيق</string>
     <string name="home_choose_language">اختر لغة التطبيق</string>

@@ -212,8 +212,6 @@
     <string name="home_leaving_body">Esto abre una página web en tu navegador.</string>
 
     <!-- Settings: Preferences -->
-    <string name="home_section_notifications">Notificaciones</string>
-    <string name="home_no_notifications">El botón circular de descarga aparece junto a Ajustes solo si hay una actualización estable disponible.</string>
     <string name="home_section_suggestions">Sugerencias automáticas</string>
     <string name="home_offer_suggestions">Sugerir palabras que ya usaste al rellenar formularios</string>
     <string name="home_clear_suggestions">Borrar sugerencias</string>
@@ -1214,7 +1212,7 @@
     <string name="home_theme">Apariencia</string>
     <string name="home_theme_system">Según el sistema</string>
     <string name="home_theme_light">Blanco</string>
-    <string name="home_theme_dark">Negro</string>
+    <string name="home_theme_dark">Oscuro</string>
     <string name="home_display_preferences">Preferencias de pantalla</string>
     <string name="home_choose_theme">Elige la apariencia de la aplicación</string>
     <string name="home_choose_language">Elige el idioma de la aplicación</string>

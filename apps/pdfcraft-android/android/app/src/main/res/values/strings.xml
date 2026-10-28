@@ -210,8 +210,6 @@
     <string name="home_leaving_body">This opens a web page in your browser.</string>
 
     <!-- Settings: Preferences -->
-    <string name="home_section_notifications">Notifications</string>
-    <string name="home_no_notifications">A circular download button appears next to Settings only when a stable update is available.</string>
     <string name="home_section_suggestions">Auto-suggestions</string>
     <string name="home_offer_suggestions">Offer words you used before when filling in forms</string>
     <string name="home_clear_suggestions">Clear suggestions</string>
@@ -1204,7 +1202,7 @@
     <string name="home_theme">Appearance</string>
     <string name="home_theme_system">Follow system</string>
     <string name="home_theme_light">White</string>
-    <string name="home_theme_dark">Black</string>
+    <string name="home_theme_dark">Dark</string>
     <string name="home_display_preferences">Display preferences</string>
     <string name="home_choose_theme">Choose the app appearance</string>
     <string name="home_choose_language">Choose the app language</string>

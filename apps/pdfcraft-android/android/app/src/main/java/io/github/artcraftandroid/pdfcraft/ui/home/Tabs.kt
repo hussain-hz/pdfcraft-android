@@ -369,9 +369,6 @@ private fun Preferences(vm: AppViewModel) {
     PreferenceSummary(stringResource(R.string.home_theme), stringResource(themeLabel(vm.theme))) { appearanceDialog = true }
     PreferenceSummary(stringResource(R.string.home_language), languageLabel(io.github.artcraftandroid.pdfcraft.AppLanguage.selected)) { languageDialog = true }
     SheetDivider()
-    Section(stringResource(R.string.home_section_notifications))
-    Text(stringResource(R.string.home_no_notifications), color = c.textSecondary, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
-    SheetDivider()
     Section(stringResource(R.string.home_section_suggestions))
     SheetRow(null, stringResource(R.string.home_offer_suggestions), { vm.updateFormSuggestions(!vm.formSuggestions) }) {
         PdfSwitch(vm.formSuggestions, { vm.updateFormSuggestions(it) })

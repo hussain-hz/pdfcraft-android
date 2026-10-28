@@ -32,6 +32,8 @@ val Inter: FontFamily get() = if (io.github.artcraftandroid.pdfcraft.AppLanguage
 @Immutable
 data class PdfColors(
     val dark: Boolean,
+    /** Pure-black surfaces for the explicit OLED appearance. */
+    val oled: Boolean = false,
     /** The app's surfaces: screens, bars and sheets. */
     val surface: Color,
     /** Slightly raised: cards, the search field, selected rows. */
@@ -155,6 +157,15 @@ val pdfColors: PdfColors @Composable get() = LocalPdfColors.current
 /** Persisted appearance choices; System follows the device and remains the default. */
 enum class ThemeChoice { System, Colored, Light, DarkGray, Dark }
 
+val OledPdfColors = DarkPdfColors.copy(
+    oled = true,
+    surface = Color.Black, surfaceRaised = Color.Black,
+    home = Color.Black, desk = Color.Black, menu = Color.Black,
+    navBand = Color.Black, pageCard = Color.Black,
+    // Subtle feedback and outlines keep controls distinguishable on unlit surfaces.
+    pressed = Color(0xFF191919), divider = Color(0xFF333333),
+)
+
 /** Keep the existing Light/Dark preference names so earlier selections remain valid. */
 val DarkGrayPdfColors = DarkPdfColors.copy(
     surface = Color(0xFF292929), surfaceRaised = Color(0xFF383838),
@@ -178,6 +189,7 @@ fun PdfcraftTheme(choice: ThemeChoice = ThemeChoice.System, content: @Composable
     val c = when (choice) {
         ThemeChoice.Colored -> ColoredPdfColors
         ThemeChoice.DarkGray -> DarkGrayPdfColors
+        ThemeChoice.Dark -> OledPdfColors
         else -> if (dark) DarkPdfColors else LightPdfColors
     }
     val scheme: ColorScheme = if (dark) {
