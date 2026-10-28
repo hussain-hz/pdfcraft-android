@@ -1199,10 +1199,9 @@
     <string name="updates_rate_limited">Demasiadas búsquedas de actualizaciones. Inténtalo más tarde.</string>
     <string name="updates_failed">No se pudieron buscar actualizaciones. Comprueba la conexión a Internet e inténtalo de nuevo.</string>
     <string name="updates_manual_hint">La aplicación busca versiones estables al abrirse.</string>
-    <string name="updates_download">Descargar versión estable</string>
+    <string name="updates_download">Descargar actualización</string>
     <string name="updates_view_release">Ver versión</string>
     <string name="updates_open_failed">No se pudo abrir el enlace de descarga.</string>
-    <string name="updates_installed">Versión instalada %1$s</string>
     <string name="updates_notification_available">Hay una actualización disponible</string>
     <string name="updates_download_title">Actualización de PdfCraft</string>
     <string name="updates_downloading">Descargando actualización…</string>
@@ -1222,4 +1221,11 @@
     <string name="home_choose_language">Elige el idioma de la aplicación</string>
     <string name="home_theme_colored">Color</string>
     <string name="home_theme_gray">Gris oscuro</string>
+    <string name="updates_details">Detalles de la actualización</string>
+    <string name="updates_installed_label">Versión instalada</string>
+    <string name="updates_new_version">Nueva versión</string>
+    <string name="updates_published">Fecha de publicación</string>
+    <string name="updates_size">Tamaño de descarga</string>
+    <string name="updates_whats_new">Novedades</string>
+    <string name="updates_notes_unavailable">Las notas de esta versión no están disponibles en este idioma.</string>
 </resources>

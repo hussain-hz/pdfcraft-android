@@ -43,9 +43,27 @@ internal data class AppVersion(val major: Int, val minor: Int, val patch: Int, v
     }
 }
 
-internal data class UpdateAsset(val name: String, val url: String, val sha256: String? = null)
-internal data class AppRelease(val tag: String, val page: String, val preview: Boolean, val draft: Boolean, val assets: List<UpdateAsset>)
-data class AvailableAppUpdate(val version: String, val pageUrl: String, val downloadUrl: String?, val sha256: String? = null)
+internal data class UpdateAsset(val name: String, val url: String, val sha256: String? = null, val size: Long = 0)
+internal data class AppRelease(val tag: String, val page: String, val preview: Boolean, val draft: Boolean, val assets: List<UpdateAsset>,
+    val notes: String = "", val publishedAt: String = "")
+data class AvailableAppUpdate(val version: String, val pageUrl: String, val downloadUrl: String?, val sha256: String? = null,
+    val notes: String = "", val publishedAt: String = "", val size: Long = 0)
+
+/** Release authors supply translations; select at display time so cached notes follow app language. */
+internal fun localizedReleaseNotes(body: String, language: String): String {
+    val bounded = body.take(32_000)
+    val sections = Regex("<!-- pdfcraft:notes:([a-z]{2}) -->([\\s\\S]*?)<!-- /pdfcraft:notes -->")
+        .findAll(bounded).associate { it.groupValues[1] to it.groupValues[2].trim() }
+    val selected = if (sections.isNotEmpty()) sections[language] ?: sections["en"].orEmpty()
+        else if (Regex("[\\u0600-\\u06ff]").containsMatchIn(bounded) == (language == "ar")) bounded else ""
+    // Plain text only: no HTML, remote images or executable links in update details.
+    return selected.replace(Regex("<!--[\\s\\S]*?-->"), "")
+        .replace(Regex("<[^>]*>"), "")
+        .replace(Regex("!?\\[([^]\\n]+)]\\([^\\n)]*\\)"), "$1")
+        .replace("**", "").replace("`", "")
+        .lineSequence().map { it.trim().replace(Regex("^#{1,6}\\s+"), "").replace(Regex("^[-*]\\s+"), "• ") }
+        .joinToString("\n").trim().take(12_000)
+}
 
 sealed interface AppUpdateStatus {
     data object Idle : AppUpdateStatus
@@ -90,7 +108,8 @@ internal fun selectAppUpdate(installed: String, abis: List<String>, releases: Li
         .maxByOrNull { it.second } ?: return null
     val release = candidate.first
     val apk = compatibleApk(release.assets, abis)
-    return AvailableAppUpdate(release.tag.removePrefix("preview-").removePrefix("v"), release.page, apk?.url, apk?.sha256)
+    return AvailableAppUpdate(release.tag.removePrefix("preview-").removePrefix("v"), release.page, apk?.url, apk?.sha256,
+        release.notes.take(32_000), release.publishedAt, apk?.size?.coerceAtLeast(0) ?: 0)
 }
 
 internal class UpdateRateLimited : IOException()
@@ -123,7 +142,8 @@ internal object AppUpdateFeed {
                 val release = array.optJSONObject(index) ?: return@mapNotNull null
                 val assets = release.optJSONArray("assets") ?: JSONArray()
                 AppRelease(release.optString("tag_name"), release.optString("html_url"), release.optBoolean("prerelease"), release.optBoolean("draft"),
-                    (0 until assets.length()).mapNotNull { n -> assets.optJSONObject(n)?.let { UpdateAsset(it.optString("name"), it.optString("browser_download_url"), it.optString("digest").removePrefix("sha256:").takeIf { hash -> Regex("[0-9a-fA-F]{64}").matches(hash) }) } })
+                    (0 until assets.length()).mapNotNull { n -> assets.optJSONObject(n)?.let { UpdateAsset(it.optString("name"), it.optString("browser_download_url"), it.optString("digest").removePrefix("sha256:").takeIf { hash -> Regex("[0-9a-fA-F]{64}").matches(hash) }, it.optLong("size").coerceAtLeast(0)) } },
+                    release.optString("body").take(32_000), release.optString("published_at"))
             }
         } finally {
             connection.disconnect()
@@ -131,12 +151,14 @@ internal object AppUpdateFeed {
     }
 }
 
-internal fun cachedAppUpdate(installed: String, version: String?, page: String?, download: String?, hash: String?): AvailableAppUpdate? {
+internal fun cachedAppUpdate(installed: String, version: String?, page: String?, download: String?, hash: String?,
+    notes: String = "", publishedAt: String = "", size: Long = 0): AvailableAppUpdate? {
     val current = AppVersion.parse(installed) ?: return null
     val newer = version?.let(AppVersion::parse) ?: return null
     if (newer.pre.isNotEmpty() || newer <= current || page == null || !trustedReleaseUrl(page, false)) return null
     if (download != null && !trustedReleaseUrl(download, true)) return null
-    return AvailableAppUpdate(version, page, download, hash?.takeIf { Regex("[0-9a-fA-F]{64}").matches(it) })
+    return AvailableAppUpdate(version, page, download, hash?.takeIf { Regex("[0-9a-fA-F]{64}").matches(it) },
+        notes.take(32_000), publishedAt, size.coerceAtLeast(0))
 }
 
 internal fun shouldCheckOnOpen(previous: Long?, now: Long): Boolean = previous == null || now < previous || now - previous >= 60_000

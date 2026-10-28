@@ -1,5 +1,13 @@
 # Application updates and first production release
 
+## Localized update details
+
+The update button opens a rounded, theme-aware details dialog with installed/new versions, release date, compatible APK size, localized release notes and a fixed primary download/install action. The notes scroll independently of the action. Version labels use left-to-right layout even in Arabic. Download progress, cancellation, verification and installer handoff retain the existing update protections.
+
+Publish Arabic and English release notes in the release body using `<!-- pdfcraft:notes:ar -->` or `<!-- pdfcraft:notes:en -->`, followed by the translated notes and `<!-- /pdfcraft:notes -->`. Language is selected at display time, including from cached notes, so changing the app language immediately selects the matching text. Other languages fall back to the English section when no translation exists. Unmarked legacy Arabic/English notes are shown only when their script matches the requested language; missing notes show a localized message. Markdown is reduced to plain text, with no remote image loading or link execution. Release metadata is cached with the available update and clears after installation or a successful check finds no newer stable release.
+
+Release 0.0.1 is published. The localized-details changes are prepared as 0.0.2-rc.1 for review.
+
 Settings opens the preferences page directly. Appearance and Language are compact rows showing the current selection; tapping either opens a rounded choice dialog with a highlighted, checked selection and a close button. Appearance offers Follow system (the default), Colored, White, Dark gray and Dark (OLED), with small previews. Language offers Follow system, Arabic, English and Spanish; following the system clears the explicit app locale. Earlier Light/Dark preferences migrate naturally to White/Dark without resetting the selection. Help & Support and About appear at the bottom of that page. About retains the manual update check. Opening the app also starts an asynchronous check; immediate foreground resumes within one minute share the previous check to avoid duplicate requests. Only stable published releases in hussain-hz/pdfcraft-android are eligible, even when the installed app is a beta. Drafts, prereleases, preview tags and versions with prerelease identifiers are excluded. Versions are compared semantically and APKs are selected for the device ABI.
 
 A circular download-arrow button beside Settings is visible only for an available stable update. The last valid update notice survives process restart and temporary network failures, and clears after that version is installed or a successful check finds no newer stable release.

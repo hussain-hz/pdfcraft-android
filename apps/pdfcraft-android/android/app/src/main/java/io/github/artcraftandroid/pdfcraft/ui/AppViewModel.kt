@@ -2365,6 +2365,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var availableAppUpdate by mutableStateOf(io.github.artcraftandroid.pdfcraft.updates.cachedAppUpdate(
         appVersion, appPrefs.getString("updateVersion", null), appPrefs.getString("updatePage", null),
         appPrefs.getString("updateDownload", null), appPrefs.getString("updateHash", null),
+        appPrefs.getString("updateNotes", "").orEmpty(), appPrefs.getString("updatePublished", "").orEmpty(), appPrefs.getLong("updateSize", 0),
     ))
         private set
     var appUpdatesOpen by mutableStateOf(false)
@@ -2395,6 +2396,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 appPrefs.edit {
                     putString("updateVersion", update?.version); putString("updatePage", update?.pageUrl)
                     putString("updateDownload", update?.downloadUrl); putString("updateHash", update?.sha256)
+                    putString("updateNotes", update?.notes); putString("updatePublished", update?.publishedAt)
+                    putLong("updateSize", update?.size ?: 0)
                 }
                 appUpdateStatus = if (update == null) io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Current
                     else io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Available(update)

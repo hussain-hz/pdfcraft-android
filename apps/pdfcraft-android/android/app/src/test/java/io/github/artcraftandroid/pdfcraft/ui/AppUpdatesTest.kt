@@ -5,6 +5,37 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AppUpdatesTest {
+    @Test fun releaseNotesFollowLanguageWithoutMixingTranslations() {
+        val body = "Intro\n<!-- pdfcraft:notes:ar -->\n- تحسين العربية\n<!-- /pdfcraft:notes -->\n" +
+            "<!-- pdfcraft:notes:en -->\n- Better Arabic text\n<!-- /pdfcraft:notes -->"
+        assertEquals("• تحسين العربية", localizedReleaseNotes(body, "ar"))
+        assertEquals("• Better Arabic text", localizedReleaseNotes(body, "en"))
+        assertEquals("• Better Arabic text", localizedReleaseNotes(body, "es"))
+        assertFalse(localizedReleaseNotes(body, "ar").contains("Intro"))
+    }
+
+    @Test fun oldNotesAndMissingTranslationsHavePredictableFallbacks() {
+        assertEquals("تحسين العربية", localizedReleaseNotes("تحسين العربية", "ar"))
+        assertEquals("", localizedReleaseNotes("تحسين العربية", "en"))
+        assertEquals("Fixed rendering", localizedReleaseNotes("Fixed rendering", "en"))
+        assertEquals("", localizedReleaseNotes("Fixed rendering", "ar"))
+        assertEquals("", localizedReleaseNotes("", "ar"))
+        assertEquals("Title\n• Safe label", localizedReleaseNotes("## Title\n- **[Safe label](https://example.org)**<img src=x>", "en"))
+    }
+
+    @Test fun releaseDetailsMatchTheSelectedApkAndSurviveCache() {
+        val r = release().copy(notes = "Notes", publishedAt = "2026-10-28T11:21:01Z",
+            assets = listOf(asset().copy(size = 48_767_328)))
+        val update = find(releases = listOf(r))!!
+        assertEquals(r.notes, update.notes)
+        assertEquals(r.publishedAt, update.publishedAt)
+        assertEquals(48_767_328L, update.size)
+        assertEquals(update, cachedAppUpdate("0.1.0", update.version, update.pageUrl, update.downloadUrl, update.sha256,
+            update.notes, update.publishedAt, update.size))
+        assertNull(cachedAppUpdate("0.2.0", update.version, update.pageUrl, update.downloadUrl, update.sha256,
+            update.notes, update.publishedAt, update.size))
+    }
+
     private val repo = "https://github.com/hussain-hz/pdfcraft-android/releases"
     private fun asset(name: String = "PdfCraft-arm64.apk", url: String = "$repo/download/v0.2.0/$name") = UpdateAsset(name, url)
     private fun release(tag: String = "v0.2.0", preview: Boolean = false, draft: Boolean = false, assets: List<UpdateAsset> = listOf(asset())) =
