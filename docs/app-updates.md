@@ -28,10 +28,14 @@ RC.3 emulator validation also covered rounded appearance/language dialogs, all f
 
 RC.4 validation: 84 JVM tests passed and release lint reported no issues. Emulator pixels confirm #000000 in Dark Settings and the appearance dialog, with the retained داكن label and no Notifications section.
 
-Colored appearance uses the original soft Home/Settings palette. The viewer surround matches Home (#EEF1FF), toolbars match the original Settings surface (#F5F6FF), and paper keeps its light tint (#F0F3FF). Paper tint is a display-only multiply filter shared by the base image and zoom tiles; cached source pixels and saved/shared PDF bytes are unchanged. Explicit viewer Night Mode takes priority. Reading Mode uses the same paper color. Returning to White restores untinted rendering.
+Colored appearance uses a single shared #EEF1FF background for Home, Settings, viewer surround, paper, toolbars, navigation bands and theme surface roles. Paper tint is a display-only multiply filter shared by the base image and zoom tiles; cached source pixels and saved/shared PDF bytes are unchanged. Explicit viewer Night Mode takes priority. Reading Mode uses the same paper color. Returning to White restores untinted rendering.
 
 Final RC.4 PDF checks verified all three colored viewer tones on a rendered Arabic PDF, paper tint after double-tap zoom, and removal of the tint when switching to White. The source PDF SHA-256 remained f5cc8c555c262372f94a0e2510806b079b69d0902ce34ffa397c9415cb6e8198.
 
 RC.5 restores the original RC.3 surface, raised surface, pressed-state and navigation-band colors, without changing the Home background. The viewer surround now uses that same Home background rather than the stronger RC.4 blue.
 
 RC.5 validation: signed ARM64 build, preview QA build, 84 JVM tests and release lint passed. Emulator screenshots verified the original Home (#EEF1FF) and Settings (#F5F6FF) backgrounds, matching viewer surround and retained light paper tint on the Arabic PDF, at fit and enlarged zoom.
+
+RC.6 replaces the separate pale background shades with one shared color constant taken from Home. Interactive feedback, icons, text and dividers retain their distinct colors for readability.
+
+RC.6 validation: signed ARM64 and preview QA builds passed with 84 JVM tests and no release lint issues. Screenshot pixel sampling verified identical RGB (238, 241, 255), #EEF1FF, in Home, Settings, both viewer toolbars, viewer surround, paper and the navigation band on the rendered Arabic PDF.

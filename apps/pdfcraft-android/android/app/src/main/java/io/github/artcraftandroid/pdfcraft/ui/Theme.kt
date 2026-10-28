@@ -175,10 +175,12 @@ val DarkGrayPdfColors = DarkPdfColors.copy(
     menu = Color(0xFF383838), navBand = Color(0xFF323232), pageCard = Color(0xFF383838),
 )
 
+/** One background across Home, Settings, viewer, paper, toolbars and menus. */
+private val ColoredBackground = Color(0xFFEEF1FF)
 val ColoredPdfColors = LightPdfColors.copy(
-    surface = Color(0xFFF5F6FF), surfaceRaised = Color(0xFFE9ECFC),
-    pressed = Color(0xFFDCE2FB), home = Color(0xFFEEF1FF), navBand = Color(0xFFE8EDFF),
-    desk = Color(0xFFEEF1FF), paper = Color(0xFFF0F3FF), pageCard = Color(0xFFE9ECFC),
+    surface = ColoredBackground, surfaceRaised = ColoredBackground,
+    pressed = Color(0xFFDCE2FB), home = ColoredBackground, navBand = ColoredBackground,
+    desk = ColoredBackground, paper = ColoredBackground, pageCard = ColoredBackground, menu = ColoredBackground,
     accent = Color(0xFF405CC7), button = Color(0xFF405CC7), toolAccent = Color(0xFF405CC7),
 )
 
