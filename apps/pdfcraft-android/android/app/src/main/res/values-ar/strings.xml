@@ -835,6 +835,6 @@
     <string name="home_theme_gray">رمادي داكن</string>
     <string name="home_section_extra">ميزات إضافية</string>
     <string name="home_extra_body">خيارات إضافية لتخصيص مظهر PdfCraft وطريقة عمله.</string>
-    <string name="home_status_bar_in_documents">إظهار شريط الحالة داخل المستندات</string>
-    <string name="home_status_bar_in_documents_body">تظهر الساعة والبطارية مع أشرطة الأدوات. عند إخفائها بالضغط على الصفحة، يستخدم المستند الشاشة كاملة، بما فيها المساحة حول الكاميرا.</string>
+    <string name="home_status_bar_in_documents">إخفاء شريط الحالة داخل المستندات</string>
+    <string name="home_status_bar_in_documents_body">يظهر شريط الحالة افتراضيًا مع أشرطة الأدوات. فعّل هذا الخيار لإخفائه؛ وتبقى المساحة حول الكاميرا بلون المظهر الحالي.</string>
 </resources>

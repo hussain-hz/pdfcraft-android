@@ -838,10 +838,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Extra Features ▸ the status bar in documents: shown with the viewer's bars, and the page uses the
-     * whole screen when they hide (off: the reference's black band where the camera is).
+     * Shown with the viewer's bars by default. The optional Hide switch stores the inverse;
+     * disabling status display keeps the camera/cutout band in the viewer's theme color.
      */
-    var statusBarInDocuments by mutableStateOf(appPrefs.getBoolean("statusBarInDocuments", false))
+    var statusBarInDocuments by mutableStateOf(appPrefs.getBoolean("statusBarInDocuments", true))
         private set
 
     fun updateStatusBarInDocuments(on: Boolean) {

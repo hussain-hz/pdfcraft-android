@@ -85,6 +85,16 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun ViewerScreen(vm: AppViewModel, doc: OpenDocument) {
+    // Document Night Mode includes the viewer chrome; the app's saved appearance is untouched.
+    io.github.artcraftandroid.pdfcraft.ui.PdfcraftTheme(
+        choice = if (doc.controller.nightMode) io.github.artcraftandroid.pdfcraft.ui.ThemeChoice.Dark else vm.theme,
+    ) {
+        ViewerContent(vm, doc)
+    }
+}
+
+@Composable
+private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
     val c = pdfColors
     val ctl = doc.controller
     val scope = rememberCoroutineScope()
@@ -99,14 +109,11 @@ fun ViewerScreen(vm: AppViewModel, doc: OpenDocument) {
         if (window != null) {
             val insets = WindowCompat.getInsetsController(window, view)
             insets.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            // the status bar stays hidden in the viewer (a black band where the camera is), as the
-            // reference's, unless Extra Features shows it with the bars; the navigation bar comes and
-            // goes with the viewer's bars
+            // Both system bars follow the viewer controls; the status bar can be disabled separately.
             if (statusBar && ctl.barsVisible) insets.show(WindowInsetsCompat.Type.statusBars()) else insets.hide(WindowInsetsCompat.Type.statusBars())
             if (ctl.barsVisible) insets.show(WindowInsetsCompat.Type.navigationBars()) else insets.hide(WindowInsetsCompat.Type.navigationBars())
-            // light status icons on the black band, as the reference has in both themes; shown, they
-            // sit on the top bar's colour
-            insets.isAppearanceLightStatusBars = statusBar && !c.dark
+            // The shown and transient status icons sit on the theme's surface, including the cutout.
+            insets.isAppearanceLightStatusBars = !c.dark
             insets.isAppearanceLightNavigationBars = !c.dark
         }
         onDispose {
@@ -329,7 +336,7 @@ fun ViewerScreen(vm: AppViewModel, doc: OpenDocument) {
         Column(Modifier.fillMaxWidth().align(Alignment.TopCenter)) {
             Box(
                 Modifier.fillMaxWidth().height(with(density) { statusPx.toDp() })
-                    .background(if (!statusBar) Color.Black else if (ctl.barsVisible) c.surface else Color.Transparent),
+                    .background(if (!statusBar || ctl.barsVisible) c.surface else Color.Transparent),
             )
             AnimatedVisibility(
                 ctl.barsVisible,
