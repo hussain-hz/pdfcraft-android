@@ -65,10 +65,14 @@ abstract class CargoNdkBuild : DefaultTask() {
     @get:Input abstract val ndkDir: Property<String>
     @get:Input abstract val abis: ListProperty<String>
     @get:Input abstract val apiLevel: Property<Int>
+    @get:Input abstract val productionSigningAllowed: Property<Boolean>
     @get:OutputDirectory abstract val outputDir: DirectoryProperty
 
     @TaskAction
     fun build() {
+        require(productionSigningAllowed.get()) {
+            "Production builds require PDFCRAFT_KEYSTORE and its credentials. Use pdfcraft.unsigned=true only for explicit unsigned builds."
+        }
         require(!System.getenv("CRAFT_FONTS_DIR").isNullOrBlank()) {
             "PdfCraft requires its Arabic PDF font. Run tools/prepare-arabic-fonts.ps1 with the pinned craft-fonts checkout before building."
         }
@@ -312,11 +316,7 @@ androidComponents {
             ndkDir.set(androidComponents.sdkComponents.ndkDirectory.map { it.asFile.absolutePath })
             abis.set(rustAbis)
             apiLevel.set(minApi)
-            if (name.endsWith("Release")) doFirst {
-                require(unsignedRelease || releaseKeystore != null) {
-                    "Production builds require PDFCRAFT_KEYSTORE and its credentials. Use pdfcraft.unsigned=true only for explicit unsigned builds."
-                }
-            }
+            productionSigningAllowed.set(!name.endsWith("Release") || unsignedRelease || releaseKeystore != null)
             // cargo knows what changed
             outputs.upToDateWhen { false }
         }

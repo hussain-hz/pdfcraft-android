@@ -279,3 +279,7 @@ Acrobat is a trademark of Adobe Inc.
 
 Try to use [semantic commit](https://kapeli.com/cheat_sheets/Semantic_Commits.docset/Contents/Resources/Documents/index)
 messages. Use `feat:` / `fix:` / `chore:` / `docs:` / etc.
+
+## Application updates
+
+Release 0.0.1 uses the production application identity and release signing key. Opening the app checks for stable releases only; a circular download button next to Settings appears only when an update is available. About also offers a manual check. Updates download inside the app and are verified before Android asks to install them. See [the update and release notes](docs/app-updates.md).

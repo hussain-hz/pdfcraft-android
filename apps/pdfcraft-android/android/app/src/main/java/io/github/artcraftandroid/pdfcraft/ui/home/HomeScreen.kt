@@ -1,6 +1,7 @@
 package io.github.artcraftandroid.pdfcraft.ui.home
 
 import io.github.artcraftandroid.pdfcraft.ui.safeTopPadding
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +48,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -175,6 +177,28 @@ private fun HomeTabScreen(vm: AppViewModel, onBrowse: () -> Unit) {
                 Image(painterResource(R.drawable.ic_launcher_tile), null, modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)))
                 Spacer(Modifier.width(10.dp))
                 Text(stringResource(R.string.app_name), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (vm.availableAppUpdate != null) {
+                    val updateLabel = stringResource(R.string.updates_notification_available)
+                    Box(Modifier.size(40.dp).clip(CircleShape).background(c.surfaceRaised).clickable { vm.appUpdatesOpen = true }.semantics { contentDescription = updateLabel },
+                        contentAlignment = Alignment.Center) {
+                        // Original download glyph: a stem, arrow head and receiving tray.
+                        val iconColor = c.icon
+                        Canvas(Modifier.size(22.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            val stroke = 1.8.dp.toPx()
+                            fun line(x1: Float, y1: Float, x2: Float, y2: Float) = drawLine(iconColor,
+                                Offset(w * x1, h * y1), Offset(w * x2, h * y2), strokeWidth = stroke, cap = StrokeCap.Round)
+                            line(.5f, .12f, .5f, .62f)
+                            line(.29f, .43f, .5f, .64f)
+                            line(.5f, .64f, .71f, .43f)
+                            line(.18f, .65f, .18f, .86f)
+                            line(.18f, .86f, .82f, .86f)
+                            line(.82f, .86f, .82f, .65f)
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                }
                 Box(
                     Modifier.size(40.dp).clip(CircleShape).background(c.surfaceRaised).clickable { vm.settingsOpen = true }.semantics { contentDescription = settingsLabel },
                     contentAlignment = Alignment.Center,

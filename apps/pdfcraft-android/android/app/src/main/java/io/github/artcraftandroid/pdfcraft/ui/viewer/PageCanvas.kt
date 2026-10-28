@@ -49,6 +49,7 @@ data class CanvasLook(
     val pageShadow: Color,
     /** Draw pages inverted (night mode): white paper becomes black. */
     val invert: Boolean = false,
+    val paper: Color = Color.White,
 )
 
 /**
@@ -200,13 +201,19 @@ private suspend fun settle(state: ViewerState, velocity: Offset, density: Float)
 
 private fun DrawScope.drawPages(state: ViewerState, images: PageImages, gen: Long, look: CanvasLook, maxScale: Float) {
     val level = state.detailLevel()
+    // Apply the same display filter to base pages and zoom tiles, without changing cached pixels.
+    val filter = when {
+        look.invert -> invertFilter
+        look.paper != Color.White -> androidx.compose.ui.graphics.ColorFilter.tint(look.paper, androidx.compose.ui.graphics.BlendMode.Multiply)
+        else -> null
+    }
     for (i in state.visiblePages()) {
         val r = state.pageRectOnScreen(i)
         // a thin shadow line around the paper, as a printed page on a grey desk
         drawRect(look.pageShadow, topLeft = Offset(r.left - 1f, r.top - 1f), size = Size(r.width + 2f, r.height + 2f))
-        drawRect(if (look.invert) Color.Black else Color.White, topLeft = r.topLeft, size = r.size)
+        drawRect(if (look.invert) Color.Black else look.paper, topLeft = r.topLeft, size = r.size)
         val base = images.get(ImageKey(i, gen, state.baseLevel())) ?: images.get(ImageKey(i, gen, 0)) ?: images.latestBase(i)
-        if (base != null) drawImageIn(base, r, look.invert)
+        if (base != null) drawImageIn(base, r, filter)
         if (level > 0) {
             val s = state.levelScale(i, level, maxScale)
             val k = state.pixelsPerPoint(i) / s
@@ -221,7 +228,7 @@ private fun DrawScope.drawPages(state: ViewerState, images: PageImages, gen: Lon
             for (ty in vy0..minOf(vy1, rows - 1)) for (tx in vx0..minOf(vx1, cols - 1)) {
                 val t = images.get(ImageKey(i, gen, level, ty * cols + tx)) ?: continue
                 val dst = Rect(r.left + t.x * k, r.top + t.y * k, r.left + (t.x + t.bitmap.width) * k, r.top + (t.y + t.bitmap.height) * k)
-                drawImageIn(t, dst, look.invert)
+                drawImageIn(t, dst, filter)
             }
         }
     }
@@ -240,7 +247,7 @@ private val invertFilter = androidx.compose.ui.graphics.ColorFilter.colorMatrix(
     ),
 )
 
-private fun DrawScope.drawImageIn(img: PageImage, dst: Rect, invert: Boolean) {
+private fun DrawScope.drawImageIn(img: PageImage, dst: Rect, filter: androidx.compose.ui.graphics.ColorFilter?) {
     val l = dst.left.roundToInt()
     val t = dst.top.roundToInt()
     drawImage(
@@ -250,7 +257,7 @@ private fun DrawScope.drawImageIn(img: PageImage, dst: Rect, invert: Boolean) {
         dstOffset = IntOffset(l, t),
         dstSize = IntSize((dst.right.roundToInt() - l).coerceAtLeast(1), (dst.bottom.roundToInt() - t).coerceAtLeast(1)),
         filterQuality = FilterQuality.Medium,
-        colorFilter = if (invert) invertFilter else null,
+        colorFilter = filter,
     )
 }
 

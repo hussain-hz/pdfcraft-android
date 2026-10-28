@@ -24,6 +24,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
+  CARGO_BUILD_JOBS: 2
   CRAFT_FONTS_DIR: ${{ github.workspace }}/.build-inputs/craft-fonts
   CRAFT_FONTS_REQUIRED: '1'
   CRAFT_FONT_SCRIPTS: Arab
@@ -32,6 +33,7 @@ jobs:
   apk:
     name: APK
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - name: Check out pinned Arabic font source
@@ -77,7 +79,11 @@ jobs:
       - name: Install cargo-ndk and the Android NDK
         run: |
           cargo install cargo-ndk --version 4.1.2 --locked
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865" >/dev/null
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          packages="$("$sdkmanager" --list)"
+          platform="platforms;android-37"
+          if printf '%s' "$packages" | grep -q 'platforms;android-37.0'; then platform="platforms;android-37.0"; fi
+          "$sdkmanager" "$platform" "ndk;29.0.14206865" >/dev/null
 
       - name: Release key
         env:
@@ -106,7 +112,11 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/dist"
           for abi in arm64-v8a armeabi-v7a; do
-            ./gradlew assembleRelease "-Ppdfcraft.abis=$abi" "-Ppdfcraft.version=$VERSION" --no-daemon
+            if [ "$abi" = arm64-v8a ]; then
+              ./gradlew testDebugUnitTest lintRelease assembleRelease "-Ppdfcraft.abis=$abi" "-Ppdfcraft.version=$VERSION" --max-workers=2 --no-daemon
+            else
+              ./gradlew assembleRelease "-Ppdfcraft.abis=$abi" "-Ppdfcraft.version=$VERSION" --max-workers=2 --no-daemon
+            fi
             suffix=""; [ "$abi" = arm64-v8a ] || suffix="-$abi"
             cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/dist/pdfcraft-android-$VERSION$suffix.apk"
           done
@@ -155,5 +165,15 @@ jobs:
 
       - name: Draft the release
         run: |
-          gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" --notes "## What's Changed" -- dist/*
-          echo "Draft **$GITHUB_REF_NAME** is ready: fill in What's Changed and publish it." >>"$GITHUB_STEP_SUMMARY"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            for apk in dist/*.apk; do
+              asset="$(basename "$apk")"
+              if ! gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
+                gh release upload "$GITHUB_REF_NAME" "$apk"
+              fi
+            done
+            echo "Existing release **$GITHUB_REF_NAME** retained; missing APKs added." >>"$GITHUB_STEP_SUMMARY"
+          else
+            gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" --notes "## What's Changed" -- dist/*
+            echo "Draft **$GITHUB_REF_NAME** is ready: fill in What's Changed and publish it." >>"$GITHUB_STEP_SUMMARY"
+          fi

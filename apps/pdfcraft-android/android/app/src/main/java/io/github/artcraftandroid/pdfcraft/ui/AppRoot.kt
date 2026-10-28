@@ -116,6 +116,7 @@ fun AppRoot(vm: AppViewModel, onBrowse: () -> Unit, onPickSignatureImage: () -> 
         if (vm.idCreate) CreateIdScreen(vm)
         if (vm.settingsOpen) SettingsScreen(vm)
         if (vm.showLicences) LicencesScreen(vm)
+        if (vm.appUpdatesOpen) io.github.artcraftandroid.pdfcraft.ui.home.AppUpdatesDialog(vm)
 
         if (vm.opening) CircularProgressIndicator(Modifier.align(Alignment.Center), color = c.accent)
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 72.dp, start = 8.dp, end = 8.dp))

@@ -32,6 +32,10 @@ val Inter: FontFamily get() = if (io.github.artcraftandroid.pdfcraft.AppLanguage
 @Immutable
 data class PdfColors(
     val dark: Boolean,
+    /** Pure-black surfaces for the explicit OLED appearance. */
+    val oled: Boolean = false,
+    /** Display-only tint of rendered paper; never written to the document. */
+    val paper: Color = Color.White,
     /** The app's surfaces: screens, bars and sheets. */
     val surface: Color,
     /** Slightly raised: cards, the search field, selected rows. */
@@ -105,7 +109,7 @@ val LightPdfColors = PdfColors(
     onToast = Color(0xFFFFFFFF),
     label = Color(0xFF000000),
     toolAccent = Color(0xFF0265DC),
-    navBand = Color(0xFFFAFAFA),
+    navBand = Color(0xFFFFFFFF),
     menu = Color(0xFFFFFFFF),
     pageCard = Color(0xFFE6E6E6),
     home = Color(0xFFFFFFFF),
@@ -137,7 +141,7 @@ val DarkPdfColors = PdfColors(
     onToast = Color(0xFFFFFFFF),
     label = Color(0xFFFFFFFF),
     toolAccent = Color(0xFF5EAAF7),
-    navBand = Color(0xFF303030),
+    navBand = Color(0xFF080808),
     menu = Color(0xFF080808),
     pageCard = Color(0xFF303030),
     home = Color(0xFF000000),
@@ -152,17 +156,47 @@ val LocalPdfColors = staticCompositionLocalOf { LightPdfColors }
 /** The colours in effect. */
 val pdfColors: PdfColors @Composable get() = LocalPdfColors.current
 
-/** How the app chooses light or dark (Preferences ▸ Theme). */
-enum class ThemeChoice { System, Light, Dark }
+/** Persisted appearance choices; System follows the device and remains the default. */
+enum class ThemeChoice { System, Colored, Light, DarkGray, Dark }
+
+val OledPdfColors = DarkPdfColors.copy(
+    oled = true,
+    surface = Color.Black, surfaceRaised = Color.Black,
+    home = Color.Black, desk = Color.Black, menu = Color.Black,
+    navBand = Color.Black, pageCard = Color.Black,
+    // Subtle feedback and outlines keep controls distinguishable on unlit surfaces.
+    pressed = Color(0xFF191919), divider = Color(0xFF333333),
+)
+
+/** Keep the existing Light/Dark preference names so earlier selections remain valid. */
+val DarkGrayPdfColors = DarkPdfColors.copy(
+    surface = Color(0xFF292929), surfaceRaised = Color(0xFF383838),
+    pressed = Color(0xFF454550), home = Color(0xFF292929), desk = Color(0xFF202020),
+    menu = Color(0xFF383838), navBand = Color(0xFF323232), pageCard = Color(0xFF383838),
+)
+
+/** One background across Home, Settings, viewer, paper, toolbars and menus. */
+private val ColoredBackground = Color(0xFFEEF1FF)
+val ColoredPdfColors = LightPdfColors.copy(
+    surface = ColoredBackground, surfaceRaised = ColoredBackground,
+    pressed = Color(0xFFDCE2FB), home = ColoredBackground, navBand = ColoredBackground,
+    desk = ColoredBackground, paper = ColoredBackground, pageCard = ColoredBackground, menu = ColoredBackground,
+    accent = Color(0xFF405CC7), button = Color(0xFF405CC7), toolAccent = Color(0xFF405CC7),
+)
 
 @Composable
 fun PdfcraftTheme(choice: ThemeChoice = ThemeChoice.System, content: @Composable () -> Unit) {
     val dark = when (choice) {
         ThemeChoice.System -> isSystemInDarkTheme()
-        ThemeChoice.Light -> false
-        ThemeChoice.Dark -> true
+        ThemeChoice.Colored, ThemeChoice.Light -> false
+        ThemeChoice.DarkGray, ThemeChoice.Dark -> true
     }
-    val c = if (dark) DarkPdfColors else LightPdfColors
+    val c = when (choice) {
+        ThemeChoice.Colored -> ColoredPdfColors
+        ThemeChoice.DarkGray -> DarkGrayPdfColors
+        ThemeChoice.Dark -> OledPdfColors
+        else -> if (dark) DarkPdfColors else LightPdfColors
+    }
     val scheme: ColorScheme = if (dark) {
         darkColorScheme(primary = c.accent, onPrimary = c.onAccent, surface = c.surface, onSurface = c.text, background = c.surface, onBackground = c.text,
             surfaceVariant = c.surfaceRaised, onSurfaceVariant = c.textSecondary, outline = c.divider, error = c.red, surfaceContainer = c.surfaceRaised,

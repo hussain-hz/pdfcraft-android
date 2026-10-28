@@ -404,7 +404,7 @@ fun PdfDialog(
         androidx.compose.runtime.SideEffect { window?.setDimAmount(0.6f) }
         Box(Modifier.fillMaxWidth().padding(horizontal = if (list) 68.dp else 51.dp), contentAlignment = Alignment.Center) {
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(if (list) (if (c.dark) Color(0xFF424242) else Color.White) else c.surface)
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(if (c.oled) Color.Black else if (list) (if (c.dark) Color(0xFF424242) else Color.White) else c.surface)
                     .padding(if (list) PaddingValues(vertical = 8.dp) else PaddingValues(24.dp)),
             ) {
                 if (title != null) {

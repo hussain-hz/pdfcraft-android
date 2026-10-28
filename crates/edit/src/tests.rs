@@ -1425,7 +1425,8 @@ fn fallback_paths(doc: &Document) -> Vec<Vec<u8>> {
     let p = pdfcraft_model::pages(doc).swap_remove(0);
     let res = doc.resolve(p.dict.get(b"Resources").unwrap());
     let fonts = doc.resolve(res.as_dict().unwrap().get(b"Font").unwrap());
-    let font = doc.resolve(fonts.as_dict().unwrap().get(b"PCJp").unwrap());
+    let fonts = fonts.as_dict().unwrap();
+    let font = doc.resolve(fonts.get(b"PCJp").or_else(|| fonts.get(b"PCLat")).unwrap());
     let procs = doc.resolve(font.as_dict().unwrap().get(b"CharProcs").unwrap());
     procs
         .as_dict()
@@ -7434,5 +7435,63 @@ fn arabic_line_replacement_preserves_the_upstream_clipping_guard() {
         let result = text::replace_line(&mut doc, 0, 0, "نص عربي");
         assert!(matches!(&result, Err(EditError::Invalid(m)) if m.contains("clipping path")), "mode {mode}: {result:?}");
         assert_eq!(page_content_bytes(&doc, 0), before, "a refused edit must not change the source");
+    }
+}
+
+#[test]
+fn replacement_text_beyond_western_european_is_drawn_in_inter() {
+    for replacement in ["Mustafa çokyaşar", "Zażółć gęślą jaźń", "Țară și"] {
+        for paragraph in [false, true] {
+            let mut doc = text_page("BT /F1 12 Tf 72 700 Td (Mustafa cokyasar) Tj ET");
+            let edit = if paragraph { text::replace_block(&mut doc, 0, 0, replacement) } else { text::replace_line(&mut doc, 0, 0, replacement) };
+            assert_eq!(edit.unwrap().substituted.as_deref(), Some("Inter Type3"), "{replacement}");
+            assert_eq!(text::text_lines(&reopen(&doc), 0).unwrap()[0].text, replacement);
+            assert!(!fallback_paths(&reopen(&doc)).is_empty());
+        }
+    }
+    if pdfcraft_fonts::document_japanese_font().is_none() {
+        let mut doc = text_page("BT /F1 12 Tf 72 700 Td (ab) Tj ET");
+        assert!(text::replace_line(&mut doc, 0, 0, "ş 中").is_err());
+    }
+}
+
+#[test]
+fn added_text_beyond_western_european_is_drawn_in_inter() {
+    let mut doc = fixture();
+    let text =
+        AddedText { rect: [72.0, 600.0, 400.0, 700.0], text: "Mustafa çokyaşar\nΕλληνικά Привет".into(), ..AddedText::default() };
+    add_content(&mut doc, 0, &Content::Text(text.clone())).unwrap();
+    let reopened = reopen(&doc);
+    let lines: Vec<String> = text::text_lines(&reopened, 0).unwrap().into_iter().map(|l| l.text).collect();
+    assert!(lines.iter().any(|l| l == "Mustafa çokyaşar"), "{lines:?}");
+    assert!(lines.iter().any(|l| l == "Ελληνικά Привет"), "{lines:?}");
+    let Content::Text(back) = &list_added(&reopened)[0].content else { panic!("text") };
+    assert_eq!(back.text, text.text);
+    // Retyped to Western European text: the standard font again.
+    add_content(&mut doc, 0, &Content::Text(AddedText { text: "Café".into(), ..text.clone() })).unwrap();
+    let cjk = AddedText { text: "ş 中".into(), ..text };
+    assert!(add_content(&mut doc, 0, &Content::Text(cjk)).unwrap_err().to_string().contains("U+4E2D"));
+}
+
+/// The new Inter path must preserve Arabic shaping and logical text across save/reopen/update.
+#[test]
+fn arabic_mixed_with_inter_letters_survives_save_and_reedit() {
+    if pdfcraft_fonts::document_arabic_font().is_none() {
+        return;
+    }
+    let mut doc = fixture();
+    for value in ["مرحبا ş Ελληνικά ١٢٣", "نص عربي Zażółć Привет 456"] {
+        let item = AddedText { rect: [40.0, 500.0, 580.0, 700.0], text: value.into(), ..AddedText::default() };
+        let index = add_content(&mut doc, 0, &Content::Text(item.clone())).unwrap();
+        let mut saved = reopen(&doc);
+        let Content::Text(back) = &list_added(&saved)[index].content else { panic!("text") };
+        assert_eq!(back.text, value);
+        let lines = text::text_lines(&saved, 0).unwrap();
+        assert!(lines.iter().any(|line| line.text == value), "{value}: {lines:?}");
+        let replacement = AddedText { text: format!("{value} جديد"), ..item };
+        update_content(&mut saved, 0, index, &Content::Text(replacement.clone())).unwrap();
+        let again = reopen(&saved);
+        let Content::Text(back) = &list_added(&again)[index].content else { panic!("text") };
+        assert_eq!(back.text, replacement.text);
     }
 }

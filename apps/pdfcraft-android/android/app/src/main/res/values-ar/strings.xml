@@ -151,7 +151,7 @@
     <string name="forms_next_field">الحقل التالي</string>
     <string name="forms_previous_field">الحقل السابق</string>
     <string name="forms_reset">إعادة ضبط</string>
-    <string name="home_about_app">حول PdfCraft</string>
+    <string name="home_about_app">حول</string>
     <string name="home_about_combine">دمج عدة ملفات في ملف PDF واحد</string>
     <string name="home_about_comment">التعليق والتمييز والرسم</string>
     <string name="home_about_compress">تقليل حجم ملف PDF</string>
@@ -209,7 +209,6 @@
     <string name="home_looking_for_pdfs">جارٍ البحث عن ملفات PDF…</string>
     <string name="home_more_options_for">خيارات إضافية للملف %1$s</string>
     <string name="home_new_scan">مسح ضوئي جديد</string>
-    <string name="home_no_notifications">لا يرسل PdfCraft إشعارات.</string>
     <string name="home_no_pdfs_body">ستظهر هنا ملفات PDF الموجودة في المجلدات التي أضفتها.</string>
     <string name="home_no_pdfs_title">لا توجد ملفات PDF في مجلداتك</string>
     <string name="home_no_recent_body">ستظهر هنا الملفات التي تفتحها.</string>
@@ -224,7 +223,6 @@
     <string name="home_open_with">فتح باستخدام</string>
     <string name="home_other_files">ملفات أخرى على هذا الهاتف</string>
     <string name="home_photos">الصور</string>
-    <string name="home_preferences">التفضيلات</string>
     <string name="home_print">طباعة</string>
     <string name="home_recent_searches">عمليات البحث الأخيرة</string>
     <string name="home_refresh">تحديث</string>
@@ -236,7 +234,6 @@
     <string name="home_section_about">حول التطبيق</string>
     <string name="home_section_keyboard">لوحة المفاتيح</string>
     <string name="home_section_legal">معلومات قانونية</string>
-    <string name="home_section_notifications">الإشعارات</string>
     <string name="home_section_screen">إعداد الشاشة</string>
     <string name="home_section_suggestions">الاقتراحات التلقائية</string>
     <string name="home_settings">الإعدادات</string>
@@ -388,7 +385,7 @@
     <string name="read_aloud_read_again">قراءة مجددًا</string>
     <string name="read_aloud_voice">الصوت</string>
     <string name="read_aloud_voice_settings">إعدادات الصوت</string>
-    <string name="root_author_prompt_body">أضف اسمًا يظهر في تعليقاتك. يمكنك تغييره لاحقًا في التفضيلات.</string>
+    <string name="root_author_prompt_body">أضف اسمًا يظهر في تعليقاتك. يمكنك تغييره لاحقًا في الإعدادات.</string>
     <string name="root_delete_all">حذف الكل</string>
     <string name="root_delete_bookmarks_body">ستُحذف جميع الإشارات المرجعية لهذا المستند.</string>
     <string name="root_delete_bookmarks_title">حذف جميع الإشارات المرجعية؟</string>
@@ -804,4 +801,40 @@
         <item quantity="many">استُخدم أول %1$d ملفًا فقط.</item>
         <item quantity="other">استُخدم أول %1$d ملف فقط.</item>
     </plurals>
+    <string name="updates_section">تحديثات التطبيق</string>
+    <string name="updates_check">التحقق من التحديثات</string>
+    <string name="updates_checking">جارٍ التحقق من التحديثات…</string>
+    <string name="updates_current">لا يوجد إصدار مستقر أحدث متاح.</string>
+    <string name="updates_available">يتوفر الإصدار المستقر %1$s.</string>
+    <string name="updates_no_apk">يتوفر الإصدار المستقر %1$s، لكن لا يوجد ملف تثبيت مناسب لهذا الجهاز. يمكنك عرض صفحة الإصدار.</string>
+    <string name="updates_rate_limited">أُجريت محاولات تحقق كثيرة. حاول مجددًا لاحقًا.</string>
+    <string name="updates_failed">تعذّر التحقق من التحديثات. تحقق من اتصال الإنترنت وحاول مجددًا.</string>
+    <string name="updates_manual_hint">يتحقق التطبيق عند فتحه من الإصدارات المستقرة فقط.</string>
+    <string name="updates_download">تنزيل الإصدار المستقر</string>
+    <string name="updates_view_release">عرض الإصدار</string>
+    <string name="updates_open_failed">تعذّر فتح رابط التنزيل.</string>
+    <string name="updates_installed">النسخة المثبتة %1$s</string>
+    <string name="updates_notification_available">يتوفر تحديث للتطبيق</string>
+    <string name="updates_download_title">تحديث PdfCraft</string>
+    <string name="updates_downloading">جارٍ تنزيل التحديث…</string>
+    <string name="updates_progress">جارٍ تنزيل التحديث %1$d%%</string>
+    <string name="updates_cancel_download">إلغاء التنزيل</string>
+    <string name="updates_verifying">جارٍ التحقق من ملف التحديث…</string>
+    <string name="updates_ready">اكتمل تنزيل الإصدار %1$s.</string>
+    <string name="updates_install">تثبيت التحديث</string>
+    <string name="updates_incompatible">ملف التحديث لا يطابق التطبيق المثبت أو لم يجتز فحص السلامة.</string>
+    <string name="updates_download_failed">تعذّر تنزيل التحديث. تحقق من الاتصال والمساحة المتاحة وحاول مجددًا.</string>
+    <string name="home_theme">المظهر</string>
+    <string name="home_theme_system">حسب النظام</string>
+    <string name="home_theme_light">أبيض</string>
+    <string name="home_theme_dark">داكن</string>
+    <string name="home_display_preferences">تفضيلات العرض</string>
+    <string name="home_choose_theme">اختر مظهر التطبيق</string>
+    <string name="home_choose_language">اختر لغة التطبيق</string>
+    <string name="home_theme_colored">ملوّن</string>
+    <string name="home_theme_gray">رمادي داكن</string>
+    <string name="home_section_extra">ميزات إضافية</string>
+    <string name="home_extra_body">خيارات إضافية لتخصيص مظهر PdfCraft وطريقة عمله.</string>
+    <string name="home_status_bar_in_documents">إخفاء شريط الحالة داخل المستندات</string>
+    <string name="home_status_bar_in_documents_body">يظهر شريط الحالة افتراضيًا مع أشرطة الأدوات. فعّل هذا الخيار لإخفائه؛ وتبقى المساحة حول الكاميرا بلون المظهر الحالي.</string>
 </resources>

@@ -828,13 +828,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         appPrefs.edit { putBoolean("keyboardShortcuts", on) }
     }
 
-    /** The app's theme (Preferences ▸ Theme): the system's, or always light or dark. */
+    /** Persisted appearance; earlier Light/Dark selections keep their original meaning. */
     var theme by mutableStateOf(runCatching { ThemeChoice.valueOf(appPrefs.getString("theme", "System") ?: "System") }.getOrDefault(ThemeChoice.System))
         private set
 
     fun setThemeChoice(t: ThemeChoice) {
         theme = t
         appPrefs.edit { putString("theme", t.name) }
+    }
+
+    /**
+     * Shown with the viewer's bars by default. The optional Hide switch stores the inverse;
+     * disabling status display keeps the camera/cutout band in the viewer's theme color.
+     */
+    var statusBarInDocuments by mutableStateOf(appPrefs.getBoolean("statusBarInDocuments", true))
+        private set
+
+    fun updateStatusBarInDocuments(on: Boolean) {
+        statusBarInDocuments = on
+        appPrefs.edit { putBoolean("statusBarInDocuments", on) }
     }
 
     // ---- Reading the document ---------------------------------------------------------------
@@ -2347,6 +2359,54 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The app's version, as the About page shows it. */
     val appVersion: String = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull() ?: "?"
+
+    var appUpdateStatus by mutableStateOf<io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus>(io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Idle)
+        private set
+    var availableAppUpdate by mutableStateOf(io.github.artcraftandroid.pdfcraft.updates.cachedAppUpdate(
+        appVersion, appPrefs.getString("updateVersion", null), appPrefs.getString("updatePage", null),
+        appPrefs.getString("updateDownload", null), appPrefs.getString("updateHash", null),
+    ))
+        private set
+    var appUpdatesOpen by mutableStateOf(false)
+    val appUpdateDownload = io.github.artcraftandroid.pdfcraft.updates.AppUpdateDownload(app, viewModelScope) { intents.trySend(it) }
+    private var lastUpdateCheck: Long? = null
+
+    fun onAppOpened() {
+        appUpdateDownload.onAppOpened()
+        checkAppUpdates(automatic = true)
+    }
+
+    fun checkAppUpdates(automatic: Boolean = false) {
+        val checking = io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Checking
+        if (appUpdateStatus == checking) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (automatic && !io.github.artcraftandroid.pdfcraft.updates.shouldCheckOnOpen(lastUpdateCheck, now)) return
+        lastUpdateCheck = now
+        appUpdateStatus = checking
+        viewModelScope.launch {
+            try {
+                val update = withContext(Dispatchers.IO) {
+                    io.github.artcraftandroid.pdfcraft.updates.selectAppUpdate(
+                        appVersion, android.os.Build.SUPPORTED_ABIS.toList(),
+                        io.github.artcraftandroid.pdfcraft.updates.AppUpdateFeed.fetch(),
+                    )
+                }
+                availableAppUpdate = update
+                appPrefs.edit {
+                    putString("updateVersion", update?.version); putString("updatePage", update?.pageUrl)
+                    putString("updateDownload", update?.downloadUrl); putString("updateHash", update?.sha256)
+                }
+                appUpdateStatus = if (update == null) io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Current
+                    else io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Available(update)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: io.github.artcraftandroid.pdfcraft.updates.UpdateRateLimited) {
+                appUpdateStatus = io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Failed(rateLimited = true)
+            } catch (_: Exception) {
+                appUpdateStatus = io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus.Failed()
+            }
+        }
+    }
 
     /** Look for the PDFs on the phone (at most every half minute unless [force]d). */
     fun scanLocal(force: Boolean = false) {

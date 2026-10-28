@@ -54,7 +54,7 @@ import kotlinx.coroutines.isActive
 fun ReadingModeContent(vm: AppViewModel, doc: OpenDocument, top: Dp, bottom: Dp, onTap: () -> Unit) {
     val c = pdfColors
     val night = doc.controller.nightMode
-    val paper = if (night) Color(0xFF1E1E1E) else Color.White
+    val paper = if (night) Color(0xFF1E1E1E) else c.paper
     val ink = if (night) Color(0xFFE6E6E6) else Color(0xFF1B1B1B)
     // a file reopened in Reading Mode has its page pending (the page canvas never lays out here)
     val list = rememberLazyListState(initialFirstVisibleItemIndex = (vm.pendingPage ?: doc.viewer.currentPage).coerceIn(0, (doc.pageCount - 1).coerceAtLeast(0)))

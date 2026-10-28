@@ -204,7 +204,6 @@
 
     <!-- Settings -->
     <string name="home_about_app">Acerca de PdfCraft</string>
-    <string name="home_preferences">Preferencias</string>
     <string name="home_help_support">Ayuda y soporte</string>
     <string name="home_help">Ayuda</string>
     <string name="home_report_problem">Informar de un problema o pedir una función</string>
@@ -213,8 +212,6 @@
     <string name="home_leaving_body">Esto abre una página web en tu navegador.</string>
 
     <!-- Settings: Preferences -->
-    <string name="home_section_notifications">Notificaciones</string>
-    <string name="home_no_notifications">PdfCraft no envía notificaciones.</string>
     <string name="home_section_suggestions">Sugerencias automáticas</string>
     <string name="home_offer_suggestions">Sugerir palabras que ya usaste al rellenar formularios</string>
     <string name="home_clear_suggestions">Borrar sugerencias</string>
@@ -228,6 +225,10 @@
     <string name="home_keyboard_shortcuts">Atajos de teclado</string>
     <!-- N, P, Page Down, Page Up, Ctrl+P, Ctrl, + and − are keys on the keyboard -->
     <string name="home_keyboard_shortcuts_body">Con un teclado conectado: N o Av Pág para la página siguiente, P o Re Pág para la anterior, las flechas para desplazarte, Ctrl+P para imprimir y Ctrl y + o − para ampliar.</string>
+    <string name="home_section_extra">Funciones extra</string>
+    <string name="home_extra_body">Cambios opcionales en el aspecto y el funcionamiento de PdfCraft.</string>
+    <string name="home_status_bar_in_documents">Ocultar la barra de estado en documentos</string>
+    <string name="home_status_bar_in_documents_body">La barra de estado se muestra por defecto con las barras de herramientas. Activa esta opción para ocultarla; el área alrededor de la cámara mantiene el color del tema actual.</string>
 
     <!-- Settings: About PdfCraft -->
     <string name="home_section_about">Acerca de</string>
@@ -335,7 +336,7 @@
     <!-- App dialogs: the first comment's name prompt -->
     <!-- Verb: go on without entering a name -->
     <string name="root_skip">Omitir</string>
-    <string name="root_author_prompt_body">Añade un nombre para mostrar quién hizo cada comentario. Puedes cambiarlo más tarde en Preferencias.</string>
+    <string name="root_author_prompt_body">Añade un nombre para mostrar quién hizo cada comentario. Puedes cambiarlo más tarde en Ajustes.</string>
 
     <!-- App dialogs: a file that can't be written back -->
     <string name="root_read_only_title">No se pudo guardar el archivo original</string>
@@ -1189,4 +1190,36 @@
     <string name="transform_shrink">Reducir</string>
     <string name="msg_added_text_format_unsupported">Este formato no es compatible con el texto añadido.</string>
     <string name="root_licence_noto_arabic">Tipo de letra Noto Sans Arabic</string>
+    <string name="updates_section">Actualizaciones de la aplicación</string>
+    <string name="updates_check">Buscar actualizaciones</string>
+    <string name="updates_checking">Buscando actualizaciones…</string>
+    <string name="updates_current">No hay una versión estable más reciente disponible.</string>
+    <string name="updates_available">Está disponible la versión estable %1$s.</string>
+    <string name="updates_no_apk">Está disponible la versión estable %1$s, pero no hay un APK compatible con este dispositivo. Puedes ver la página de la versión.</string>
+    <string name="updates_rate_limited">Demasiadas búsquedas de actualizaciones. Inténtalo más tarde.</string>
+    <string name="updates_failed">No se pudieron buscar actualizaciones. Comprueba la conexión a Internet e inténtalo de nuevo.</string>
+    <string name="updates_manual_hint">La aplicación busca versiones estables al abrirse.</string>
+    <string name="updates_download">Descargar versión estable</string>
+    <string name="updates_view_release">Ver versión</string>
+    <string name="updates_open_failed">No se pudo abrir el enlace de descarga.</string>
+    <string name="updates_installed">Versión instalada %1$s</string>
+    <string name="updates_notification_available">Hay una actualización disponible</string>
+    <string name="updates_download_title">Actualización de PdfCraft</string>
+    <string name="updates_downloading">Descargando actualización…</string>
+    <string name="updates_progress">Descargando actualización %1$d%%</string>
+    <string name="updates_cancel_download">Cancelar descarga</string>
+    <string name="updates_verifying">Verificando actualización…</string>
+    <string name="updates_ready">Se ha descargado la versión %1$s.</string>
+    <string name="updates_install">Instalar actualización</string>
+    <string name="updates_incompatible">El archivo no corresponde a la aplicación instalada o no superó la verificación.</string>
+    <string name="updates_download_failed">No se pudo descargar la actualización. Comprueba la conexión y el almacenamiento disponible e inténtalo de nuevo.</string>
+    <string name="home_theme">Apariencia</string>
+    <string name="home_theme_system">Según el sistema</string>
+    <string name="home_theme_light">Blanco</string>
+    <string name="home_theme_dark">Oscuro</string>
+    <string name="home_display_preferences">Preferencias de pantalla</string>
+    <string name="home_choose_theme">Elige la apariencia de la aplicación</string>
+    <string name="home_choose_language">Elige el idioma de la aplicación</string>
+    <string name="home_theme_colored">Color</string>
+    <string name="home_theme_gray">Gris oscuro</string>
 </resources>

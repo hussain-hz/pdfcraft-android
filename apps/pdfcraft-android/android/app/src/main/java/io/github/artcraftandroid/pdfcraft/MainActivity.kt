@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) openFromIntent(intent)
         collectRequests()
         setContent {
-            PdfcraftTheme {
+            PdfcraftTheme(choice = vm.theme) {
                 AppRoot(
                     vm,
                     onBrowse = { launchSafely { pickPdf.launch(arrayOf("application/pdf")) } },
@@ -76,6 +76,11 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        vm.onAppOpened()
     }
 
     /** The view model's requests that need the activity: other apps, pickers, the camera, printing. */
