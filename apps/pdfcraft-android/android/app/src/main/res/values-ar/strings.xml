@@ -810,10 +810,9 @@
     <string name="updates_rate_limited">أُجريت محاولات تحقق كثيرة. حاول مجددًا لاحقًا.</string>
     <string name="updates_failed">تعذّر التحقق من التحديثات. تحقق من اتصال الإنترنت وحاول مجددًا.</string>
     <string name="updates_manual_hint">يتحقق التطبيق عند فتحه من الإصدارات المستقرة فقط.</string>
-    <string name="updates_download">تنزيل الإصدار المستقر</string>
+    <string name="updates_download">تنزيل التحديث</string>
     <string name="updates_view_release">عرض الإصدار</string>
     <string name="updates_open_failed">تعذّر فتح رابط التنزيل.</string>
-    <string name="updates_installed">النسخة المثبتة %1$s</string>
     <string name="updates_notification_available">يتوفر تحديث للتطبيق</string>
     <string name="updates_download_title">تحديث PdfCraft</string>
     <string name="updates_downloading">جارٍ تنزيل التحديث…</string>
@@ -837,4 +836,11 @@
     <string name="home_extra_body">خيارات إضافية لتخصيص مظهر PdfCraft وطريقة عمله.</string>
     <string name="home_status_bar_in_documents">إخفاء شريط الحالة داخل المستندات</string>
     <string name="home_status_bar_in_documents_body">يظهر شريط الحالة افتراضيًا مع أشرطة الأدوات. فعّل هذا الخيار لإخفائه؛ وتبقى المساحة حول الكاميرا بلون المظهر الحالي.</string>
+    <string name="updates_details">تفاصيل التحديث</string>
+    <string name="updates_installed_label">النسخة المثبّتة</string>
+    <string name="updates_new_version">النسخة الجديدة</string>
+    <string name="updates_published">تاريخ الإصدار</string>
+    <string name="updates_size">حجم التنزيل</string>
+    <string name="updates_whats_new">ما الجديد</string>
+    <string name="updates_notes_unavailable">لا تتوفر تفاصيل هذا الإصدار بهذه اللغة.</string>
 </resources>

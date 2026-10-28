@@ -1189,10 +1189,9 @@
     <string name="updates_rate_limited">Too many update checks. Please try again later.</string>
     <string name="updates_failed">Could not check for updates. Check your internet connection and try again.</string>
     <string name="updates_manual_hint">The app checks on opening for stable releases only.</string>
-    <string name="updates_download">Download stable release</string>
+    <string name="updates_download">Download update</string>
     <string name="updates_view_release">View release</string>
     <string name="updates_open_failed">Could not open the download link.</string>
-    <string name="updates_installed">Installed version %1$s</string>
     <string name="updates_notification_available">An app update is available</string>
     <string name="updates_download_title">PdfCraft update</string>
     <string name="updates_downloading">Downloading update…</string>
@@ -1212,4 +1211,11 @@
     <string name="home_choose_language">Choose the app language</string>
     <string name="home_theme_colored">Colored</string>
     <string name="home_theme_gray">Dark gray</string>
+    <string name="updates_details">Update details</string>
+    <string name="updates_installed_label">Installed version</string>
+    <string name="updates_new_version">New version</string>
+    <string name="updates_published">Release date</string>
+    <string name="updates_size">Download size</string>
+    <string name="updates_whats_new">What’s new</string>
+    <string name="updates_notes_unavailable">Release notes are not available in this language.</string>
 </resources>
