@@ -1218,4 +1218,10 @@
     <string name="updates_size">Download size</string>
     <string name="updates_whats_new">What’s new</string>
     <string name="updates_notes_unavailable">Release notes are not available in this language.</string>
+    <string name="updates_connecting">Connecting to the download server…</string>
+    <string name="updates_waiting_network">Waiting for an internet connection…</string>
+    <string name="updates_waiting_wifi">Android is waiting for Wi-Fi; a direct download will be tried shortly.</string>
+    <string name="updates_retrying">Android is retrying; a direct download will be tried if it stalls.</string>
+    <string name="updates_direct">Connecting directly to the update server…</string>
+    <string name="updates_bytes">%1$s of %2$s</string>
 </resources>
