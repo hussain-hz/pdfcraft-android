@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
     private val pickOne = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> vm.onFilesPicked(pickKind, listOfNotNull(uri)) }
 
     private val saveCopy = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri -> vm.copyTo(uri) }
-    private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok -> vm.onScanPhoto(ok) }
+    private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok -> vm.scan.onScanPhoto(ok) }
     private val pickImage = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> vm.edit.addImage(uri) }
     private val pickSignature = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> vm.importSignatureImage(uri) }
     private val pickPhotos = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris -> vm.onPhotosPicked(uris) }
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         lifecycleScope.launch {
-            for (f in vm.cameraShots) {
+            for (f in vm.scan.cameraShots) {
                 val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.files", f)
                 launchSafely { takePhoto.launch(uri) }
             }

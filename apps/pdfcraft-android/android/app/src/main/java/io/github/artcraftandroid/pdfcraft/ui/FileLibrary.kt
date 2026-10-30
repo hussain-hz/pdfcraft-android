@@ -208,8 +208,8 @@ class FileLibrary internal constructor(private val vm: AppViewModel) {
 
     /** Combine the ticked files, in the order shown. */
     fun combineSelected(rows: List<FileRow>) {
-        vm.combineFiles.clear()
-        rows.take(12).forEach { vm.combineFiles.add(PickedFile(it.key.toUri(), it.name, it.size)) }
+        vm.jobs.combineFiles.clear()
+        rows.take(12).forEach { vm.jobs.combineFiles.add(PickedFile(it.key.toUri(), it.name, it.size)) }
         vm.toolScreen = ToolScreen.Combine(null)
     }
 

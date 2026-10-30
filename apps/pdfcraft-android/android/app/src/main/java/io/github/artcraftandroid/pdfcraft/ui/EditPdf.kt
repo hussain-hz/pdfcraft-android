@@ -299,9 +299,9 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         imageFor = doc
         val dir = File(app.cacheDir, "camera").apply { mkdirs() }
         val f = File(dir, "image-${System.nanoTime()}.jpg")
-        vm.shotFile = f
+        vm.scan.shotFile = f
         imageShot = true
-        vm.cameraShots.trySend(f)
+        vm.scan.cameraShots.trySend(f)
     }
 
     /** The camera's photo is for Add image, not a scan. */

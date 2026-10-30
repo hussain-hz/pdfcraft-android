@@ -79,6 +79,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val forms = FormFilling(this)
     val library = FileLibrary(this)
     val updates = AppUpdater(app, viewModelScope) { intents.trySend(it) }
+    val jobs = ToolJobs(this)
+    val scan = Scanner(this)
 
     var engine by mutableStateOf<Engine?>(null)
         private set
@@ -604,7 +606,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun unlockedCopy(doc: OpenDocument): File? {
         val eng = engine ?: return null
         return runCatching {
-            val out = tempFile("pdf")
+            val out = jobs.tempFile("pdf")
             val copy = eng.tool("doc_open", mapOf("path" to doc.file.absolutePath, "password" to doc.password)).optLong("doc")
             try {
                 eng.tool("doc_unprotect", mapOf("doc" to copy))
@@ -975,9 +977,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openCompress(doc: OpenDocument) { toolScreen = ToolScreen.Compress(doc) }
     fun openCombine(doc: OpenDocument?) {
         // like the reference, the open document is the first file
-        if (doc != null && combineFiles.isEmpty()) {
+        if (doc != null && jobs.combineFiles.isEmpty()) {
             val uri = doc.source ?: Uri.fromFile(doc.file)
-            combineFiles.add(PickedFile(uri, doc.name, doc.info.fileSize.toLong()))
+            jobs.combineFiles.add(PickedFile(uri, doc.name, doc.info.fileSize.toLong()))
         }
         toolScreen = ToolScreen.Combine(doc)
     }
@@ -1174,27 +1176,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ---- Tool jobs: each runs on the phone and saves its result into Downloads ---------------
+    // ---- File pickers -----------------------------------------------------------------------
 
     /** File pickers for the activity: what the files are for, the types, and whether several may be picked. */
     val filePicks = Channel<FilePickKind>(Channel.BUFFERED)
 
-    /** Photos for Scan: the activity has the camera app write each into this file. */
-    val cameraShots = Channel<File>(Channel.BUFFERED)
-
-    /** The files gathered for Combine, in order. */
-    val combineFiles = androidx.compose.runtime.mutableStateListOf<PickedFile>()
-
-    /** The pages scanned so far. */
-    val scanPages = androidx.compose.runtime.mutableStateListOf<ScanPage>()
-
-    /** The scan's file name (without .pdf), set when its first page is taken and changeable before saving. */
-    var scanName by mutableStateOf("")
-    internal var shotFile: File? = null
-    private var retakeIndex: Int? = null
-
-    /** Scan's pages go into this document at this (1-based) position instead of a new PDF. */
-    var insertScanAt: Pair<OpenDocument, Int>? = null
     private var insertFileAt: Pair<OpenDocument, Int>? = null
 
     fun pickFiles(kind: FilePickKind) {
@@ -1207,22 +1193,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when (kind) {
             FilePickKind.Combine -> viewModelScope.launch {
                 val picked = withContext(Dispatchers.IO) { uris.map { u -> PickedFile(u, files.displayNameRaw(u), files.size(u)) } }
-                combineFiles.addAll(picked.filter { p -> combineFiles.none { it.uri == p.uri } })
+                jobs.combineFiles.addAll(picked.filter { p -> jobs.combineFiles.none { it.uri == p.uri } })
                 if (toolScreen !is ToolScreen.Combine) toolScreen = ToolScreen.Combine(null)
             }
-            FilePickKind.Create -> createFrom(uris)
+            FilePickKind.Create -> jobs.createFrom(uris)
             FilePickKind.Insert -> {
                 val (doc, at) = insertFileAt ?: return
                 insertFileAt = null
                 viewModelScope.launch {
-                    val f = withContext(Dispatchers.IO) { copyIn(uris.first()) }
+                    val f = withContext(Dispatchers.IO) { jobs.copyIn(uris.first()) }
                     runTool(doc, "page_insert_file", mapOf("path" to f.absolutePath, "at" to at))
                 }
             }
             FilePickKind.Open -> open(uris.first())
             FilePickKind.DigitalId -> viewModelScope.launch {
                 val uri = uris.first()
-                val picked = withContext(Dispatchers.IO) { runCatching { copyIn(uri) }.getOrNull() }
+                val picked = withContext(Dispatchers.IO) { runCatching { jobs.copyIn(uri) }.getOrNull() }
                 if (picked == null) tell(text(R.string.msg_that_file_unreadable))
                 else signing.idImport = io.github.artcraftandroid.pdfcraft.ui.viewer.IdImport(picked, picked.name, wrong = false)
             }
@@ -1232,299 +1218,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun pickInsertFile(doc: OpenDocument, at: Int) {
         insertFileAt = doc to at
         pickFiles(FilePickKind.Insert)
-    }
-
-    /** A copy of a picked file in the app's cache, under its own name. */
-    private fun copyIn(uri: Uri): File {
-        val dir = File(getApplication<Application>().cacheDir, "picked/${System.nanoTime()}").apply { mkdirs() }
-        val out = File(dir, files.displayNameRaw(uri))
-        getApplication<Application>().contentResolver.openInputStream(uri).use { input ->
-            requireNotNull(input) { text(R.string.msg_named_file_unreadable, out.name) }
-            out.outputStream().use { input.copyTo(it) }
-        }
-        return out
-    }
-
-    /** Run [block] with the busy dialog showing [message]; failures are told in a snackbar. */
-    private fun job(message: String, block: suspend (Engine) -> Unit) {
-        val eng = engine ?: return
-        viewModelScope.launch {
-            busy = message
-            try {
-                block(eng)
-            } catch (e: Exception) {
-                tell(e.userMessage)
-            } finally {
-                busy = null
-            }
-        }
-    }
-
-    /** Put [file] into Downloads as [name] and say so, with Open. */
-    private suspend fun deliver(file: File, name: String, mime: String = "application/pdf") {
-        val uri = withContext(Dispatchers.IO) { files.saveToDownloads(file, name, mime).also { file.delete() } }
-        val size = withContext(Dispatchers.IO) { files.size(uri) }
-        val saved = size?.let { text(R.string.msg_saved_downloads_size, name, io.github.artcraftandroid.pdfcraft.ui.viewer.formatSize(it)) } ?: text(R.string.msg_saved_downloads, name)
-        if (mime == "application/pdf") tell(saved, text(R.string.common_open)) { open(uri) }
-        else tell(saved, text(R.string.common_open)) {
-            intents.trySend(Intent.createChooser(Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), null))
-        }
-    }
-
-    private fun tempFile(ext: String) = File(getApplication<Application>().cacheDir, "out-${System.nanoTime()}.$ext")
-
-    /** Compress PDF at [level] (0 high, 1 medium, 2 low compression). */
-    fun compress(doc: OpenDocument, level: Int) = job(text(R.string.msg_busy_compressing)) { eng ->
-        val (ppi, above, quality) = when (level) {
-            0 -> Triple(72, 108, 40)
-            2 -> Triple(300, 450, 80)
-            else -> Triple(150, 225, 60)
-        }
-        val images = mapOf("downsample" to true, "ppi" to ppi, "above_ppi" to above, "compression" to "jpeg", "quality" to quality)
-        val out = tempFile("pdf")
-        eng.tool("doc_optimize", mapOf(
-            "doc" to doc.id, "path" to out.absolutePath, "color" to images, "gray" to images,
-            "discard_thumbnails" to true, "remove_unreferenced_dests" to true,
-        ))
-        toolScreen = null
-        if (out.length() >= doc.info.fileSize.toLong()) {
-            // as the reference: nothing is saved when the file can't get any smaller
-            out.delete()
-            tell(text(R.string.msg_compress_no_gain))
-            return@job
-        }
-        deliver(out, "${doc.title}_compressed.pdf")
-    }
-
-    /** Combine the gathered files, in order, into [name].pdf. */
-    fun combine(name: String) = job(text(R.string.msg_busy_combining)) { eng ->
-        val paths = withContext(Dispatchers.IO) { combineFiles.map { copyIn(it.uri).absolutePath } }
-        val out = tempFile("pdf")
-        eng.tool("doc_combine", mapOf("paths" to paths, "out" to out.absolutePath))
-        toolScreen = null
-        combineFiles.clear()
-        deliver(out, DocumentFiles.safeName(name))
-    }
-
-    /**
-     * A protected copy of [doc] with [password] as its open password. The copy is made from a
-     * second, temporary engine document, so the open one keeps its file and history.
-     */
-    fun protect(doc: OpenDocument, password: String) = job(text(R.string.msg_busy_setting_password)) { eng ->
-        save(doc)
-        val out = tempFile("pdf")
-        val copy = eng.tool("doc_open", mapOf("path" to doc.file.absolutePath, "password" to doc.password)).optLong("doc")
-        try {
-            eng.tool("doc_protect", mapOf("doc" to copy, "open_password" to password))
-            eng.tool("doc_save", mapOf("doc" to copy, "path" to out.absolutePath, "full" to true))
-        } finally {
-            runCatching { eng.tool("doc_close", mapOf("doc" to copy, "discard_changes" to true)) }
-        }
-        toolScreen = null
-        deliver(out, "${doc.title}_protected.pdf")
-    }
-
-    /** Crop [page] (or every page) to [rect] (points from the page's top-left). */
-    fun crop(doc: OpenDocument, page: Int?, rect: FloatArray) {
-        val args = mutableMapOf<String, Any?>("rect" to rect.map { it.toDouble() })
-        if (page != null) args["pages"] = listOf(page + 1)
-        runTool(doc, "page_set_box", args) {
-            toolScreen = null
-            tell(text(if (page == null) R.string.msg_crop_all else R.string.msg_crop_page))
-        }
-    }
-
-    /** Export [doc] as a Word, RTF, Excel or PowerPoint document. */
-    fun exportDocument(doc: OpenDocument, ext: String) = job(text(R.string.msg_busy_exporting_to, ext.uppercase())) { eng ->
-        val out = tempFile(ext)
-        eng.tool("doc_export_office", mapOf("doc" to doc.id, "path" to out.absolutePath))
-        toolScreen = null
-        val mime = when (ext) {
-            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            "rtf" -> "application/rtf"
-            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            else -> "text/html"
-        }
-        deliver(out, "${doc.title}.$ext", mime)
-    }
-
-    /** Every page of [doc] as an image (200 dpi) in Pictures/PdfCraft. */
-    /** Export to images: the format chosen, while its pages are being picked in the page grid. */
-    var imageExport by mutableStateOf<String?>(null)
-
-    /** The image format last exported to, offered first next time (as the reference remembers it). */
-    val lastImageFormat: String get() = appPrefs.getString("imageFormat", "jpg") ?: "jpg"
-
-    /** Export to images: remember the format, then pick the pages in the page grid (Save or Share there). */
-    fun exportImages(doc: OpenDocument, ext: String) {
-        appPrefs.edit { putString("imageFormat", ext) }
-        toolScreen = null
-        imageExport = ext
-        organizing = true
-        doc.controller.pagesOpen = true
-    }
-
-    /** Pictures of [pages] (0-based) at 200 dpi, saved to Pictures/PdfCraft or handed to the share sheet. */
-    fun writeImages(doc: OpenDocument, ext: String, pages: List<Int>, share: Boolean) = job(text(R.string.msg_busy_exporting_images)) { eng ->
-        val mime = if (ext == "png") "image/png" else "image/jpeg"
-        val made = mutableListOf<Pair<File, String>>()
-        for ((n, i) in pages.withIndex()) {
-            busy = text(R.string.msg_busy_exporting_page, n + 1, pages.size)
-            val img = withContext(eng.renders) { eng.session.renderPage(doc.id, i.toUInt(), 200f / 72f, null) }
-            val out = tempFile(ext)
-            withContext(Dispatchers.IO) {
-                val bmp = img.toBitmap()
-                // JPEG has no transparency: put the page on white
-                val flat = if (ext == "png") bmp else createBitmap(bmp.width, bmp.height).also {
-                    val c = android.graphics.Canvas(it)
-                    c.drawColor(android.graphics.Color.WHITE)
-                    c.drawBitmap(bmp, 0f, 0f, null)
-                }
-                out.outputStream().use { flat.compress(if (ext == "png") android.graphics.Bitmap.CompressFormat.PNG else android.graphics.Bitmap.CompressFormat.JPEG, 90, it) }
-            }
-            made += out to "${doc.title}_${i + 1}.$ext"
-        }
-        imageExport = null
-        organizing = false
-        doc.controller.pagesOpen = false
-        if (share) {
-            val uris = try {
-                withContext(Dispatchers.IO) { files.shareableAll(made) }
-            } finally {
-                made.forEach { it.first.delete() }
-            }
-            intents.trySend(Intent.createChooser(sendIntent(uris, mime), null))
-        } else {
-            withContext(Dispatchers.IO) {
-                for ((f, name) in made) {
-                    files.saveToPictures(f, name, mime)
-                    f.delete()
-                }
-            }
-            tell(plural(R.plurals.msg_images_saved, made.size, made.size))
-        }
-    }
-
-    /** Create PDF from picked files (images, text, Office documents, PDFs), combined in order, then open it. */
-    private fun createFrom(picked: List<Uri>) = job(text(R.string.msg_busy_creating_pdf)) { eng ->
-        // at most 12 files at once, as the reference allows
-        if (picked.size > MAX_CREATE_FILES) tell(plural(R.plurals.msg_create_first_files, MAX_CREATE_FILES, MAX_CREATE_FILES))
-        val uris = picked.take(MAX_CREATE_FILES)
-        val paths = withContext(Dispatchers.IO) { uris.map { copyIn(it).absolutePath } }
-        val out = tempFile("pdf")
-        eng.tool("doc_create_multiple", mapOf("paths" to paths, "out" to out.absolutePath, "mode" to "combine"))
-        val name = files.displayNameRaw(uris.first()).substringBeforeLast('.') + ".pdf"
-        val uri = withContext(Dispatchers.IO) { files.saveToDownloads(out, DocumentFiles.safeName(name)).also { out.delete() } }
-        tell(text(R.string.msg_saved_downloads, name))
-        open(uri)
-    }
-
-    /** Pages [pages] (0-based) of [doc] as a new PDF in Downloads. */
-    fun extractPages(doc: OpenDocument, pages: List<Int>) = job(text(R.string.msg_busy_extracting)) { eng ->
-        val out = tempFile("pdf")
-        eng.tool("page_extract", mapOf("doc" to doc.id, "pages" to pages.map { it + 1 }, "out" to out.absolutePath))
-        deliver(out, "Pages from ${doc.title}.pdf")
-    }
-
-    // ---- Scan ---------------------------------------------------------------------------------
-
-    fun takeScanPhoto(retake: Int? = null) {
-        val dir = File(getApplication<Application>().cacheDir, "camera").apply { mkdirs() }
-        val f = File(dir, "scan-${System.nanoTime()}.jpg")
-        shotFile = f
-        retakeIndex = retake
-        cameraShots.trySend(f)
-    }
-
-    fun retakeScan(index: Int) = takeScanPhoto(index)
-
-    /** The camera app came back: [ok] when it took the photo. */
-    fun onScanPhoto(ok: Boolean) {
-        val f = shotFile ?: return
-        shotFile = null
-        if (edit.imageShot) {
-            edit.onCameraPhoto(f, ok)
-            return
-        }
-        if (!ok || !f.isFile || f.length() == 0L) {
-            if (scanPages.isEmpty()) toolScreen = null
-            return
-        }
-        viewModelScope.launch {
-            val thumb = withContext(Dispatchers.IO) {
-                val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 4 }
-                android.graphics.BitmapFactory.decodeFile(f.absolutePath, opts)?.let { rotateForExif(f, it) }?.asImageBitmap()
-            } ?: return@launch
-            val page = ScanPage(f, thumb)
-            val r = retakeIndex
-            retakeIndex = null
-            if (r != null && r in scanPages.indices) scanPages[r] = page else scanPages.add(page)
-            if (scanName.isBlank()) scanName = "Scan " + java.text.SimpleDateFormat("yyyy-MM-dd HH.mm.ss", java.util.Locale.US).format(java.util.Date())
-            if (toolScreen != ToolScreen.Scan) toolScreen = ToolScreen.Scan
-            // the document's edges in the photo, shown on the page and moved in Crop; the whole
-            // photo is kept when none are found
-            val found = engine?.let { eng -> runCatching { eng.tool("photo_find_document", mapOf("path" to f.absolutePath)) }.getOrNull() }
-                ?.takeIf { it.optBoolean("found") }?.optJSONArray("corners")?.takeIf { it.length() == 8 }
-                ?.let { a -> FloatArray(8) { a.optDouble(it).toFloat() } }
-            val at = scanPages.indexOfFirst { it.file == f }
-            if (found != null && at >= 0) scanPages[at] = scanPages[at].copy(corners = found, found = found)
-        }
-    }
-
-    fun discardScan() {
-        scanPages.forEach { it.file.delete() }
-        scanPages.clear()
-        scanName = ""
-        insertScanAt = null
-        toolScreen = null
-    }
-
-    /** Save the scanned pages as a PDF with [filter]'s look (or insert them where Organize asked). */
-    fun saveScan(filter: ScanFilter) = job(text(R.string.msg_busy_saving_scan)) { eng ->
-        val pages = scanPages.toList()
-        val paths = pages.map { it.file.absolutePath }
-        val created = eng.tool("doc_create", mapOf("from" to "images", "paths" to paths, "name" to appText(R.string.common_tool_scan)))
-        val id = created.optLong("doc")
-        try {
-            // each page keeps the part inside its corners, straightened, with the look; a whole
-            // photo in Original stays as it was taken
-            val sizes = eng.tool("doc_info", mapOf("doc" to id)).optJSONArray("pages")
-            for ((i, page) in pages.withIndex()) {
-                if (page.corners.contentEquals(ScanPage.WHOLE) && filter == ScanFilter.Original) continue
-                val size = sizes?.optJSONObject(i) ?: continue
-                val (w, h) = size.optDouble("width") to size.optDouble("height")
-                val corners = page.corners.mapIndexed { k, v -> v * if (k % 2 == 0) w else h }
-                busy = text(R.string.msg_busy_cleaning_page, i + 1, pages.size)
-                runCatching { eng.tool("page_enhance_camera", mapOf("doc" to id, "page" to i + 1, "corners" to corners, "mode" to filter.mode, "level" to filter.level)) }
-            }
-            // the scan's words become text, searchable and selectable, when text recognition is installed
-            withContext(Dispatchers.IO) { runCatching { eng.prepareOcrModels(getApplication()) } }
-            if (runCatching { eng.tool("ocr_status") }.getOrNull()?.optBoolean("available", false) == true) {
-                busy = text(R.string.msg_busy_recognizing)
-                runCatching { eng.tool("ocr_recognize", mapOf("doc" to id)) }
-            }
-            val out = tempFile("pdf")
-            eng.tool("doc_save", mapOf("doc" to id, "path" to out.absolutePath, "full" to true))
-            val target = insertScanAt
-            insertScanAt = null
-            val chosen = scanName.trim()
-            scanPages.forEach { it.file.delete() }
-            scanPages.clear()
-            scanName = ""
-            toolScreen = null
-            if (target != null) {
-                runTool(target.first, "page_insert_file", mapOf("path" to out.absolutePath, "at" to target.second))
-            } else {
-                val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH.mm.ss", java.util.Locale.US).format(java.util.Date())
-                val name = DocumentFiles.safeName(chosen.ifEmpty { "Scan $stamp" })
-                val uri = withContext(Dispatchers.IO) { files.saveToDownloads(out, name).also { out.delete() } }
-                tell(text(R.string.msg_saved_downloads, name))
-                open(uri)
-            }
-        } finally {
-            runCatching { eng.tool("doc_close", mapOf("doc" to id, "discard_changes" to true)) }
-        }
     }
 
     // ---- Home, Files, Search -----------------------------------------------------------------
@@ -1712,9 +1405,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
 }
-
-/** The most files Create PDF converts at once. */
-private const val MAX_CREATE_FILES = 12
 
 /** A green banner saying a job worked, with the way to undo it. */
 class SuccessBanner(val text: String, val undo: (() -> Unit)?)

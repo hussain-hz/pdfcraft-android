@@ -258,7 +258,7 @@ fun CompressScreen(vm: AppViewModel, doc: OpenDocument) {
         stringResource(R.string.tools_compress_medium) to stringResource(R.string.tools_compress_medium_desc),
         stringResource(R.string.tools_compress_low) to stringResource(R.string.tools_compress_low_desc),
     )
-    ToolPage(stringResource(R.string.common_tool_compress), { vm.toolScreen = null }, stringResource(R.string.tools_compress_action), true, { vm.compress(doc, level) }) {
+    ToolPage(stringResource(R.string.common_tool_compress), { vm.toolScreen = null }, stringResource(R.string.tools_compress_action), true, { vm.jobs.compress(doc, level) }) {
         OutlinedFileCard(vm, doc)
         Text(stringResource(R.string.tools_compression_level), color = c.label, fontSize = 15.sp, modifier = Modifier.padding(start = 24.dp, top = 28.dp, bottom = 4.dp))
         levels.forEachIndexed { i, (name, desc) -> ToolChoice(level == i, name, desc) { level = i } }
@@ -301,7 +301,7 @@ fun ProtectScreen(vm: AppViewModel, doc: OpenDocument) {
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     val bad = pw.isNotEmpty() && (pw.length !in 6..128 || pw.any { it < '!' || it > '~' })
     val mismatch = confirm.isNotEmpty() && confirm != pw
-    ToolPage(stringResource(R.string.common_tool_set_password), { vm.toolScreen = null }, stringResource(R.string.common_tool_set_password), pw.isNotEmpty() && confirm.isNotEmpty() && !bad && !mismatch, { vm.protect(doc, pw) },
+    ToolPage(stringResource(R.string.common_tool_set_password), { vm.toolScreen = null }, stringResource(R.string.common_tool_set_password), pw.isNotEmpty() && confirm.isNotEmpty() && !bad && !mismatch, { vm.jobs.protect(doc, pw) },
         trailing = { BarIcon(LucideIcons.Info, stringResource(R.string.tools_about_passwords), { info = true }) }) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.tools_protect_intro), color = c.label, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 24.dp))
@@ -324,7 +324,7 @@ fun ExportScreen(vm: AppViewModel, doc: OpenDocument) {
     val c = pdfColors
     var tab by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     // the image format used last time comes first chosen
-    var format by remember(tab) { androidx.compose.runtime.mutableIntStateOf(if (tab == 1 && vm.lastImageFormat == "png") 1 else 0) }
+    var format by remember(tab) { androidx.compose.runtime.mutableIntStateOf(if (tab == 1 && vm.jobs.lastImageFormat == "png") 1 else 0) }
     val formats = if (tab == 0) {
         listOf(
             stringResource(R.string.tools_format_word) to "docx", stringResource(R.string.tools_format_rtf) to "rtf",
@@ -335,7 +335,7 @@ fun ExportScreen(vm: AppViewModel, doc: OpenDocument) {
     }
     ToolPage(stringResource(R.string.common_tool_export), { vm.toolScreen = null }, stringResource(R.string.tools_export_action), true, {
         val ext = formats[format].second
-        if (tab == 0) vm.exportDocument(doc, ext) else vm.exportImages(doc, ext)
+        if (tab == 0) vm.jobs.exportDocument(doc, ext) else vm.jobs.exportImages(doc, ext)
     }) {
         // the tabs sit at the left, each underlined across its own label
         Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
@@ -417,12 +417,12 @@ fun ToolScreenHost(vm: AppViewModel, screen: ToolScreen) {
 fun CombineScreen(vm: AppViewModel) {
     var naming by remember { mutableStateOf(false) }
     val c = pdfColors
-    val files = vm.combineFiles
+    val files = vm.jobs.combineFiles
     var dragIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     val rowPx = with(LocalDensity.current) { 58.dp.toPx() }
     val ok = files.size in 2..12
-    val back = { vm.toolScreen = null; vm.combineFiles.clear() }
+    val back = { vm.toolScreen = null; vm.jobs.combineFiles.clear() }
     val dragLabel = stringResource(R.string.tools_drag_to_reorder)
     val removedMessage = stringResource(R.string.tools_file_removed)
     BackHandler(onBack = back)
@@ -493,7 +493,7 @@ fun CombineScreen(vm: AppViewModel) {
             val focus = remember { androidx.compose.ui.focus.FocusRequester() }
             PdfDialog(
                 onDismiss = { naming = false }, title = stringResource(R.string.tools_combine_name_title), confirm = stringResource(R.string.common_save),
-                onConfirm = { naming = false; vm.combine(name.trim().ifEmpty { appText(R.string.toolbar_label_combine) }) },
+                onConfirm = { naming = false; vm.jobs.combine(name.trim().ifEmpty { appText(R.string.toolbar_label_combine) }) },
                 confirmEnabled = name.isNotBlank(),
             ) { PdfField(name, { name = it }, stringResource(R.string.common_file_name), focus = focus) }
         }
@@ -534,7 +534,7 @@ fun CropScreen(vm: AppViewModel, doc: OpenDocument) {
                 stringResource(R.string.common_save), color = if (changed) c.label else c.textSecondary.copy(alpha = 0.5f), fontSize = 17.sp,
                 modifier = Modifier.clickable(enabled = changed) {
                     val info = p ?: return@clickable
-                    vm.crop(doc, if (allPages) null else page, floatArrayOf(rect[0] * info.width, rect[1] * info.height, rect[2] * info.width, rect[3] * info.height))
+                    vm.jobs.crop(doc, if (allPages) null else page, floatArrayOf(rect[0] * info.width, rect[1] * info.height, rect[2] * info.width, rect[3] * info.height))
                 }.padding(horizontal = 16.dp, vertical = 12.dp),
             )
         }) {
@@ -677,12 +677,12 @@ enum class ScanFilter(@StringRes val label: Int, val mode: String, val level: In
 @Composable
 fun ScanScreen(vm: AppViewModel) {
     val c = pdfColors
-    val pages = vm.scanPages
+    val pages = vm.scan.scanPages
     var filter by remember { mutableStateOf(ScanFilter.AutoColor) }
     var current by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var cropping by remember { mutableStateOf<java.io.File?>(null) }
     var naming by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { if (pages.isEmpty()) vm.takeScanPhoto() }
+    LaunchedEffect(Unit) { if (pages.isEmpty()) vm.scan.takeScanPhoto() }
     // a page just taken is the one shown
     var seen by remember { androidx.compose.runtime.mutableIntStateOf(pages.size) }
     LaunchedEffect(pages.size) {
@@ -697,19 +697,19 @@ fun ScanScreen(vm: AppViewModel) {
     val addPageLabel = stringResource(R.string.tools_add_page)
     ToolScaffold(
         if (pages.isEmpty()) stringResource(R.string.common_tool_scan) else stringResource(R.string.tools_page_of, current.coerceAtMost(pages.lastIndex) + 1, pages.size),
-        { vm.discardScan() },
-        stringResource(R.string.tools_save_pdf), pages.isNotEmpty(), { vm.saveScan(filter) },
+        { vm.scan.discardScan() },
+        stringResource(R.string.tools_save_pdf), pages.isNotEmpty(), { vm.scan.saveScan(filter) },
     ) {
         // the new file's name, changeable before it's saved (not when the pages go into an open document)
-        if (vm.insertScanAt == null && vm.scanName.isNotBlank()) {
-            val nameLabel = stringResource(R.string.tools_scan_name_description, vm.scanName)
+        if (vm.scan.insertScanAt == null && vm.scan.scanName.isNotBlank()) {
+            val nameLabel = stringResource(R.string.tools_scan_name_description, vm.scan.scanName)
             Row(
                 Modifier.fillMaxWidth().clickable { naming = true }.padding(horizontal = 16.dp, vertical = 10.dp).semantics { contentDescription = nameLabel },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(LucideIcons.FileText, null, tint = c.icon, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
-                Text(vm.scanName, color = c.text, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(vm.scan.scanName, color = c.text, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(12.dp))
                 Icon(LucideIcons.Pencil, null, tint = c.icon, modifier = Modifier.size(20.dp))
             }
@@ -726,7 +726,7 @@ fun ScanScreen(vm: AppViewModel) {
             pages.forEachIndexed { i, p ->
                 Image(p.thumb, stringResource(R.string.tools_page_number, i + 1), modifier = Modifier.size(56.dp, 72.dp).clip(RoundedCornerShape(4.dp)).border(2.dp, if (i == current) c.accent else Color.Transparent, RoundedCornerShape(4.dp)).clickable { current = i }, contentScale = ContentScale.Crop)
             }
-            Box(Modifier.size(56.dp, 72.dp).clip(RoundedCornerShape(4.dp)).background(c.surfaceRaised).clickable { vm.takeScanPhoto() }.semantics { contentDescription = addPageLabel }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(56.dp, 72.dp).clip(RoundedCornerShape(4.dp)).background(c.surfaceRaised).clickable { vm.scan.takeScanPhoto() }.semantics { contentDescription = addPageLabel }, contentAlignment = Alignment.Center) {
                 Icon(LucideIcons.Plus, null, tint = c.icon)
             }
         }
@@ -739,16 +739,16 @@ fun ScanScreen(vm: AppViewModel) {
             }
         }
         Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = { vm.retakeScan(current) }, enabled = pages.isNotEmpty()) { Text(stringResource(R.string.tools_retake), color = c.accent) }
+            TextButton(onClick = { vm.scan.retakeScan(current) }, enabled = pages.isNotEmpty()) { Text(stringResource(R.string.tools_retake), color = c.accent) }
             TextButton(onClick = { cropping = pages.getOrNull(current.coerceAtMost(pages.lastIndex))?.file }, enabled = pages.isNotEmpty()) { Text(stringResource(R.string.tools_crop), color = c.accent) }
             TextButton(onClick = { if (pages.isNotEmpty()) { pages.removeAt(current.coerceAtMost(pages.lastIndex)); current = (current - 1).coerceAtLeast(0) } }, enabled = pages.isNotEmpty()) { Text(stringResource(R.string.common_delete), color = c.accent) }
         }
     }
     if (naming) {
-        var name by remember { mutableStateOf(vm.scanName) }
+        var name by remember { mutableStateOf(vm.scan.scanName) }
         PdfDialog(
             onDismiss = { naming = false }, title = stringResource(R.string.common_file_name),
-            confirm = stringResource(R.string.common_ok), confirmEnabled = name.isNotBlank(), onConfirm = { vm.scanName = name.trim(); naming = false },
+            confirm = stringResource(R.string.common_ok), confirmEnabled = name.isNotBlank(), onConfirm = { vm.scan.scanName = name.trim(); naming = false },
         ) {
             PdfField(name, { name = it }, stringResource(R.string.common_file_name))
         }
