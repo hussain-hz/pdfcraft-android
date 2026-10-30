@@ -75,18 +75,18 @@ fun BoxScope.FieldEditor(vm: AppViewModel, edit: FieldEdit) {
     if (w.kind == "combo" || w.kind == "list") {
         // as the reference: a dialog of radio choices that closes on a pick
         val options = w.options.chunked(2).filter { it.size == 2 }
-        io.github.artcraftandroid.pdfcraft.ui.PdfDialog(onDismiss = { vm.fieldEdit = null }, title = null, confirm = null, dismiss = null, list = true) {
+        io.github.artcraftandroid.pdfcraft.ui.PdfDialog(onDismiss = { vm.forms.fieldEdit = null }, title = null, confirm = null, dismiss = null, list = true) {
             LazyColumn(Modifier.heightIn(max = 420.dp)) {
                 items(options) { (value, label) ->
                     Row(
                         Modifier.fillMaxWidth().clickable {
-                            vm.fieldEdit = null
-                            vm.fillField(doc, w.field, value)
+                            vm.forms.fieldEdit = null
+                            vm.forms.fillField(doc, w.field, value)
                         }.height(48.dp).padding(start = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         androidx.compose.material3.RadioButton(
-                            selected = w.value == value, onClick = { vm.fieldEdit = null; vm.fillField(doc, w.field, value) },
+                            selected = w.value == value, onClick = { vm.forms.fieldEdit = null; vm.forms.fillField(doc, w.field, value) },
                             colors = androidx.compose.material3.RadioButtonDefaults.colors(selectedColor = Color(0xFF1473E6), unselectedColor = c.icon),
                         )
                         Spacer(Modifier.width(12.dp))
@@ -115,12 +115,12 @@ fun BoxScope.FieldEditor(vm: AppViewModel, edit: FieldEdit) {
     val fontSize = with(density) { (if (w.multiline) minOf(heightPx * 0.25f, 12f * doc.viewer.pixelsPerPoint(page)) else heightPx * 0.6f).toSp() }
     fun commit() {
         if (text != w.value.orEmpty()) {
-            vm.fillField(doc, w.field, text)
-            if (!w.password) vm.rememberSuggestion(text)
+            vm.forms.fillField(doc, w.field, text)
+            if (!w.password) vm.forms.rememberSuggestion(text)
         }
     }
     // a tap off the field commits it
-    Box(Modifier.fillMaxSize().pointerInput(w) { detectTapGestures { commit(); vm.fieldEdit = null } })
+    Box(Modifier.fillMaxSize().pointerInput(w) { detectTapGestures { commit(); vm.forms.fieldEdit = null } })
     Box(Modifier.offset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }) {
         BasicTextField(
             value = text,
@@ -130,7 +130,7 @@ fun BoxScope.FieldEditor(vm: AppViewModel, edit: FieldEdit) {
             cursorBrush = SolidColor(Color(0xFF1473E6)),
             visualTransformation = if (w.password) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(imeAction = if (w.multiline) ImeAction.Default else ImeAction.Next),
-            keyboardActions = KeyboardActions(onNext = { commit(); vm.nextField(doc, w, forward = true) }),
+            keyboardActions = KeyboardActions(onNext = { commit(); vm.forms.nextField(doc, w, forward = true) }),
             modifier = Modifier
                 .size(with(density) { (b.x - a.x).coerceAtLeast(48f).toDp() }, with(density) { heightPx.toDp() })
                 // the field being filled turns white inside a thin dark outline, as the reference's does
@@ -143,7 +143,7 @@ fun BoxScope.FieldEditor(vm: AppViewModel, edit: FieldEdit) {
         )
     }
     // words used in forms before, above the keyboard
-    val suggestions = if (w.password) emptyList() else vm.suggestionsFor(text)
+    val suggestions = if (w.password) emptyList() else vm.forms.suggestionsFor(text)
     if (suggestions.isNotEmpty()) {
         Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().imePadding().background(c.surface).height(44.dp), verticalAlignment = Alignment.CenterVertically) {
             for (sug in suggestions) {
@@ -155,13 +155,13 @@ fun BoxScope.FieldEditor(vm: AppViewModel, edit: FieldEdit) {
     DisposableEffect(w) {
         val fillable = doc.widgets.filter { !it.readOnly && (it.kind == "text" || it.kind == "combo" || it.kind == "list") }
         val i = fillable.indexOfFirst { it.field == w.field && it.page == w.page && it.rect == w.rect }
-        vm.fieldActions = FieldActions(
+        vm.forms.fieldActions = FieldActions(
             reset = { text = "" },
-            step = { forward -> commit(); vm.nextField(doc, w, forward) },
+            step = { forward -> commit(); vm.forms.nextField(doc, w, forward) },
             canBack = i > 0,
             canForward = i in 0 until fillable.size - 1,
         )
-        onDispose { vm.fieldActions = null }
+        onDispose { vm.forms.fieldActions = null }
     }
 }
 

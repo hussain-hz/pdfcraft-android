@@ -213,8 +213,8 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
             onTap = { p, at ->
                 when {
                     selection.selection != null -> selection.clear()
-                    ctl.tool == ViewerTool.Edit -> vm.editTap(doc, at)
-                    vm.tapField(doc, at) -> Unit
+                    ctl.tool == ViewerTool.Edit -> vm.edit.editTap(doc, at)
+                    vm.forms.tapField(doc, at) -> Unit
                     vm.tapComment(doc, at) -> Unit
                     vm.tapLink(doc, at) -> Unit
                     doc.viewer.mode == PageMode.SinglePage && doc.viewer.zoom <= 1.01f && edgeTap(p.x, doc.viewer.viewW) != 0 -> {
@@ -249,8 +249,8 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
         if (ctl.tool == ViewerTool.Edit) EditOverlay(vm, doc)
         vm.textPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postText) }
         vm.fillTextPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postFillText) }
-        vm.addTextPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postAddText) }
-        vm.fieldEdit?.takeIf { it.doc === doc }?.let { FieldEditor(vm, it) }
+        vm.edit.addTextPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm.edit::postAddText) }
+        vm.forms.fieldEdit?.takeIf { it.doc === doc }?.let { FieldEditor(vm, it) }
         if (ctl.tool == ViewerTool.FillSign) vm.selectedFill?.let { c ->
             var active by remember(c.page, c.index, c.rect) { mutableStateOf(false) }
             if (c.rect.size == 4 && !c.locked) {
@@ -362,7 +362,7 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
                         onNext = { search.step(true)?.let { showHit(doc, it) } },
                     )
                 } else {
-                    val fa = vm.fieldActions
+                    val fa = vm.forms.fieldActions
                     if (fa != null) FieldTopBar(fa) else ViewerTopBar(
                         toolActive = ctl.tool != ViewerTool.None,
                         doneIsCheck = ctl.tool != ViewerTool.Comment,
@@ -392,7 +392,7 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
         }
         // the Read Aloud player takes the bottom bar's place
         // while typing on the page, the bar (with its formatting) rides above the keyboard
-        if (vm.readAloud == null && vm.fieldActions == null) Column(Modifier.fillMaxWidth().align(Alignment.BottomCenter).then(if (vm.editing != null) Modifier.imePadding() else Modifier)) {
+        if (vm.readAloud == null && vm.forms.fieldActions == null) Column(Modifier.fillMaxWidth().align(Alignment.BottomCenter).then(if (vm.edit.editing != null) Modifier.imePadding() else Modifier)) {
             vm.success?.let { SuccessBannerView(it, onClose = { vm.success = null }) }
             AnimatedVisibility(
                 ctl.barsVisible && !ctl.searching && !vm.readingMode,
@@ -448,17 +448,17 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
         }
         if (ctl.sheet == ViewerSheet.Comments) CommentListScreen(vm, doc)
         vm.pageMenu?.takeIf { it.doc === doc }?.let { PageMenuView(vm, it) }
-        if (vm.imageSource?.first === doc) {
-            io.github.artcraftandroid.pdfcraft.ui.PdfSheet(onDismiss = { vm.imageSource = null }, dim = true) {
+        if (vm.edit.imageSource?.first === doc) {
+            io.github.artcraftandroid.pdfcraft.ui.PdfSheet(onDismiss = { vm.edit.imageSource = null }, dim = true) {
                 io.github.artcraftandroid.pdfcraft.ui.SheetTitle(stringResource(R.string.viewer_add_image))
-                io.github.artcraftandroid.pdfcraft.ui.SheetRow(LucideIcons.Images, stringResource(R.string.viewer_image_from_photos), { vm.addImageFrom(camera = false) })
-                io.github.artcraftandroid.pdfcraft.ui.SheetRow(LucideIcons.Camera, stringResource(R.string.viewer_image_from_camera), { vm.addImageFrom(camera = true) })
+                io.github.artcraftandroid.pdfcraft.ui.SheetRow(LucideIcons.Images, stringResource(R.string.viewer_image_from_photos), { vm.edit.addImageFrom(camera = false) })
+                io.github.artcraftandroid.pdfcraft.ui.SheetRow(LucideIcons.Camera, stringResource(R.string.viewer_image_from_camera), { vm.edit.addImageFrom(camera = true) })
                 Spacer(Modifier.height(12.dp))
             }
         }
         vm.notePrompt?.takeIf { it.doc === doc }?.let { NoteSheet(vm, it) }
-        vm.voicePrompt?.takeIf { it.doc === doc }?.let { VoiceSheet(vm, it) }
-        if (vm.micRationale) MicRationaleDialog(vm)
+        vm.voice.voicePrompt?.takeIf { it.doc === doc }?.let { VoiceSheet(vm, it) }
+        if (vm.voice.micRationale) MicRationaleDialog(vm)
         vm.selectedComment?.takeIf { it.first === doc }?.let { (_, cm) -> CommentPanel(vm, doc, cm) }
         // over the panel's tap-to-close area, but only where the comment is: drag it to move, corners to resize
         if (ctl.tool == ViewerTool.None && doc.info.allowsAnnotation) {

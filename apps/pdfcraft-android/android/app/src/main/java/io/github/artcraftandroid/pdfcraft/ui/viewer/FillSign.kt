@@ -184,7 +184,7 @@ fun SignPanel(vm: AppViewModel, doc: OpenDocument, onDismiss: () -> Unit) {
         }
         Spacer(Modifier.height(14.dp))
         // a certificate-based signature, which the reference's phone app doesn't have
-        SheetRow(LucideIcons.ShieldCheck, stringResource(R.string.common_tool_sign_digital_id), { onDismiss(); vm.startCertPlacing(doc) }, chevron = true)
+        SheetRow(LucideIcons.ShieldCheck, stringResource(R.string.common_tool_sign_digital_id), { onDismiss(); vm.signing.startCertPlacing(doc) }, chevron = true)
         Spacer(Modifier.height(10.dp))
     }
 }

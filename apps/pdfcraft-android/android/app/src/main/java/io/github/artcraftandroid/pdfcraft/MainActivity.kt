@@ -49,11 +49,11 @@ class MainActivity : ComponentActivity() {
 
     private val saveCopy = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri -> vm.copyTo(uri) }
     private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok -> vm.onScanPhoto(ok) }
-    private val pickImage = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> vm.addImage(uri) }
+    private val pickImage = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> vm.edit.addImage(uri) }
     private val pickSignature = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> vm.importSignatureImage(uri) }
     private val pickPhotos = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris -> vm.onPhotosPicked(uris) }
-    private val pickFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(vm::addLocalFolder) }
-    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> vm.onMicPermission(granted) }
+    private val pickFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(vm.library::addLocalFolder) }
+    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> vm.voice.onMicPermission(granted) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // transparent system bars with no contrast scrim: every screen paints the bands behind the
@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        vm.onAppOpened()
+        vm.updates.onAppOpened()
     }
 
     /** The view model's requests that need the activity: other apps, pickers, the camera, printing. */
@@ -108,15 +108,15 @@ class MainActivity : ComponentActivity() {
                 launchSafely { takePhoto.launch(uri) }
             }
         }
-        lifecycleScope.launch { for (d in vm.imagePicks) launchSafely { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) } }
+        lifecycleScope.launch { for (d in vm.edit.imagePicks) launchSafely { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) } }
         lifecycleScope.launch { for (u in vm.photoPicks) launchSafely { pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) } }
         // the folder picker opens at Documents, where PDFs usually are (Download itself can't be chosen)
         val documents = android.provider.DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Documents")
-        lifecycleScope.launch { for (u in vm.accessRequests) launchSafely { pickFolder.launch(documents) } }
+        lifecycleScope.launch { for (u in vm.library.accessRequests) launchSafely { pickFolder.launch(documents) } }
         lifecycleScope.launch {
-            for (u in vm.micRequests) {
+            for (u in vm.voice.micRequests) {
                 // refused before: explain first (the reference's order); otherwise Android's own prompt
-                if (shouldShowRequestPermissionRationale(android.Manifest.permission.RECORD_AUDIO)) vm.micRationale = true
+                if (shouldShowRequestPermissionRationale(android.Manifest.permission.RECORD_AUDIO)) vm.voice.micRationale = true
                 else launchSafely { micPermission.launch(android.Manifest.permission.RECORD_AUDIO) }
             }
         }
