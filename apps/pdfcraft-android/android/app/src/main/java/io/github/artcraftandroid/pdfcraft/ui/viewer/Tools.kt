@@ -102,10 +102,10 @@ fun ToolLayer(vm: AppViewModel, doc: OpenDocument) {
         ViewerTool.Draw -> DrawLayer(vm, doc)
         ViewerTool.Markup -> MarkupLayer(vm, doc)
         ViewerTool.Comment -> TapLayer(doc) { p ->
-            if (doc.controller.commentMode == CommentMode.Voice) vm.startVoice(doc, p) else vm.notePrompt = NotePrompt(doc, p)
+            if (doc.controller.commentMode == CommentMode.Voice) vm.voice.startVoice(doc, p) else vm.notePrompt = NotePrompt(doc, p)
         }
         ViewerTool.Text -> TapLayer(doc) { p -> vm.textPrompt = TextPrompt(doc, p) }
-        ViewerTool.FillSign -> if (vm.certPlacing === doc) CertPlaceLayer(vm, doc) else FillSignLayer(vm, doc)
+        ViewerTool.FillSign -> if (vm.signing.certPlacing === doc) CertPlaceLayer(vm, doc) else FillSignLayer(vm, doc)
         else -> Unit
     }
 }

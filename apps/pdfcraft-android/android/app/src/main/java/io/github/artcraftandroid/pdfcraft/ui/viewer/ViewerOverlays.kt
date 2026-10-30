@@ -264,7 +264,7 @@ fun NoteSheet(vm: AppViewModel, prompt: NotePrompt) {
         hint = stringResource(R.string.viewer_write_note),
         onDismiss = { vm.notePrompt = null },
         onPost = { vm.postNote(prompt, it) },
-        onVoice = if (at != null && prompt.selection == null) ({ vm.notePrompt = null; vm.startVoice(prompt.doc, at) }) else null,
+        onVoice = if (at != null && prompt.selection == null) ({ vm.notePrompt = null; vm.voice.startVoice(prompt.doc, at) }) else null,
     )
 }
 

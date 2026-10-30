@@ -99,7 +99,7 @@ fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: P
     val values = remember(para) { mutableStateListOf(*para.rows.map { TextFieldValue(it.text) }.toTypedArray()) }
     val styles = remember(para) { mutableStateListOf(*para.rows.map { it.runs }.toTypedArray()) }
     var paper by remember(para) { mutableStateOf<Color?>(null) }
-    LaunchedEffect(para) { paper = vm.paperColor(doc, para) }
+    LaunchedEffect(para) { paper = vm.edit.paperColor(doc, para) }
     var focusedRow by remember(para) { mutableIntStateOf(-1) }
     val ime = WindowInsets.ime.getBottom(density)
     LaunchedEffect(ime, focusedRow) {
@@ -138,7 +138,7 @@ fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: P
             onValueChange = { next ->
                 styles[index] = remapInlineRuns(current.text, next.text, styles[index])
                 values[index] = next
-                vm.editDraft = values.joinToString("\n") { it.text }
+                vm.edit.editDraft = values.joinToString("\n") { it.text }
             },
             singleLine = true,
             visualTransformation = transform,

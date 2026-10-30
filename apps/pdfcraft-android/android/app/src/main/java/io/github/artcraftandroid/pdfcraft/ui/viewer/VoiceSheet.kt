@@ -63,7 +63,7 @@ class VoicePrompt(val doc: OpenDocument, val at: PagePoint)
 fun VoiceSheet(vm: AppViewModel, prompt: VoicePrompt) {
     val c = pdfColors
     val scope = rememberCoroutineScope()
-    val file = remember(prompt) { vm.voiceFile() }
+    val file = remember(prompt) { vm.voice.voiceFile() }
     val recorder = remember(prompt) { VoiceRecorder(file, scope) }
     val player = remember(prompt) { VoicePlayer(scope) }
     var recorded by remember(prompt) { mutableStateOf(false) }
@@ -74,7 +74,7 @@ fun VoiceSheet(vm: AppViewModel, prompt: VoicePrompt) {
         warned = false
         player.release()
         if (!recorder.start()) {
-            vm.voicePrompt = null
+            vm.voice.voicePrompt = null
             vm.tell(text(R.string.voice_mic_failed))
         }
     }
@@ -89,12 +89,12 @@ fun VoiceSheet(vm: AppViewModel, prompt: VoicePrompt) {
         if (recorder.recording) {
             scope.launch {
                 recorder.stop()
-                vm.postVoice(prompt, file)
+                vm.voice.postVoice(prompt, file)
             }
         } else {
             player.release()
             file.delete()
-            vm.voicePrompt = null
+            vm.voice.voicePrompt = null
         }
     }
 
@@ -117,7 +117,7 @@ fun VoiceSheet(vm: AppViewModel, prompt: VoicePrompt) {
             TextButton(
                 onClick = {
                     player.release()
-                    vm.postVoice(prompt, file)
+                    vm.voice.postVoice(prompt, file)
                 },
                 enabled = recorded,
             ) { Text(stringResource(R.string.common_post), color = if (recorded) c.accent else c.textSecondary, fontWeight = FontWeight.SemiBold) }
@@ -150,7 +150,7 @@ fun VoiceSheet(vm: AppViewModel, prompt: VoicePrompt) {
                 LabelledButton(LucideIcons.Trash2, stringResource(R.string.common_delete)) {
                     player.release()
                     file.delete()
-                    vm.voicePrompt = null
+                    vm.voice.voicePrompt = null
                 }
                 RoundButton(if (player.playing) LucideIcons.Pause else LucideIcons.Play, stringResource(if (player.playing) R.string.common_pause else R.string.common_play), c.accent) { player.toggle() }
                 LabelledButton(LucideIcons.RotateCcw, stringResource(R.string.voice_record_again)) { begin() }
@@ -217,7 +217,7 @@ fun VoiceCommentPlayer(vm: AppViewModel, doc: OpenDocument, comment: CommentInfo
     val player = remember(comment.page, comment.index) { VoicePlayer(scope) }
     var ready by remember(comment.page, comment.index) { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(comment.page, comment.index, doc.info.generation) {
-        val f = vm.voiceRecording(doc, comment)
+        val f = vm.voice.voiceRecording(doc, comment)
         ready = f != null && player.load(f)
     }
     DisposableEffect(comment.page, comment.index) { onDispose { player.release() } }
@@ -250,9 +250,9 @@ fun VoiceCommentPlayer(vm: AppViewModel, doc: OpenDocument, comment: CommentInfo
 @Composable
 fun MicRationaleDialog(vm: AppViewModel) {
     io.github.artcraftandroid.pdfcraft.ui.PdfDialog(
-        onDismiss = { vm.dismissMicRationale(false) }, title = stringResource(R.string.voice_mic_title),
-        confirm = stringResource(R.string.voice_open_settings), onConfirm = { vm.dismissMicRationale(true) },
-        dismiss = stringResource(R.string.voice_not_now), onDismissButton = { vm.dismissMicRationale(false) },
+        onDismiss = { vm.voice.dismissMicRationale(false) }, title = stringResource(R.string.voice_mic_title),
+        confirm = stringResource(R.string.voice_open_settings), onConfirm = { vm.voice.dismissMicRationale(true) },
+        dismiss = stringResource(R.string.voice_not_now), onDismissButton = { vm.voice.dismissMicRationale(false) },
     ) { Text(stringResource(R.string.voice_mic_rationale), color = io.github.artcraftandroid.pdfcraft.ui.pdfColors.text, fontSize = 14.sp) }
 }
 

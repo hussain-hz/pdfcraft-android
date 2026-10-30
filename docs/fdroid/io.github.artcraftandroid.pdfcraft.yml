@@ -3,17 +3,17 @@ Categories:
   - Reading
   - Writing
 License: MIT
-AuthorName: artcraft-android
-SourceCode: https://github.com/artcraft-android/pdfcraft-android
-IssueTracker: https://github.com/artcraft-android/pdfcraft-android/issues
-Changelog: https://github.com/artcraft-android/pdfcraft-android/releases
+AuthorName: hussain-hz
+SourceCode: https://github.com/hussain-hz/pdfcraft-android
+IssueTracker: https://github.com/hussain-hz/pdfcraft-android/issues
+Changelog: https://github.com/hussain-hz/pdfcraft-android/releases
 
 AutoName: PdfCraft
 
 RepoType: git
-Repo: https://github.com/artcraft-android/pdfcraft-android.git
+Repo: https://github.com/hussain-hz/pdfcraft-android.git
 Binaries: 
-  https://github.com/artcraft-android/pdfcraft-android/releases/download/v%v/pdfcraft-android-%v.apk
+  https://github.com/hussain-hz/pdfcraft-android/releases/download/v%v/pdfcraft-android-%v.apk
 
 Builds:
   - versionName: 0.0.2-beta
