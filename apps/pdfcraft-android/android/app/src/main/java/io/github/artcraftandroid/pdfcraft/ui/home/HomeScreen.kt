@@ -157,29 +157,29 @@ private fun HomeTabScreen(vm: AppViewModel, onBrowse: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     var confirmClear by remember { mutableStateOf(false) }
     var confirmDeleteSelected by remember { mutableStateOf(false) }
-    LaunchedEffect(tab) { if (tab == 2) vm.scanLocal(); vm.selectedFiles.clear() }
-    androidx.activity.compose.BackHandler(enabled = vm.selectedFiles.isNotEmpty()) { vm.selectedFiles.clear() }
+    LaunchedEffect(tab) { if (tab == 2) vm.library.scanLocal(); vm.library.selectedFiles.clear() }
+    androidx.activity.compose.BackHandler(enabled = vm.library.selectedFiles.isNotEmpty()) { vm.library.selectedFiles.clear() }
     if (confirmDeleteSelected) {
-        val rows = vm.selectedFiles.values.toList()
+        val rows = vm.library.selectedFiles.values.toList()
         io.github.artcraftandroid.pdfcraft.ui.PdfDialog(
             onDismiss = { confirmDeleteSelected = false },
             title = pluralStringResource(R.plurals.home_delete_files_title, rows.size, rows.size),
             confirm = stringResource(R.string.common_delete), destructive = true,
-            onConfirm = { confirmDeleteSelected = false; rows.forEach(vm::deleteFile); vm.selectedFiles.clear() },
+            onConfirm = { confirmDeleteSelected = false; rows.forEach(vm.library::deleteFile); vm.library.selectedFiles.clear() },
         ) { Text(stringResource(R.string.home_delete_files_body), color = c.text, fontSize = 14.sp) }
     }
     val settingsLabel = stringResource(R.string.home_settings)
     val toolsLabel = stringResource(R.string.home_tab_tools)
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().safeTopPadding()) {
-            if (vm.selectedFiles.isNotEmpty()) SelectionBar(vm, recent = tab == 0, onDelete = { confirmDeleteSelected = true }) else
+            if (vm.library.selectedFiles.isNotEmpty()) SelectionBar(vm, recent = tab == 0, onDelete = { confirmDeleteSelected = true }) else
                 Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.ic_launcher_tile), null, modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)))
                 Spacer(Modifier.width(10.dp))
                 Text(stringResource(R.string.app_name), color = c.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                if (vm.availableAppUpdate != null) {
+                if (vm.updates.availableAppUpdate != null) {
                     val updateLabel = stringResource(R.string.updates_notification_available)
-                    Box(Modifier.size(40.dp).clip(CircleShape).background(c.surfaceRaised).clickable { vm.appUpdatesOpen = true }.semantics { contentDescription = updateLabel },
+                    Box(Modifier.size(40.dp).clip(CircleShape).background(c.surfaceRaised).clickable { vm.updates.appUpdatesOpen = true }.semantics { contentDescription = updateLabel },
                         contentAlignment = Alignment.Center) {
                         // Original download glyph: a stem, arrow head and receiving tray.
                         val iconColor = c.icon
@@ -221,11 +221,11 @@ private fun HomeTabScreen(vm: AppViewModel, onBrowse: () -> Unit) {
                         Box {
                             BarIcon(LucideIcons.EllipsisVertical, stringResource(R.string.common_more_options), { menu = true })
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = c.surface) {
-                                DropdownMenuItem(text = { Text(stringResource(if (vm.gridView) R.string.home_list_view else R.string.home_grid_view)) }, onClick = { menu = false; vm.gridView = !vm.gridView })
+                                DropdownMenuItem(text = { Text(stringResource(if (vm.library.gridView) R.string.home_list_view else R.string.home_grid_view)) }, onClick = { menu = false; vm.library.gridView = !vm.library.gridView })
                                 if (tab == 0 && vm.recentList.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.home_clear_recent)) }, onClick = { menu = false; confirmClear = true })
                                 if (tab == 1) {
-                                    DropdownMenuItem(text = { Text(stringResource(R.string.home_sort_by_name)) }, onClick = { menu = false; vm.starSort = 1 })
-                                    DropdownMenuItem(text = { Text(stringResource(R.string.home_sort_by_date)) }, onClick = { menu = false; vm.starSort = 0 })
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.home_sort_by_name)) }, onClick = { menu = false; vm.library.starSort = 1 })
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.home_sort_by_date)) }, onClick = { menu = false; vm.library.starSort = 0 })
                                 }
                             }
                         }
@@ -233,20 +233,20 @@ private fun HomeTabScreen(vm: AppViewModel, onBrowse: () -> Unit) {
                     SheetDivider(inset = 0.dp)
                 }
                 val rows = when (tab) {
-                    0 -> vm.recentRows()
-                    1 -> vm.starredRows()
-                    else -> vm.localRows().take(10)
+                    0 -> vm.library.recentRows()
+                    1 -> vm.library.starredRows()
+                    else -> vm.library.localRows().take(10)
                 }
                 if (rows.isEmpty()) {
                     item {
                         when (tab) {
                             0 -> EmptyState(LucideIcons.Clock, stringResource(R.string.home_no_recent_title), stringResource(R.string.home_no_recent_body), stringResource(R.string.home_open_file), onBrowse)
                             1 -> EmptyState(LucideIcons.Star, stringResource(R.string.home_no_starred_title), stringResource(R.string.home_no_starred_body))
-                            else -> if (!vm.hasFileAccess) EmptyState(LucideIcons.Smartphone, stringResource(R.string.home_device_files_title), stringResource(R.string.home_device_files_body), stringResource(R.string.home_add_folder)) { vm.requestFileAccess() }
-                            else EmptyState(LucideIcons.Smartphone, stringResource(R.string.home_no_pdfs_title), stringResource(R.string.home_no_pdfs_body), stringResource(R.string.home_add_folder)) { vm.requestFileAccess() }
+                            else -> if (!vm.library.hasFileAccess) EmptyState(LucideIcons.Smartphone, stringResource(R.string.home_device_files_title), stringResource(R.string.home_device_files_body), stringResource(R.string.home_add_folder)) { vm.library.requestFileAccess() }
+                            else EmptyState(LucideIcons.Smartphone, stringResource(R.string.home_no_pdfs_title), stringResource(R.string.home_no_pdfs_body), stringResource(R.string.home_add_folder)) { vm.library.requestFileAccess() }
                         }
                     }
-                } else if (vm.gridView) {
+                } else if (vm.library.gridView) {
                     items(rows.chunked(2)) { pair ->
                         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             pair.forEach { r -> FileGridCell(vm, r, Modifier.weight(1f), recent = tab == 0) }
@@ -256,7 +256,7 @@ private fun HomeTabScreen(vm: AppViewModel, onBrowse: () -> Unit) {
                 } else {
                     items(rows, key = { it.key }) { r -> FileListRow(vm, r, recent = tab == 0) }
                 }
-                if (tab == 2 && vm.localRows().size > 10) {
+                if (tab == 2 && vm.library.localRows().size > 10) {
                     item {
                         Text(stringResource(R.string.home_other_files), color = c.accent, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().clickable { vm.homeTab = HomeTab.Files; vm.filesShowLocal = true }.padding(16.dp))
                     }
@@ -286,7 +286,7 @@ private fun HomeTabScreen(vm: AppViewModel, onBrowse: () -> Unit) {
     if (confirmClear) {
         io.github.artcraftandroid.pdfcraft.ui.PdfDialog(
             onDismiss = { confirmClear = false }, title = stringResource(R.string.home_clear_recent_title),
-            confirm = stringResource(R.string.common_clear), onConfirm = { confirmClear = false; vm.clearRecents() }, destructive = true,
+            confirm = stringResource(R.string.common_clear), onConfirm = { confirmClear = false; vm.library.clearRecents() }, destructive = true,
         ) { Text(stringResource(R.string.home_clear_recent_body), color = c.text, fontSize = 14.sp) }
     }
 }
@@ -364,7 +364,7 @@ fun whenLabel(t: Long): String {
 fun FileThumb(vm: AppViewModel, path: String?, width: Int, height: Int) {
     var img by remember(path) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(path) {
-        if (path != null) img = withContext(Dispatchers.IO) { vm.thumbnails.of(path)?.asImageBitmap() }
+        if (path != null) img = withContext(Dispatchers.IO) { vm.library.thumbnails.of(path)?.asImageBitmap() }
     }
     val c = pdfColors
     Box(Modifier.size(width.dp, height.dp).clip(RoundedCornerShape(4.dp)).background(if (img != null) Color.White else c.surfaceRaised).border(1.dp, c.divider, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
@@ -377,13 +377,13 @@ fun FileThumb(vm: AppViewModel, path: String?, width: Int, height: Int) {
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 fun FileListRow(vm: AppViewModel, r: FileRow, recent: Boolean = false) {
     val c = pdfColors
-    val selecting = vm.selectedFiles.isNotEmpty()
-    val ticked = r.key in vm.selectedFiles
+    val selecting = vm.library.selectedFiles.isNotEmpty()
+    val ticked = r.key in vm.library.selectedFiles
     // a long press ticks the file (several can then be shared, combined or deleted together)
     Row(
         Modifier.fillMaxWidth()
             .background(if (ticked) c.toolAccent.copy(alpha = 0.12f) else Color.Transparent)
-            .combinedClickable(onClick = { if (selecting) vm.toggleSelected(r) else r.open() }, onLongClick = { vm.toggleSelected(r) })
+            .combinedClickable(onClick = { if (selecting) vm.library.toggleSelected(r) else r.open() }, onLongClick = { vm.library.toggleSelected(r) })
             .padding(start = 12.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -428,17 +428,17 @@ private fun SelectBox(ticked: Boolean) {
 @Composable
 private fun SelectionBar(vm: AppViewModel, recent: Boolean, onDelete: () -> Unit) {
     val c = pdfColors
-    val rows = vm.selectedFiles.values.toList()
+    val rows = vm.library.selectedFiles.values.toList()
     var menu by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        BarIcon(LucideIcons.X, stringResource(R.string.home_clear_selection), { vm.selectedFiles.clear() })
+        BarIcon(LucideIcons.X, stringResource(R.string.home_clear_selection), { vm.library.selectedFiles.clear() })
         Text(pluralStringResource(R.plurals.home_files_selected, rows.size, rows.size), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))
-        BarIcon(LucideIcons.Share2, stringResource(R.string.common_share), { vm.shareFiles(rows); vm.selectedFiles.clear() })
-        if (rows.size >= 2) BarIcon(LucideIcons.Combine, stringResource(R.string.common_tool_combine), { vm.combineSelected(rows); vm.selectedFiles.clear() })
+        BarIcon(LucideIcons.Share2, stringResource(R.string.common_share), { vm.library.shareFiles(rows); vm.library.selectedFiles.clear() })
+        if (rows.size >= 2) BarIcon(LucideIcons.Combine, stringResource(R.string.common_tool_combine), { vm.library.combineSelected(rows); vm.library.selectedFiles.clear() })
         Box {
             BarIcon(LucideIcons.EllipsisVertical, stringResource(R.string.common_more_options), { menu = true })
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = c.surface) {
-                if (recent) DropdownMenuItem(text = { Text(stringResource(R.string.home_remove_from_recent)) }, onClick = { menu = false; vm.removeRecents(rows); vm.selectedFiles.clear() })
+                if (recent) DropdownMenuItem(text = { Text(stringResource(R.string.home_remove_from_recent)) }, onClick = { menu = false; vm.library.removeRecents(rows); vm.library.selectedFiles.clear() })
                 DropdownMenuItem(text = { Text(stringResource(R.string.common_delete), color = c.red) }, onClick = { menu = false; onDelete() })
             }
         }
@@ -487,14 +487,14 @@ fun FileSheet(vm: AppViewModel, r: FileRow, recent: Boolean, onDismiss: () -> Un
             SheetRow(LucideIcons.FileArchive, stringResource(R.string.common_tool_compress), { act { vm.openFor(r, FileTool.Compress) } })
             SheetRow(LucideIcons.FileLock2, stringResource(R.string.common_tool_set_password), { act { vm.openFor(r, FileTool.Protect) } })
             SheetDivider()
-            SheetRow(LucideIcons.Share2, stringResource(R.string.common_share), { act { vm.shareFile(r) } })
-            SheetRow(LucideIcons.Printer, stringResource(R.string.home_print), { act { vm.printFile(r) } })
-            SheetRow(LucideIcons.ExternalLink, stringResource(R.string.home_open_with), { act { vm.openWith(r) } })
+            SheetRow(LucideIcons.Share2, stringResource(R.string.common_share), { act { vm.library.shareFile(r) } })
+            SheetRow(LucideIcons.Printer, stringResource(R.string.home_print), { act { vm.library.printFile(r) } })
+            SheetRow(LucideIcons.ExternalLink, stringResource(R.string.home_open_with), { act { vm.library.openWith(r) } })
             SheetRow(LucideIcons.Star, stringResource(if (r.starred) R.string.home_unstar else R.string.home_star), { act { vm.setStarred(r.key, !r.starred) } })
             SheetRow(LucideIcons.Pencil, stringResource(R.string.common_rename), { renaming = true })
-            SheetRow(LucideIcons.Copy, stringResource(R.string.home_duplicate), { act { vm.duplicateFile(r) } })
-            SheetRow(LucideIcons.FileDown, stringResource(R.string.common_save_copy), { act { vm.saveFileCopy(r) } })
-            if (recent) SheetRow(LucideIcons.X, stringResource(R.string.home_remove_from_recent), { act { vm.removeRecent(r.key) } })
+            SheetRow(LucideIcons.Copy, stringResource(R.string.home_duplicate), { act { vm.library.duplicateFile(r) } })
+            SheetRow(LucideIcons.FileDown, stringResource(R.string.common_save_copy), { act { vm.library.saveFileCopy(r) } })
+            if (recent) SheetRow(LucideIcons.X, stringResource(R.string.home_remove_from_recent), { act { vm.library.removeRecent(r.key) } })
             SheetRow(LucideIcons.Trash2, stringResource(R.string.common_delete), { deleting = true }, tint = c.red)
             Spacer(Modifier.height(8.dp))
         }
@@ -503,13 +503,13 @@ fun FileSheet(vm: AppViewModel, r: FileRow, recent: Boolean, onDismiss: () -> Un
         var name by remember { mutableStateOf(r.name.removeSuffix(".pdf")) }
         io.github.artcraftandroid.pdfcraft.ui.PdfDialog(
             onDismiss = { renaming = false }, title = stringResource(R.string.common_rename),
-            confirm = stringResource(R.string.common_done), onConfirm = { renaming = false; onDismiss(); vm.renameFile(r, name) }, confirmEnabled = name.isNotBlank() && !name.startsWith("."),
+            confirm = stringResource(R.string.common_done), onConfirm = { renaming = false; onDismiss(); vm.library.renameFile(r, name) }, confirmEnabled = name.isNotBlank() && !name.startsWith("."),
         ) { io.github.artcraftandroid.pdfcraft.ui.PdfField(name, { name = it }, stringResource(R.string.home_enter_name)) }
     }
     if (deleting) {
         io.github.artcraftandroid.pdfcraft.ui.PdfDialog(
             onDismiss = { deleting = false }, title = stringResource(R.string.home_delete_file_title),
-            confirm = stringResource(R.string.common_delete), onConfirm = { deleting = false; onDismiss(); vm.deleteFile(r) }, destructive = true,
+            confirm = stringResource(R.string.common_delete), onConfirm = { deleting = false; onDismiss(); vm.library.deleteFile(r) }, destructive = true,
         ) { Text(stringResource(R.string.home_delete_file_body, r.name), color = c.text, fontSize = 14.sp) }
     }
 }

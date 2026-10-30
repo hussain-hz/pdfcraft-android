@@ -12,8 +12,8 @@ This fork retains the PdfCraft name and application ID, with engine **0.14.0**, 
 </p>
 
 <p align="center">
-  <a href="https://github.com/artcraft-android/pdfcraft-android/releases"><img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="60"></a>
-  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/artcraft-android/pdfcraft-android"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60"></a>
+  <a href="https://github.com/hussain-hz/pdfcraft-android/releases"><img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="60"></a>
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/hussain-hz/pdfcraft-android"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60"></a>
   <br><sub>Each release has two APKs: the plain one for most phones, the <code>-armeabi-v7a</code> one for 32-bit ARM phones.</sub>
 </p>
 
@@ -194,7 +194,7 @@ This fork retains the PdfCraft name and application ID, with engine **0.14.0**, 
 <p align="center">
   <img src="docs/images/architecture.png" alt="Architecture diagram: the PDF user chooses a document in the Android experience (Home library, Open document, App state, PDF viewer, Reading tools, Page navigation, Forms and signing, PDF editing, Comment tools), which calls the Rust engine through the Android engine bridge; the document runtime (PDF engine, page rendering, PDF object parser) and its PDF operations (create and extract, document editing, form handling, annotations) and extended capabilities (accessibility checks, automation tools, office export, PDF signatures)" width="700">
   <br>
-  <sub>How the app and the engine fit together. Generated with <a href="https://gitdiagram.com/artcraft-android/pdfcraft-android">GitDiagram</a>.</sub>
+  <sub>How the app and the engine fit together. Generated with <a href="https://gitdiagram.com/hussain-hz/pdfcraft-android">GitDiagram</a>.</sub>
 </p>
 
 <br>

@@ -89,10 +89,10 @@ fun PagesScreen(vm: AppViewModel, doc: OpenDocument, onClose: () -> Unit) {
     // dragging a page: its index and where it would drop
     var dragFrom by remember { mutableStateOf<Int?>(null) }
     var dragTo by remember { mutableStateOf<Int?>(null) }
-    val exporting = vm.imageExport
+    val exporting = vm.jobs.imageExport
     fun close() {
         vm.organizing = false
-        vm.imageExport = null
+        vm.jobs.imageExport = null
         selected.clear()
         onClose()
     }
@@ -259,11 +259,11 @@ fun PagesScreen(vm: AppViewModel, doc: OpenDocument, onClose: () -> Unit) {
         ) {
             if (exporting != null) {
                 // picking the pages to export: save them to the phone's pictures, or share them
-                OrganizeItem(LucideIcons.Save, stringResource(R.string.common_save), enabled) { vm.writeImages(doc, exporting, picked, share = false) }
-                OrganizeItem(LucideIcons.Share2, stringResource(R.string.common_share), enabled) { vm.writeImages(doc, exporting, picked, share = true) }
+                OrganizeItem(LucideIcons.Save, stringResource(R.string.common_save), enabled) { vm.jobs.writeImages(doc, exporting, picked, share = false) }
+                OrganizeItem(LucideIcons.Share2, stringResource(R.string.common_share), enabled) { vm.jobs.writeImages(doc, exporting, picked, share = true) }
             } else if (organizing) {
                 OrganizeItem(LucideIcons.FilePlus, stringResource(R.string.pages_insert_page), true) { insertMenu = true }
-                OrganizeItem(LucideIcons.FileOutput, stringResource(R.string.pages_extract), enabled) { vm.extractPages(doc, picked) }
+                OrganizeItem(LucideIcons.FileOutput, stringResource(R.string.pages_extract), enabled) { vm.jobs.extractPages(doc, picked) }
                 OrganizeItem(LucideIcons.Trash2, stringResource(R.string.common_delete), enabled && picked.size < doc.pageCount) {
                     vm.runTool(doc, "page_delete", mapOf("pages" to picked.map { it + 1 }))
                     selected.clear()
@@ -315,7 +315,7 @@ fun PagesScreen(vm: AppViewModel, doc: OpenDocument, onClose: () -> Unit) {
             io.github.artcraftandroid.pdfcraft.ui.SheetDivider()
             SheetRow(LucideIcons.File, stringResource(R.string.pages_blank_page), { insertMenu = false; vm.runTool(doc, "page_insert_blank", mapOf("at" to at)) })
             SheetRow(LucideIcons.FileStack, stringResource(R.string.pages_from_file), { insertMenu = false; vm.pickInsertFile(doc, at) })
-            SheetRow(LucideIcons.Camera, stringResource(R.string.pages_from_scan), { insertMenu = false; vm.insertScanAt = doc to at; vm.startScan() })
+            SheetRow(LucideIcons.Camera, stringResource(R.string.pages_from_scan), { insertMenu = false; vm.scan.insertScanAt = doc to at; vm.startScan() })
             Spacer(Modifier.height(12.dp))
         }
     }

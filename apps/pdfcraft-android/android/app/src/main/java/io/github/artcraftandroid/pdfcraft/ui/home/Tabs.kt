@@ -113,37 +113,37 @@ private fun LocationRow(icon: ImageVector, label: String, onClick: () -> Unit) {
 private fun OnThisDevice(vm: AppViewModel) {
     val c = pdfColors
     BackHandler { vm.filesShowLocal = false }
-    LaunchedEffect(Unit) { vm.scanLocal() }
+    LaunchedEffect(Unit) { vm.library.scanLocal() }
     var sort by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var menu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().safeTopPadding()) {
         Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(56.dp), contentAlignment = Alignment.Center) { BarIcon(LucideIcons.ArrowLeft, stringResource(R.string.common_back), { vm.filesShowLocal = false }) }
             Text(stringResource(R.string.home_on_this_device), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            BarIcon(LucideIcons.RotateCw, stringResource(R.string.home_refresh), { vm.scanLocal(force = true) })
+            BarIcon(LucideIcons.RotateCw, stringResource(R.string.home_refresh), { vm.library.scanLocal(force = true) })
             Box {
                 BarIcon(LucideIcons.EllipsisVertical, stringResource(R.string.common_more_options), { menu = true })
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = c.surface) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.home_sort_by_name)) }, onClick = { sort = 1; menu = false }, trailingIcon = { if (sort == 1) Icon(LucideIcons.Check, null, tint = c.accent) })
                     DropdownMenuItem(text = { Text(stringResource(R.string.home_sort_by_date)) }, onClick = { sort = 0; menu = false }, trailingIcon = { if (sort == 0) Icon(LucideIcons.Check, null, tint = c.accent) })
                     HorizontalDivider(color = c.divider)
-                    DropdownMenuItem(text = { Text(stringResource(R.string.home_add_folder)) }, onClick = { menu = false; vm.requestFileAccess() }, leadingIcon = { Icon(LucideIcons.FolderPlus, null, tint = c.icon) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.home_add_folder)) }, onClick = { menu = false; vm.library.requestFileAccess() }, leadingIcon = { Icon(LucideIcons.FolderPlus, null, tint = c.icon) })
                     // the folders listed here, each with a way to stop listing it
-                    for ((tree, name) in vm.localFolders()) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.home_stop_listing, name)) }, onClick = { menu = false; vm.removeLocalFolder(tree) }, leadingIcon = { Icon(LucideIcons.Folder, null, tint = c.icon) })
+                    for ((tree, name) in vm.library.localFolders()) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.home_stop_listing, name)) }, onClick = { menu = false; vm.library.removeLocalFolder(tree) }, leadingIcon = { Icon(LucideIcons.Folder, null, tint = c.icon) })
                     }
                 }
             }
         }
-        val rows = vm.localRows().let { if (sort == 1) it.sortedBy { r -> r.name.lowercase() } else it }
+        val rows = vm.library.localRows().let { if (sort == 1) it.sortedBy { r -> r.name.lowercase() } else it }
         // what PdfCraft saved itself shows before any folder is added
-        if (!vm.hasFileAccess && rows.isEmpty()) {
-            EmptyState(LucideIcons.Smartphone, stringResource(R.string.home_device_files_title), stringResource(R.string.home_device_files_body_long), stringResource(R.string.home_add_folder)) { vm.requestFileAccess() }
+        if (!vm.library.hasFileAccess && rows.isEmpty()) {
+            EmptyState(LucideIcons.Smartphone, stringResource(R.string.home_device_files_title), stringResource(R.string.home_device_files_body_long), stringResource(R.string.home_add_folder)) { vm.library.requestFileAccess() }
             return@Column
         }
         if (rows.isEmpty()) {
-            if (vm.scanning) EmptyState(LucideIcons.FileText, stringResource(R.string.home_looking_for_pdfs), "")
-            else EmptyState(LucideIcons.FileText, stringResource(R.string.home_no_pdfs_title), stringResource(R.string.home_no_pdfs_body), stringResource(R.string.home_add_folder)) { vm.requestFileAccess() }
+            if (vm.library.scanning) EmptyState(LucideIcons.FileText, stringResource(R.string.home_looking_for_pdfs), "")
+            else EmptyState(LucideIcons.FileText, stringResource(R.string.home_no_pdfs_title), stringResource(R.string.home_no_pdfs_body), stringResource(R.string.home_add_folder)) { vm.library.requestFileAccess() }
             return@Column
         }
         LazyColumn(Modifier.weight(1f)) {
@@ -237,7 +237,7 @@ fun SearchTab(vm: AppViewModel) {
     var query by remember { mutableStateOf("") }
     var sort by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var menu by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { vm.scanLocal() }
+    LaunchedEffect(Unit) { vm.library.scanLocal() }
     val searchHint = stringResource(R.string.home_search_your_files)
     // the orders results can be sorted in, by [sort]
     val sorts = listOf(R.string.home_sort_relevant, R.string.home_sort_name_az, R.string.home_sort_name_za, R.string.home_sort_oldest, R.string.home_sort_newest)
@@ -248,7 +248,7 @@ fun SearchTab(vm: AppViewModel) {
             BasicTextField(
                 value = query, onValueChange = { query = it }, singleLine = true,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
-                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { vm.addRecentSearch(query) }),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { vm.library.addRecentSearch(query) }),
                 textStyle = TextStyle(fontFamily = Inter, fontSize = 16.sp, color = c.text), cursorBrush = SolidColor(c.accent),
                 modifier = Modifier.weight(1f).semantics { contentDescription = searchHint },
                 decorationBox = { inner -> Box { if (query.isEmpty()) Text(searchHint, color = c.textSecondary, fontSize = 16.sp); inner() } },
@@ -256,7 +256,7 @@ fun SearchTab(vm: AppViewModel) {
             if (query.isNotEmpty()) BarIcon(LucideIcons.X, stringResource(R.string.common_clear), { query = "" }, size = 32.dp)
         }
         if (query.isBlank()) {
-            val recent = vm.recentSearches
+            val recent = vm.library.recentSearches
             if (recent.isEmpty()) {
                 EmptyState(LucideIcons.Search, searchHint, stringResource(R.string.home_search_empty_body))
                 return@Column
@@ -264,7 +264,7 @@ fun SearchTab(vm: AppViewModel) {
             // the last searches, to run again with a tap
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.home_recent_searches), color = c.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text(stringResource(R.string.common_clear), color = c.toolAccent, fontSize = 15.sp, modifier = Modifier.clickable { vm.clearRecentSearches() }.padding(12.dp))
+                Text(stringResource(R.string.common_clear), color = c.toolAccent, fontSize = 15.sp, modifier = Modifier.clickable { vm.library.clearRecentSearches() }.padding(12.dp))
             }
             LazyColumn(Modifier.weight(1f)) {
                 items(recent, key = { it }) { q ->
@@ -272,7 +272,7 @@ fun SearchTab(vm: AppViewModel) {
                         Icon(LucideIcons.Clock, null, tint = c.icon, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(16.dp))
                         Text(q, color = c.text, fontSize = 16.sp, maxLines = 1, modifier = Modifier.weight(1f))
-                        BarIcon(LucideIcons.X, stringResource(R.string.home_remove_search, q), { vm.removeRecentSearch(q) }, size = 40.dp)
+                        BarIcon(LucideIcons.X, stringResource(R.string.home_remove_search, q), { vm.library.removeRecentSearch(q) }, size = 40.dp)
                     }
                 }
             }
@@ -281,9 +281,9 @@ fun SearchTab(vm: AppViewModel) {
         // a search left in place for a moment counts as one made
         LaunchedEffect(query) {
             kotlinx.coroutines.delay(2000)
-            if (vm.searchFiles(query).isNotEmpty()) vm.addRecentSearch(query)
+            if (vm.library.searchFiles(query).isNotEmpty()) vm.library.addRecentSearch(query)
         }
-        val results = vm.searchFiles(query).let { list ->
+        val results = vm.library.searchFiles(query).let { list ->
             when (sort) {
                 1 -> list.sortedBy { it.name.lowercase() }
                 2 -> list.sortedByDescending { it.name.lowercase() }
@@ -370,10 +370,10 @@ private fun Preferences(vm: AppViewModel) {
     PreferenceSummary(stringResource(R.string.home_language), languageLabel(io.github.artcraftandroid.pdfcraft.AppLanguage.selected)) { languageDialog = true }
     SheetDivider()
     Section(stringResource(R.string.home_section_suggestions))
-    SheetRow(null, stringResource(R.string.home_offer_suggestions), { vm.updateFormSuggestions(!vm.formSuggestions) }) {
-        PdfSwitch(vm.formSuggestions, { vm.updateFormSuggestions(it) })
+    SheetRow(null, stringResource(R.string.home_offer_suggestions), { vm.forms.updateFormSuggestions(!vm.forms.formSuggestions) }) {
+        PdfSwitch(vm.forms.formSuggestions, { vm.forms.updateFormSuggestions(it) })
     }
-    SheetRow(null, stringResource(R.string.home_clear_suggestions), { vm.clearFormSuggestions() })
+    SheetRow(null, stringResource(R.string.home_clear_suggestions), { vm.forms.clearFormSuggestions() })
     SheetDivider()
     Section(stringResource(R.string.home_author_title))
     val authorHint = stringResource(R.string.home_author_hint)
@@ -433,7 +433,7 @@ private fun About(vm: AppViewModel) {
     val clipboard = LocalClipboardManager.current
     val uri = LocalUriHandler.current
     Section(stringResource(R.string.home_section_about))
-    val version = stringResource(R.string.home_version, vm.appVersion, io.github.artcraftandroid.pdfcraft.core.engineVersion())
+    val version = stringResource(R.string.home_version, vm.updates.appVersion, io.github.artcraftandroid.pdfcraft.core.engineVersion())
     val copied = stringResource(R.string.home_version_copied)
     Text(
         version, color = c.text, fontSize = 16.sp,

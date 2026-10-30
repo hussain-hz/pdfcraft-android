@@ -112,18 +112,18 @@ fun AppRoot(vm: AppViewModel, onBrowse: () -> Unit, onPickSignatureImage: () -> 
         if (doc == null) vm.fileSheet?.let { (r, recent) -> io.github.artcraftandroid.pdfcraft.ui.home.FileSheet(vm, r, recent) { vm.fileSheet = null } }
         vm.toolScreen?.let { ToolScreenHost(vm, it) }
         vm.signaturePad?.let { SignaturePadScreen(vm, it, onPickSignatureImage) }
-        vm.certSign?.let { CertSignScreen(vm, it) }
-        if (vm.idCreate) CreateIdScreen(vm)
+        vm.signing.certSign?.let { CertSignScreen(vm, it) }
+        if (vm.signing.idCreate) CreateIdScreen(vm)
         if (vm.settingsOpen) SettingsScreen(vm)
         if (vm.showLicences) LicencesScreen(vm)
-        if (vm.appUpdatesOpen) io.github.artcraftandroid.pdfcraft.ui.home.AppUpdatesDialog(vm)
+        if (vm.updates.appUpdatesOpen) io.github.artcraftandroid.pdfcraft.ui.home.AppUpdatesDialog(vm)
 
         if (vm.opening) CircularProgressIndicator(Modifier.align(Alignment.Center), color = c.accent)
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 72.dp, start = 8.dp, end = 8.dp))
 
         vm.passwordRequest?.let { PasswordDialog(vm, it) }
-        vm.idImport?.let { IdPasswordDialog(vm, it) }
-        vm.signFieldChoice?.let { (d, w) -> SignFieldChoiceDialog(vm, d, w) }
+        vm.signing.idImport?.let { IdPasswordDialog(vm, it) }
+        vm.signing.signFieldChoice?.let { (d, w) -> SignFieldChoiceDialog(vm, d, w) }
         if (vm.authorPrompt) {
             var name by remember { mutableStateOf("") }
             PdfDialog(

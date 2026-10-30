@@ -41,17 +41,17 @@ private val UpdateDownloadIcon = lucide("app-update-download", "M12 3v12m-5-5 5 
 internal fun AppUpdatesSection(vm: AppViewModel) {
     Text(stringResource(R.string.updates_section), color = pdfColors.accent, fontSize = 13.sp,
         modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp))
-    val checking = vm.appUpdateStatus == AppUpdateStatus.Checking
+    val checking = vm.updates.appUpdateStatus == AppUpdateStatus.Checking
     SheetRow(LucideIcons.RotateCw, stringResource(if (checking) R.string.updates_checking else R.string.updates_check),
-        { vm.checkAppUpdates() }, enabled = !checking)
+        { vm.updates.checkAppUpdates() }, enabled = !checking)
     Text(updateMessage(vm), color = pdfColors.textSecondary, fontSize = 13.sp,
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
-    if (vm.availableAppUpdate != null || vm.appUpdateDownload.status != AppDownloadStatus.Idle)
-        SheetRow(UpdateDownloadIcon, stringResource(R.string.updates_details), { vm.appUpdatesOpen = true }, chevron = true)
+    if (vm.updates.availableAppUpdate != null || vm.updates.appUpdateDownload.status != AppDownloadStatus.Idle)
+        SheetRow(UpdateDownloadIcon, stringResource(R.string.updates_details), { vm.updates.appUpdatesOpen = true }, chevron = true)
 }
 
 @Composable
-private fun updateMessage(vm: AppViewModel): String = when (val status = vm.appUpdateStatus) {
+private fun updateMessage(vm: AppViewModel): String = when (val status = vm.updates.appUpdateStatus) {
     AppUpdateStatus.Current -> stringResource(R.string.updates_current)
     AppUpdateStatus.Checking -> stringResource(R.string.updates_checking)
     is AppUpdateStatus.Failed -> stringResource(if (status.rateLimited) R.string.updates_rate_limited else R.string.updates_failed)
@@ -62,10 +62,10 @@ private fun updateMessage(vm: AppViewModel): String = when (val status = vm.appU
 @Composable
 internal fun AppUpdatesDialog(vm: AppViewModel) {
     val c = pdfColors
-    val update = vm.availableAppUpdate
+    val update = vm.updates.availableAppUpdate
     val locale = LocalConfiguration.current.locales[0]
     val notes = localizedReleaseNotes(update?.notes.orEmpty(), locale.language)
-    Dialog(onDismissRequest = { vm.appUpdatesOpen = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(onDismissRequest = { vm.updates.appUpdatesOpen = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp)
             .clip(RoundedCornerShape(24.dp)).background(c.surface)
             .border(1.dp, c.divider, RoundedCornerShape(24.dp)).padding(20.dp)) {
@@ -75,12 +75,12 @@ internal fun AppUpdatesDialog(vm: AppViewModel) {
                 }
                 Text(stringResource(R.string.updates_section), color = c.text, fontSize = 21.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
-                BarIcon(LucideIcons.X, stringResource(R.string.viewer_close), { vm.appUpdatesOpen = false })
+                BarIcon(LucideIcons.X, stringResource(R.string.viewer_close), { vm.updates.appUpdatesOpen = false })
             }
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(top = 18.dp)) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.surfaceRaised).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    UpdateDetail(stringResource(R.string.updates_installed_label), vm.appVersion, ltr = true)
+                    UpdateDetail(stringResource(R.string.updates_installed_label), vm.updates.appVersion, ltr = true)
                     if (update != null) {
                         UpdateDetail(stringResource(R.string.updates_new_version), update.version, ltr = true)
                         val published = runCatching {
@@ -128,9 +128,9 @@ private fun UpdateButton(label: String, icon: ImageVector?, onClick: () -> Unit)
 @Composable
 private fun UpdateDownloadActions(vm: AppViewModel) {
     val c = pdfColors
-    val update = vm.availableAppUpdate
+    val update = vm.updates.availableAppUpdate
     val uri = LocalUriHandler.current
-    when (val download = vm.appUpdateDownload.status) {
+    when (val download = vm.updates.appUpdateDownload.status) {
         is AppDownloadStatus.Downloading -> {
             val fraction = if (download.total > 0) (download.bytes.toDouble() / download.total).coerceIn(0.0, 1.0).toFloat() else null
             val message = when (download.phase) {
@@ -147,7 +147,7 @@ private fun UpdateDownloadActions(vm: AppViewModel) {
                 color = c.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
             if (fraction == null) LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 12.dp), color = c.accent)
             else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), color = c.accent)
-            TextButton(onClick = { vm.appUpdateDownload.cancel() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.textButtonColors(contentColor = c.accent)) {
+            TextButton(onClick = { vm.updates.appUpdateDownload.cancel() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.textButtonColors(contentColor = c.accent)) {
                 Text(stringResource(R.string.updates_cancel_download))
             }
         }
@@ -158,12 +158,12 @@ private fun UpdateDownloadActions(vm: AppViewModel) {
         is AppDownloadStatus.Ready -> {
             Text(stringResource(R.string.updates_ready, "\u2066${download.version}\u2069"), color = c.text, fontSize = 14.sp,
                 modifier = Modifier.padding(bottom = 12.dp))
-            UpdateButton(stringResource(R.string.updates_install), UpdateDownloadIcon, { vm.appUpdateDownload.install() })
+            UpdateButton(stringResource(R.string.updates_install), UpdateDownloadIcon, { vm.updates.appUpdateDownload.install() })
         }
         else -> {
             if (download is AppDownloadStatus.Failed) Text(stringResource(if (download.incompatible) R.string.updates_incompatible else R.string.updates_download_failed),
                 color = c.red, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
-            if (update?.downloadUrl != null) UpdateButton(stringResource(R.string.updates_download), UpdateDownloadIcon, { vm.appUpdateDownload.start(update) })
+            if (update?.downloadUrl != null) UpdateButton(stringResource(R.string.updates_download), UpdateDownloadIcon, { vm.updates.appUpdateDownload.start(update) })
             else if (update != null) {
                 val error = stringResource(R.string.updates_open_failed)
                 UpdateButton(stringResource(R.string.updates_view_release), null,
@@ -171,9 +171,9 @@ private fun UpdateDownloadActions(vm: AppViewModel) {
             }
         }
     }
-    val busy = vm.appUpdateDownload.status is AppDownloadStatus.Downloading || vm.appUpdateDownload.status == AppDownloadStatus.Verifying
-    val checking = vm.appUpdateStatus == AppUpdateStatus.Checking
-    TextButton(onClick = { vm.checkAppUpdates() }, enabled = !checking && !busy, modifier = Modifier.fillMaxWidth(),
+    val busy = vm.updates.appUpdateDownload.status is AppDownloadStatus.Downloading || vm.updates.appUpdateDownload.status == AppDownloadStatus.Verifying
+    val checking = vm.updates.appUpdateStatus == AppUpdateStatus.Checking
+    TextButton(onClick = { vm.updates.checkAppUpdates() }, enabled = !checking && !busy, modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.textButtonColors(contentColor = c.accent)) {
         if (checking) CircularProgressIndicator(Modifier.size(18.dp), color = c.accent, strokeWidth = 2.dp)
         else Icon(LucideIcons.RotateCw, null, Modifier.size(18.dp))
