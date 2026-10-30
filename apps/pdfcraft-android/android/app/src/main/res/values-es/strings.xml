@@ -1228,4 +1228,10 @@
     <string name="updates_size">Tamaño de descarga</string>
     <string name="updates_whats_new">Novedades</string>
     <string name="updates_notes_unavailable">Las notas de esta versión no están disponibles en este idioma.</string>
+    <string name="updates_connecting">Conectando con el servidor de descarga…</string>
+    <string name="updates_waiting_network">Esperando conexión a Internet…</string>
+    <string name="updates_waiting_wifi">Android espera Wi-Fi; se intentará una descarga directa en breve.</string>
+    <string name="updates_retrying">Android está reintentando; se usará la descarga directa si se detiene.</string>
+    <string name="updates_direct">Conectando directamente con el servidor de actualización…</string>
+    <string name="updates_bytes">%1$s de %2$s</string>
 </resources>

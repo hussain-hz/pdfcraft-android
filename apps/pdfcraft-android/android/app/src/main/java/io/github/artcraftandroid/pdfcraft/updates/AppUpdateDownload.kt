@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
+import android.os.SystemClock
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.net.toUri
@@ -14,6 +15,8 @@ import androidx.compose.runtime.setValue
 import io.github.artcraftandroid.pdfcraft.R
 import java.io.File
 import java.security.MessageDigest
+import java.net.HttpURLConnection
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,10 +25,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.ensureActive
+
+enum class UpdateDownloadPhase { Connecting, Transferring, WaitingNetwork, WaitingWifi, Retrying, Direct }
 
 sealed interface AppDownloadStatus {
     data object Idle : AppDownloadStatus
-    data class Downloading(val bytes: Long, val total: Long) : AppDownloadStatus
+    data class Downloading(val bytes: Long, val total: Long, val phase: UpdateDownloadPhase = UpdateDownloadPhase.Transferring) : AppDownloadStatus
     data object Verifying : AppDownloadStatus
     data class Ready(val version: String) : AppDownloadStatus
     data class Failed(val incompatible: Boolean = false) : AppDownloadStatus
@@ -51,6 +57,7 @@ class AppUpdateDownload(private val context: Context, private val scope: Corouti
     private val prefs = context.getSharedPreferences("app_update_download", Context.MODE_PRIVATE)
     private val manager = context.getSystemService(DownloadManager::class.java)
     private var watcher: Job? = null
+    @Volatile private var directConnection: HttpURLConnection? = null
     var status by mutableStateOf<AppDownloadStatus>(AppDownloadStatus.Idle)
         private set
 
@@ -73,20 +80,28 @@ class AppUpdateDownload(private val context: Context, private val scope: Corouti
                 .setDescription(update.version)
                 .setMimeType("application/vnd.android.package-archive")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setAllowedOverMetered(true)
                 .setDestinationInExternalFilesDir(context, null, "updates/$name")
+            prefs.edit {
+                putString("file", name); putString("version", update.version); putString("hash", update.sha256)
+                putString("url", url); putLong("size", update.size)
+            }
             val id = manager.enqueue(request)
-            prefs.edit { putLong("id", id); putString("file", name); putString("version", update.version); putString("hash", update.sha256) }
-            status = AppDownloadStatus.Downloading(0, -1)
+            prefs.edit { putLong("id", id) }
+            status = AppDownloadStatus.Downloading(0, update.size, UpdateDownloadPhase.Connecting)
             watch(id)
         } catch (_: Exception) {
-            status = AppDownloadStatus.Failed()
+            if (prefs.getString("url", null) != null) startDirect() else status = AppDownloadStatus.Failed()
         }
     }
 
     fun cancel() {
         watcher?.cancel()
+        directConnection?.disconnect()
+        directConnection = null
         val id = prefs.getLong("id", -1)
         if (id >= 0) runCatching { manager.remove(id) }
+        runCatching { file()?.delete() }
         prefs.edit { clear() }
         status = AppDownloadStatus.Idle
     }
@@ -99,7 +114,7 @@ class AppUpdateDownload(private val context: Context, private val scope: Corouti
         }
         if (watcher?.isActive == true) return
         val id = prefs.getLong("id", -1)
-        if (id >= 0) watch(id)
+        if (prefs.getBoolean("direct", false)) startDirect() else if (id >= 0) watch(id)
     }
 
     private fun watch(id: Long) {
@@ -111,16 +126,21 @@ class AppUpdateDownload(private val context: Context, private val scope: Corouti
                     cancel()
                     return@launch
                 }
+                var previousBytes = -1L
+                var lastProgress = SystemClock.elapsedRealtime()
                 while (isActive) {
                     val result = withContext(Dispatchers.IO) {
                         manager.query(DownloadManager.Query().setFilterById(id)).use { cursor ->
                             if (!cursor.moveToFirst()) throw IllegalStateException()
-                            Triple(cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)),
+                            val url = cursor.getString(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_URI))
+                            if (prefs.getString("url", null) == null && trustedReleaseUrl(url, true)) prefs.edit { putString("url", url) }
+                            listOf(cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)).toLong(),
                                 cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)),
-                                cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)))
+                                cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)),
+                                cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)).toLong())
                         }
                     }
-                    when (result.first) {
+                    when (result[0].toInt()) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             status = AppDownloadStatus.Verifying
                             val apk = file() ?: throw IllegalStateException()
@@ -134,16 +154,95 @@ class AppUpdateDownload(private val context: Context, private val scope: Corouti
                             }
                             return@launch
                         }
-                        DownloadManager.STATUS_FAILED -> throw IllegalStateException()
-                        else -> status = AppDownloadStatus.Downloading(result.second, result.third)
+                        DownloadManager.STATUS_FAILED -> { startDirect(); return@launch }
+                        else -> {
+                            val now = SystemClock.elapsedRealtime()
+                            if (result[1] > previousBytes) { previousBytes = result[1]; lastProgress = now }
+                            if (systemDownloadStalled(lastProgress, now)) { startDirect(); return@launch }
+                            val phase = when {
+                                result[0].toInt() == DownloadManager.STATUS_PAUSED -> when (result[3].toInt()) {
+                                    DownloadManager.PAUSED_WAITING_FOR_NETWORK -> UpdateDownloadPhase.WaitingNetwork
+                                    DownloadManager.PAUSED_QUEUED_FOR_WIFI -> UpdateDownloadPhase.WaitingWifi
+                                    else -> UpdateDownloadPhase.Retrying
+                                }
+                                result[1] <= 0 -> UpdateDownloadPhase.Connecting
+                                else -> UpdateDownloadPhase.Transferring
+                            }
+                            status = AppDownloadStatus.Downloading(result[1].coerceAtLeast(0),
+                                result[2].takeIf { it > 0 } ?: prefs.getLong("size", 0), phase)
+                        }
                     }
                     delay(750)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                cancel()
-                status = AppDownloadStatus.Failed()
+                ensureActive()
+                startDirect()
+            }
+        }
+    }
+
+    /** A bounded in-app fallback when the system service fails or stops making progress. */
+    private fun startDirect() {
+        val url = prefs.getString("url", null)
+        if (url == null || !trustedReleaseUrl(url, true)) { cancel(); status = AppDownloadStatus.Failed(); return }
+        val id = prefs.getLong("id", -1)
+        val previousFile = file()
+        val version = prefs.getString("version", null)
+        if (previousFile == null || version == null) { cancel(); status = AppDownloadStatus.Failed(); return }
+        val apk = if (id >= 0) File(previousFile.parentFile, "PdfCraft-update-$version-${System.currentTimeMillis()}.apk") else previousFile
+        watcher?.cancel()
+        // Remove the old system request before opening its destination ourselves.
+        if (id >= 0) runCatching { manager.remove(id) }
+        prefs.edit {
+            remove("id"); putBoolean("direct", true); putString("file", apk.name)
+            if (id >= 0) putBoolean("directComplete", false)
+        }
+        status = AppDownloadStatus.Downloading(0, prefs.getLong("size", 0), UpdateDownloadPhase.Direct)
+        watcher = scope.launch {
+            try {
+                val installed = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                if (installed != null && AppVersion.parse(installed)?.let { it >= (AppVersion.parse(version) ?: it) } == true) {
+                    cancel(); return@launch
+                }
+                withContext(Dispatchers.IO) {
+                    if (prefs.getBoolean("directComplete", false) && apk.isFile) return@withContext
+                    val connection = openUpdateConnection(url)
+                    try {
+                        ensureActive()
+                        directConnection = connection
+                        apk.parentFile?.mkdirs()
+                        val expected = prefs.getLong("size", 0).takeIf { it > 0 } ?: connection.contentLengthLong
+                        if (expected > MAX_UPDATE_BYTES) throw IOException("Update too large")
+                        var lastNotice = 0L
+                        connection.inputStream.use { input -> apk.outputStream().use { output ->
+                            copyUpdateBody(input, output, expected) { bytes ->
+                                val now = SystemClock.elapsedRealtime()
+                                if (now - lastNotice >= 250 || bytes == expected) {
+                                    lastNotice = now
+                                    withContext(Dispatchers.Main) { status = AppDownloadStatus.Downloading(bytes, expected, UpdateDownloadPhase.Transferring) }
+                                }
+                            }
+                        } }
+                        prefs.edit { putBoolean("directComplete", true) }
+                    } finally {
+                        connection.disconnect()
+                        if (directConnection === connection) directConnection = null
+                    }
+                }
+                status = AppDownloadStatus.Verifying
+                if (withContext(Dispatchers.IO) { validate(apk, version) }) {
+                    status = AppDownloadStatus.Ready(version)
+                    if (prefs.getBoolean("installPending", false)) install()
+                }
+                else { cancel(); status = AppDownloadStatus.Failed(incompatible = true) }
+            } catch (cancelled: CancellationException) {
+                if (!prefs.getBoolean("directComplete", false) || prefs.getString("file", null) != apk.name) runCatching { apk.delete() }
+                throw cancelled
+            } catch (_: Exception) {
+                ensureActive()
+                cancel(); status = AppDownloadStatus.Failed()
             }
         }
     }

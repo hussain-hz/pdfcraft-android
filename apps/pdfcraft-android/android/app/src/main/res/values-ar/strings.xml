@@ -843,4 +843,10 @@
     <string name="updates_size">حجم التنزيل</string>
     <string name="updates_whats_new">ما الجديد</string>
     <string name="updates_notes_unavailable">لا تتوفر تفاصيل هذا الإصدار بهذه اللغة.</string>
+    <string name="updates_connecting">جارٍ الاتصال بخادم التنزيل…</string>
+    <string name="updates_waiting_network">بانتظار اتصال بالإنترنت…</string>
+    <string name="updates_waiting_wifi">أندرويد ينتظر Wi-Fi؛ ستتم محاولة التنزيل المباشر بعد قليل.</string>
+    <string name="updates_retrying">أندرويد يعيد المحاولة؛ سنستخدم التنزيل المباشر إذا توقف التقدم.</string>
+    <string name="updates_direct">جارٍ الاتصال المباشر بخادم التحديث…</string>
+    <string name="updates_bytes">%1$s من %2$s</string>
 </resources>

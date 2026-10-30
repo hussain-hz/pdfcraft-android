@@ -28,6 +28,7 @@ import io.github.artcraftandroid.pdfcraft.R
 import io.github.artcraftandroid.pdfcraft.ui.*
 import io.github.artcraftandroid.pdfcraft.updates.AppDownloadStatus
 import io.github.artcraftandroid.pdfcraft.updates.AppUpdateStatus
+import io.github.artcraftandroid.pdfcraft.updates.UpdateDownloadPhase
 import io.github.artcraftandroid.pdfcraft.updates.localizedReleaseNotes
 import java.time.Instant
 import java.time.ZoneId
@@ -132,7 +133,18 @@ private fun UpdateDownloadActions(vm: AppViewModel) {
     when (val download = vm.updates.appUpdateDownload.status) {
         is AppDownloadStatus.Downloading -> {
             val fraction = if (download.total > 0) (download.bytes.toDouble() / download.total).coerceIn(0.0, 1.0).toFloat() else null
-            Text(if (fraction == null) stringResource(R.string.updates_downloading) else stringResource(R.string.updates_progress, (fraction * 100).toInt()), color = c.text, fontSize = 14.sp)
+            val message = when (download.phase) {
+                UpdateDownloadPhase.Connecting -> stringResource(R.string.updates_connecting)
+                UpdateDownloadPhase.WaitingNetwork -> stringResource(R.string.updates_waiting_network)
+                UpdateDownloadPhase.WaitingWifi -> stringResource(R.string.updates_waiting_wifi)
+                UpdateDownloadPhase.Retrying -> stringResource(R.string.updates_retrying)
+                UpdateDownloadPhase.Direct -> stringResource(R.string.updates_direct)
+                UpdateDownloadPhase.Transferring -> if (fraction == null) stringResource(R.string.updates_downloading) else stringResource(R.string.updates_progress, (fraction * 100).toInt())
+            }
+            Text(message, color = c.text, fontSize = 14.sp)
+            if (download.total > 0) Text(stringResource(R.string.updates_bytes,
+                Formatter.formatShortFileSize(LocalContext.current, download.bytes), Formatter.formatShortFileSize(LocalContext.current, download.total)),
+                color = c.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
             if (fraction == null) LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 12.dp), color = c.accent)
             else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), color = c.accent)
             TextButton(onClick = { vm.updates.appUpdateDownload.cancel() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.textButtonColors(contentColor = c.accent)) {
