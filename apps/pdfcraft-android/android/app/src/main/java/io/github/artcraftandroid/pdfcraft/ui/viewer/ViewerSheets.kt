@@ -214,7 +214,7 @@ fun BookmarksSheet(vm: AppViewModel, doc: OpenDocument) {
         androidx.compose.material3.TextButton(onClick = { vm.features.loadHeadingStyles(doc) }) {
             Text(stringResource(R.string.feature_bookmarks_create), color = c.toolAccent)
         }
-        HeadingStylesDialog(vm, doc)
+        HeadingStylesDialog(vm, doc) { tab = 0; parent = -1 }
         if (tab == 0) {
             val all = outline
             when {

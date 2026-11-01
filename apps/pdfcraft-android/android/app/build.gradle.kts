@@ -240,6 +240,8 @@ abstract class OcrModels : DefaultTask() {
 
 android {
     namespace = "io.github.artcraftandroid.pdfcraft"
+    // Opt in to testing the optimized preview with the same suite as debug.
+    testBuildType = providers.gradleProperty("pdfcraft.testBuildType").getOrElse("debug")
     compileSdk = 37
     ndkVersion = providers.gradleProperty("pdfcraft.ndkVersion").getOrElse("29.0.14206865")
 
@@ -388,4 +390,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    // AndroidX Test references these optional annotations when test APKs are optimized by R8.
+    androidTestImplementation("com.google.errorprone:error_prone_annotations:2.51.0")
 }

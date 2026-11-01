@@ -52,11 +52,11 @@ class DocumentFeatures internal constructor(private val vm: AppViewModel) {
         headingDocument = doc
     }
 
-    fun createHeadings(doc: OpenDocument, styles: List<HeadingStyle>?) {
+    fun createHeadings(doc: OpenDocument, styles: List<HeadingStyle>?, onCreated: () -> Unit = {}) {
         if (styles != null && styles.size !in 1..9) return
         vm.runTool(doc, if (styles == null) "bookmark_from_structure" else "bookmark_from_text_styles",
             if (styles == null) emptyMap() else mapOf("levels" to styles.map { it.arguments() }),
-            onDone = { headingDocument = null; vm.tell(text(R.string.feature_bookmarks_done)) })
+            onDone = { headingDocument = null; onCreated(); vm.tell(text(R.string.feature_bookmarks_done)) })
     }
 
     fun exportImage(doc: OpenDocument, image: EditImage) = vm.jobs.job(text(R.string.msg_busy_exporting_images)) { engine ->

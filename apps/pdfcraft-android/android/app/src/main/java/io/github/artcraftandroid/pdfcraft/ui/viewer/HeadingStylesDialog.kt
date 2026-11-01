@@ -23,7 +23,7 @@ import io.github.artcraftandroid.pdfcraft.ui.OpenDocument
 import io.github.artcraftandroid.pdfcraft.ui.pdfColors
 
 @Composable
-fun HeadingStylesDialog(vm: AppViewModel, doc: OpenDocument) {
+fun HeadingStylesDialog(vm: AppViewModel, doc: OpenDocument, onCreated: () -> Unit = {}) {
     if (vm.features.headingDocument !== doc) return
     val c = pdfColors
     val chosen = remember(doc, vm.features.headingStyles) { mutableStateListOf<HeadingStyle>() }
@@ -33,7 +33,7 @@ fun HeadingStylesDialog(vm: AppViewModel, doc: OpenDocument) {
         text = {
             Column(Modifier.heightIn(max = 450.dp).verticalScroll(rememberScrollState())) {
                 Text(stringResource(R.string.feature_bookmarks_hint))
-                TextButton(onClick = { vm.features.createHeadings(doc, null) }) {
+                TextButton(onClick = { vm.features.createHeadings(doc, null, onCreated) }) {
                     Text(stringResource(R.string.feature_bookmarks_tagged), color = c.toolAccent)
                 }
                 if (vm.features.headingStyles.isEmpty()) Text(stringResource(R.string.feature_no_heading_styles))
@@ -47,7 +47,7 @@ fun HeadingStylesDialog(vm: AppViewModel, doc: OpenDocument) {
                 }
             }
         },
-        confirmButton = { TextButton(enabled = chosen.isNotEmpty(), onClick = { vm.features.createHeadings(doc, chosen.toList()) }) {
+        confirmButton = { TextButton(enabled = chosen.isNotEmpty(), onClick = { vm.features.createHeadings(doc, chosen.toList(), onCreated) }) {
             Text(stringResource(R.string.feature_create), color = c.toolAccent)
         } },
         dismissButton = { TextButton(onClick = { vm.features.headingDocument = null }) { Text(stringResource(R.string.feature_cancel), color = c.text) } })
