@@ -14,6 +14,8 @@ New engine capabilities are available through engine APIs. Desktop menus and ima
 
 ## Validation
 
-`cargo check --locked --profile low-disk -j 2 -p pdfcraft-android` passes locally. Runtime suites and the Android APK build are pending; the compile check does not establish physical-device compatibility. The preview workflow also tests `pdfcraft-optimize` to cover upstream rewrite and page-deletion behavior.
+`cargo check --locked --profile low-disk -j 2 -p pdfcraft-android` passes locally. The [compatibility workflow](https://github.com/hussain-hz/pdfcraft-android/actions/runs/41352194593) passes 1,704 native tests, with 6 manual tests ignored and no failures, across the Android bridge, annotations, COS, creation/Office import, editing, engine, export, fonts, optimizer and rendering. The optimizer suite covers upstream rewrite and page-deletion behavior. Android unit tests, lint and the ARM64 preview build also pass.
 
-The application version is `0.0.4-rc.1`, separate from the installed stable `0.0.3`. This source change does not publish a stable release.
+The [release build workflow](https://github.com/hussain-hz/pdfcraft-android/actions/runs/41352193918) passes Android unit tests, lint and both ARM64 and ARMv7 builds. Both APK signatures were verified against production certificate SHA-256 `90832588907d0b3836d045455815e0993ba09f7a36e51f32f701b105cff7dfa3`; the ARM64 package is `io.github.artcraftandroid.pdfcraft`, version `0.0.4-rc.1`, code `4012`.
+
+The [0.0.4-rc.1 prerelease](https://github.com/hussain-hz/pdfcraft-android/releases/tag/preview-0.0.4-rc.1) is available for device testing. Stable `0.0.3` remains the latest stable release; automatic stable updates exclude this prerelease. Physical-device validation is still pending.
