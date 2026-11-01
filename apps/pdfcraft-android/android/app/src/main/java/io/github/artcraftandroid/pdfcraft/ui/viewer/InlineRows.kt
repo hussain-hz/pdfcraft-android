@@ -153,7 +153,7 @@ fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: P
                 .absoluteOffset { IntOffset(point.x.roundToInt(), (point.y - firstBaseline).roundToInt()) }
                 .width(with(density) { width.toDp() })
                 .background(if (visible) paper ?: Color.White else Color.Transparent)
-                .onFocusChanged { focused = it.isFocused; if (it.isFocused) focusedRow = index }
+                .onFocusChanged { focused = it.isFocused; if (it.isFocused) { focusedRow = index; vm.edit.selectedRows = index..index } }
                 .semantics { contentDescription = appText(R.string.edit_paragraph_row, index + 1) },
         )
     }

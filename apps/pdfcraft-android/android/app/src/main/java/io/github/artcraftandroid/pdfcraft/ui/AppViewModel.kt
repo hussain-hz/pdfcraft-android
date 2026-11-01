@@ -1179,6 +1179,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---- File pickers -----------------------------------------------------------------------
 
     /** File pickers for the activity: what the files are for, the types, and whether several may be picked. */
+    val features = DocumentFeatures(this)
+
     val filePicks = Channel<FilePickKind>(Channel.BUFFERED)
 
     private var insertFileAt: Pair<OpenDocument, Int>? = null
@@ -1205,6 +1207,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     runTool(doc, "page_insert_file", mapOf("path" to f.absolutePath, "at" to at))
                 }
             }
+            FilePickKind.ImportComments -> features.importComments(uris.first())
             FilePickKind.Open -> open(uris.first())
             FilePickKind.DigitalId -> viewModelScope.launch {
                 val uri = uris.first()

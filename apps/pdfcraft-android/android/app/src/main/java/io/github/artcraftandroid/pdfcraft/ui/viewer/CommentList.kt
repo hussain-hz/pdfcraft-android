@@ -158,6 +158,11 @@ fun CommentListScreen(vm: AppViewModel, doc: OpenDocument) {
                 color = c.label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold,
             )
         }
+        if (doc.info.allowsAnnotation) androidx.compose.material3.TextButton(onClick = { vm.features.pickComments(doc) }) {
+            Text(stringResource(R.string.feature_import_comments), color = c.toolAccent)
+        }
+        Text(stringResource(R.string.feature_import_comments_hint), color = c.textSecondary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         if (list != null && threads.isEmpty()) {
             EmptyComments()
             return@Column

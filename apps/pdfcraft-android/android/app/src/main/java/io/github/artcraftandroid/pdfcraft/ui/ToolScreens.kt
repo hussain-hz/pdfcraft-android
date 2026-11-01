@@ -253,15 +253,29 @@ private fun ToolChoice(selected: Boolean, name: String, description: String?, on
 fun CompressScreen(vm: AppViewModel, doc: OpenDocument) {
     val c = pdfColors
     var level by remember { androidx.compose.runtime.mutableIntStateOf(1) }
+    var mono by remember { mutableStateOf(MonoCompression.Group4) }
+    var monoDownsample by remember { mutableStateOf(true) }
     val levels = listOf(
         stringResource(R.string.tools_compress_high) to stringResource(R.string.tools_compress_high_desc),
         stringResource(R.string.tools_compress_medium) to stringResource(R.string.tools_compress_medium_desc),
         stringResource(R.string.tools_compress_low) to stringResource(R.string.tools_compress_low_desc),
     )
-    ToolPage(stringResource(R.string.common_tool_compress), { vm.toolScreen = null }, stringResource(R.string.tools_compress_action), true, { vm.jobs.compress(doc, level) }) {
+    ToolPage(stringResource(R.string.common_tool_compress), { vm.toolScreen = null }, stringResource(R.string.tools_compress_action), true, { vm.jobs.compress(doc, level, mono, monoDownsample) }) {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
         OutlinedFileCard(vm, doc)
         Text(stringResource(R.string.tools_compression_level), color = c.label, fontSize = 15.sp, modifier = Modifier.padding(start = 24.dp, top = 28.dp, bottom = 4.dp))
         levels.forEachIndexed { i, (name, desc) -> ToolChoice(level == i, name, desc) { level = i } }
+        Text(stringResource(R.string.feature_mono_title), color = c.label, modifier = Modifier.padding(24.dp))
+        listOf(MonoCompression.Group4 to R.string.feature_mono_group4, MonoCompression.Jbig2 to R.string.feature_mono_jbig2,
+            MonoCompression.Retain to R.string.feature_mono_retain).forEach { (value, label) ->
+            ToolChoice(mono == value, stringResource(label), "") { mono = value }
+        }
+        Row(Modifier.fillMaxWidth().padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.feature_mono_downsample), color = c.text, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Switch(checked = monoDownsample, onCheckedChange = { monoDownsample = it })
+        }
+        }
+
     }
 }
 
@@ -329,6 +343,7 @@ fun ExportScreen(vm: AppViewModel, doc: OpenDocument) {
         listOf(
             stringResource(R.string.tools_format_word) to "docx", stringResource(R.string.tools_format_rtf) to "rtf",
             stringResource(R.string.tools_format_excel) to "xlsx", stringResource(R.string.tools_format_powerpoint) to "pptx",
+            stringResource(R.string.feature_markdown) to "md",
         )
     } else {
         listOf(stringResource(R.string.tools_format_jpeg) to "jpg", stringResource(R.string.tools_format_png) to "png")
@@ -504,7 +519,7 @@ fun CombineScreen(vm: AppViewModel) {
 data class PickedFile(val uri: android.net.Uri, val name: String, val size: Long?)
 
 /** What a file picker was opened for. */
-enum class FilePickKind { Combine, Create, Insert, Open, DigitalId }
+enum class FilePickKind { Combine, Create, Insert, Open, DigitalId, ImportComments }
 
 /**
  * Crop pages, laid out as the reference's: the page inset 32 dp on black, a crop frame with ringed

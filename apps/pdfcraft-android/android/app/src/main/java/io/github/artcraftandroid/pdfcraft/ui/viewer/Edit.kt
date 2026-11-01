@@ -4,6 +4,8 @@ import io.github.artcraftandroid.pdfcraft.text as appText
 
 import androidx.core.graphics.toColorInt
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -101,7 +103,7 @@ data class Paragraph(
 )
 
 /** A picture Edit PDF has selected: its number on the page and where it sits (points). */
-data class EditImage(val page: Int, val number: Int, val rect: FloatArray)
+data class EditImage(val page: Int, val number: Int, val rect: FloatArray, val visibleRect: FloatArray = rect, val raster: Boolean = true, val hasCrop: Boolean = false)
 
 /** What Edit PDF is doing: picking a paragraph, or placing new text or an image. */
 enum class EditMode { Select, AddText, AddImage }
@@ -179,6 +181,8 @@ private fun EditBarItem(icon: ImageVector, label: String, selected: Boolean, wid
 @Composable
 private fun EditFormatBar(vm: AppViewModel, doc: OpenDocument, para: Paragraph) {
     val c = pdfColors
+    var textDialog by remember(para.page, para.number) { mutableStateOf(false) }
+    if (textDialog) ParagraphTextDialog(vm, doc, para) { textDialog = false }
     var panel by remember(para.page, para.number) { mutableStateOf(FormatPanel.None) }
     fun toggle(p: FormatPanel) {
         panel = if (panel == p) FormatPanel.None else p
@@ -191,18 +195,27 @@ private fun EditFormatBar(vm: AppViewModel, doc: OpenDocument, para: Paragraph) 
                 vm.edit.styleParagraph(doc, para, mapOf("font" to f, "bold" to para.bold, "italic" to para.italic))
             }
             FormatPanel.Color -> ColorPanel(para.color) { vm.edit.styleParagraph(doc, para, mapOf("color" to it)) }
-            FormatPanel.Align -> AlignPanel(vm.edit.editAlign[para.page to para.number] ?: "left") { a ->
-                vm.edit.editAlign[para.page to para.number] = a
-                vm.edit.styleParagraph(doc, para, mapOf("align" to a))
+            FormatPanel.Align -> Column {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.feature_selected_lines), color = c.text, modifier = Modifier.weight(1f))
+                    androidx.compose.material3.Checkbox(checked = vm.edit.alignOnlySelected,
+                        enabled = vm.edit.editing != null && vm.edit.selectedRows != null,
+                        onCheckedChange = { vm.edit.alignOnlySelected = it })
+                }
+                AlignPanel(vm.edit.editAlign[para.page to para.number] ?: "left") { a ->
+                    vm.edit.editAlign[para.page to para.number] = a
+                    vm.edit.styleParagraph(doc, para, mapOf("align" to a))
+                }
             }
             FormatPanel.List -> ListPanel(ListStyle.of(vm.edit.editDraft?.takeIf { vm.edit.editing != null } ?: para.text)) { vm.edit.listParagraph(doc, para, it) }
             FormatPanel.None -> Unit
         }
         Row(
-            Modifier.fillMaxWidth().height(BottomBarHeight).barTopLine(),
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).height(BottomBarHeight).barTopLine(),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            FormatButton(LucideIcons.Type, stringResource(R.string.edit_paragraph_text), true, tintSelected = false) { textDialog = true }
             val underline = vm.edit.editUnderline[para.page to para.number] == true
             // the reference draws these as serif T's: heavy, slanted, underlined, and a small t beside a big one
             LetterButton("T", stringResource(R.string.edit_bold), para.bold, weight = FontWeight.Black) { vm.edit.styleParagraph(doc, para, mapOf("bold" to !para.bold)) }
@@ -480,7 +493,10 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
         val clear = v.viewH - ime - with(density) { (BottomBarHeight + 64.dp).toPx() }
         if (b.y > clear) v.setScroll(v.scrollX, v.scrollY + (b.y - clear))
     }
-    LaunchedEffect(value.text) { vm.edit.editDraft = value.text }
+    LaunchedEffect(value.text, value.selection) {
+        vm.edit.editDraft = value.text
+        vm.edit.selectedRows = io.github.artcraftandroid.pdfcraft.ui.selectedTextLines(value.text, value.selection.start, value.selection.end)
+    }
     // misspelled words, checked a moment after typing stops, underlined in red (as the reference does)
     val context = androidx.compose.ui.platform.LocalContext.current
     val speller = remember { SpellCheck(context) }
@@ -508,7 +524,11 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
         ) {
             BasicTextField(
                 value = value,
-                onValueChange = { value = it },
+                onValueChange = {
+                    value = it
+                    vm.edit.editDraft = it.text
+                    vm.edit.selectedRows = io.github.artcraftandroid.pdfcraft.ui.selectedTextLines(it.text, it.selection.start, it.selection.end)
+                },
                 textStyle = TextStyle(
                     color = parseHex(para.color ?: "#000000"), fontSize = sp, lineHeight = sp * 1.2f, fontFamily = family,
                     textDirection = androidx.compose.ui.text.style.TextDirection.Content,
@@ -577,71 +597,68 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSquiggle(x0: Fl
 @Composable
 private fun BoxScope.SelectedImage(vm: AppViewModel, doc: OpenDocument, img: EditImage) {
     val density = LocalDensity.current
-    val (a0, b0) = screenBox(doc, img.page, img.rect, 0f)
-    var move by remember(img) { mutableStateOf(Offset.Zero) }
-    var scale by remember(img) { mutableFloatStateOf(1f) }
-    val w0 = b0.x - a0.x
-    val h0 = b0.y - a0.y
-    val a = a0 + move
-    val b = Offset(a.x + w0 * scale, a.y + h0 * scale)
     val ppp = doc.viewer.pixelsPerPoint(img.page).coerceAtLeast(0.01f)
+    var rect by remember(img) { mutableStateOf(img.rect.copyOf()) }
+    var cropping by remember(img) { mutableStateOf(false) }
+    var dragging by remember(img) { mutableStateOf(false) }
+    var menu by remember(img) { mutableStateOf(false) }
+    val (a, b) = screenBox(doc, img.page, rect, 0f)
+    val handles = listOf(-1 to -1, 0 to -1, 1 to -1, -1 to 0, 1 to 0, -1 to 1, 0 to 1, 1 to 1)
     Canvas(Modifier.fillMaxSize()) {
         drawRect(SelectionBlue, topLeft = a, size = Size(b.x - a.x, b.y - a.y), style = Stroke(2.dp.toPx()))
-        for (h in listOf(a, Offset(b.x, a.y), b, Offset(a.x, b.y))) {
-            drawCircle(Color.White, 7.dp.toPx(), h)
-            drawCircle(SelectionBlue, 7.dp.toPx(), h, style = Stroke(2.dp.toPx()))
+        handles.forEach { (x, y) ->
+            val point = Offset(if (x < 0) a.x else if (x > 0) b.x else (a.x + b.x) / 2,
+                if (y < 0) a.y else if (y > 0) b.y else (a.y + b.y) / 2)
+            drawCircle(Color.White, 6.dp.toPx(), point)
+            drawCircle(SelectionBlue, 6.dp.toPx(), point, style = Stroke(2.dp.toPx()))
         }
     }
     with(density) {
-        Box(
-            Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.size((b.x - a.x).toDp(), (b.y - a.y).toDp())
-                .pointerInput(img) {
-                    detectDragGestures(
-                        onDragEnd = {
-                            val m = move
-                            move = Offset.Zero
-                            if (m.getDistance() > 2f) {
-                                val dx = m.x / ppp
-                                val dy = m.y / ppp
-                                vm.edit.placeImage(doc, img, floatArrayOf(img.rect[0] + dx, img.rect[1] + dy, img.rect[2] + dx, img.rect[3] + dy))
-                            }
-                        },
-                        onDragCancel = { move = Offset.Zero },
-                    ) { change, d ->
+        if (!cropping) Box(Modifier.align(AbsoluteAlignment.TopLeft)
+            .absoluteOffset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }
+            .size((b.x-a.x).toDp(), (b.y-a.y).toDp()).pointerInput(img) {
+                detectDragGestures(onDragStart = { dragging = true }, onDragCancel = { dragging = false; rect = img.rect.copyOf() },
+                    onDragEnd = { dragging = false; vm.edit.placeImage(doc, img, rect) }) { change, d ->
+                    change.consume()
+                    rect = floatArrayOf(rect[0]+d.x/ppp, rect[1]+d.y/ppp, rect[2]+d.x/ppp, rect[3]+d.y/ppp)
+                }
+            })
+        handles.forEach { (x, y) ->
+            val px = if (x < 0) a.x else if (x > 0) b.x else (a.x+b.x)/2
+            val py = if (y < 0) a.y else if (y > 0) b.y else (a.y+b.y)/2
+            val label = stringResource(if (cropping) R.string.feature_image_crop else R.string.feature_resize_handle)
+            Box(Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset((px-20.dp.toPx()).roundToInt(), (py-20.dp.toPx()).roundToInt()) }
+                .size(40.dp).semantics { contentDescription = label }.pointerInput(img, cropping, x, y) {
+                    detectDragGestures(onDragStart = { dragging = true }, onDragCancel = { dragging = false; rect = if (cropping) img.visibleRect.copyOf() else img.rect.copyOf() },
+                        onDragEnd = { dragging = false; if (!cropping) vm.edit.placeImage(doc, img, rect) }) { change, d ->
                         change.consume()
-                        move += d
+                        val next = io.github.artcraftandroid.pdfcraft.ui.imageHandleRect(rect, x, y, d.x/ppp, d.y/ppp)
+                        if (cropping) {
+                            next[0] = next[0].coerceAtLeast(img.visibleRect[0]); next[1] = next[1].coerceAtLeast(img.visibleRect[1])
+                            next[2] = next[2].coerceAtMost(img.visibleRect[2]); next[3] = next[3].coerceAtMost(img.visibleRect[3])
+                        }
+                        rect = next
                     }
-                },
-        )
-        // the lower right corner resizes, keeping the picture's shape
-        Box(
-            Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset((b.x - 22.dp.toPx()).roundToInt(), (b.y - 22.dp.toPx()).roundToInt()) }.size(44.dp)
-                .pointerInput(img) {
-                    detectDragGestures(
-                        onDragEnd = {
-                            val s = scale
-                            scale = 1f
-                            if (kotlin.math.abs(s - 1f) > 0.02f) {
-                                val w = (img.rect[2] - img.rect[0]) * s
-                                val h = (img.rect[3] - img.rect[1]) * s
-                                vm.edit.placeImage(doc, img, floatArrayOf(img.rect[0], img.rect[1], img.rect[0] + w, img.rect[1] + h))
-                            }
-                        },
-                        onDragCancel = { scale = 1f },
-                    ) { change, d ->
-                        change.consume()
-                        scale = ((w0 * scale + d.x) / w0).coerceIn(0.1f, 10f)
-                    }
-                },
-        )
+                })
+        }
     }
-    if (move == Offset.Zero && scale == 1f) {
-        FloatingMenu(a, b, doc.viewer.padTop, doc.viewer.viewW) {
+    if (!dragging) FloatingMenu(a, b, doc.viewer.padTop, doc.viewer.viewW) {
+        if (cropping) {
+            MenuText(appText(R.string.feature_cancel)) { cropping = false; rect = img.rect.copyOf() }
+            MenuText(appText(R.string.feature_apply)) {
+                vm.edit.imageAction(doc, img, "crop", mapOf("rect" to rect.map { it.toDouble() }))
+            }
+        } else {
             MenuIconButton(LucideIcons.RotateCcw, appText(R.string.edit_turn_left)) { vm.edit.turnImage(doc, img, 3) }
             MenuIconButton(LucideIcons.RotateCw, appText(R.string.edit_turn_right)) { vm.edit.turnImage(doc, img, 1) }
+            MenuIconButton(LucideIcons.EllipsisVertical, appText(R.string.feature_image_tools)) { menu = true }
             MenuIconButton(LucideIcons.Trash2, appText(R.string.common_delete)) { vm.edit.deleteImage(doc, img) }
         }
     }
+    if (menu) ImageActionsDialog(vm, doc, img, onDismiss = { menu = false }, onCrop = {
+        menu = false; cropping = true; rect = img.visibleRect.copyOf()
+        vm.tell(appText(R.string.feature_crop_hint))
+    })
 }
 
 /** What a screen reader says for each list style's button. */

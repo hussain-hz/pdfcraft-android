@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_markdown">ماركداون (.md)</string>
+    <string name="feature_mono_title">الصور الممسوحة بالأبيض والأسود</string>
+    <string name="feature_mono_group4">CCITT Group 4 — دون فقدان الجودة</string>
+    <string name="feature_mono_jbig2">JBIG2 — دون فقدان الجودة</string>
+    <string name="feature_mono_retain">الإبقاء على الضغط الأصلي</string>
+    <string name="feature_mono_downsample">تقليل الصور التي تتجاوز 450 إلى 300 نقطة لكل بوصة</string>
+    <string name="feature_import_comments">استيراد تعليقات من PDF آخر</string>
+    <string name="feature_import_comments_hint">تُنسخ التعليقات إلى الصفحات ذات الأرقام نفسها، ويمكن التراجع عن الاستيراد.</string>
+    <string name="feature_import_comments_done">تم استيراد التعليقات</string>
+    <string name="feature_bookmarks_create">إنشاء فهرس من العناوين</string>
+    <string name="feature_bookmarks_hint">اختر أنماط العناوين بالترتيب: المستوى الأول ثم الثاني. اضغط مجددًا لإزالة النمط. حتى 9 مستويات.</string>
+    <string name="feature_bookmarks_tagged">استخدام عناوين المستند الموسومة</string>
+    <string name="feature_no_heading_styles">لا توجد أنماط نصية في هذا المستند</string>
+    <string name="feature_bookmarks_done">تم إنشاء الفهرس</string>
+    <string name="feature_image_tools">أدوات الصورة</string>
+    <string name="feature_image_crop">اقتصاص الصورة</string>
+    <string name="feature_image_uncrop">إزالة اقتصاص الصورة</string>
+    <string name="feature_image_flip_h">قلب أفقي</string>
+    <string name="feature_image_flip_v">قلب عمودي</string>
+    <string name="feature_image_replace">استبدال الصورة</string>
+    <string name="feature_image_export">حفظ الصورة</string>
+    <string name="feature_image_front">إحضار إلى المقدمة</string>
+    <string name="feature_image_back">إرسال إلى الخلف</string>
+    <string name="feature_image_forward">تقديم خطوة</string>
+    <string name="feature_image_backward">تأخير خطوة</string>
+    <string name="feature_crop_hint">اسحب المقابض لتحديد الجزء المراد الاحتفاظ به، ثم اضغط تطبيق.</string>
+    <string name="feature_apply">تطبيق</string>
+    <string name="feature_cancel">إلغاء</string>
+    <string name="feature_create">إنشاء</string>
+    <string name="feature_selected_lines">محاذاة الأسطر المحددة فقط</string>
+    <string name="feature_resize_handle">تغيير أبعاد الصورة</string>
+</resources>

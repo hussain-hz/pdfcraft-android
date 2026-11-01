@@ -120,10 +120,15 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     val editUnderline = androidx.compose.runtime.mutableStateMapOf<Pair<Int, Int>, Boolean>()
 
     /** Typing in a paragraph: whether it opened with everything selected, and the text so far. */
+    var selectedRows by mutableStateOf<IntRange?>(null)
+    var alignOnlySelected by mutableStateOf(false)
+    private val lineAlignments = mutableMapOf<Triple<ULong, Int, Int>, List<String?>>()
     var editSelectAll = false
     var editDraft: String? = null
 
     fun startInlineEdit(para: Paragraph, selectAll: Boolean) {
+        alignOnlySelected = false
+        selectedRows = if (selectAll) 0 until para.text.split('\n').size else null
         editSelectAll = selectAll
         editDraft = para.text
         editSelection = para
@@ -136,6 +141,8 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         val text = editDraft ?: para.text
         editing = null
         editDraft = null
+        selectedRows = null
+        alignOnlySelected = false
         if (text != para.text) vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text))
     }
 
@@ -155,12 +162,21 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
 
     /** A formatting change to [para], applied to the page at once (with any typing so far). */
     fun styleParagraph(doc: OpenDocument, para: Paragraph, style: Map<String, Any?>) {
+        var appliedStyle = style
+        if (alignOnlySelected && editing?.page == para.page && editing?.number == para.number && style["align"] is String && selectedRows != null) {
+            val lines = (editDraft ?: para.text).split('\n').size
+            val key = Triple(doc.id, para.page, para.number)
+            val previous = lineAlignments[key].orEmpty()
+            val aligns = List(lines) { i -> if (i in selectedRows!!) style["align"] as String else previous.getOrNull(i) }
+            lineAlignments[key] = aligns
+            appliedStyle = (style - "align") + ("aligns" to aligns)
+        }
         val typed = editDraft?.takeIf { editing != null && it != para.text }
-        if (para.addedIndex != null && style.keys.any { it !in setOf("size", "font", "bold", "italic", "color", "align") }) {
+        if (para.addedIndex != null && style.keys.any { it !in setOf("size", "font", "bold", "italic", "color", "align", "aligns") }) {
             vm.tell(text(R.string.msg_added_text_format_unsupported))
             return
         }
-        vm.runTool(doc, paragraphTool(para), paraArgs(para) + style + (if (typed != null) mapOf("text" to typed) else emptyMap()))
+        vm.runTool(doc, paragraphTool(para), paraArgs(para) + appliedStyle + (if (typed != null) mapOf("text" to typed) else emptyMap()))
     }
 
     /** Move [para] by ([dx], [dy]) points (right and down on screen). */
@@ -196,6 +212,12 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         else vm.runTool(doc, "text_edit", paraArgs(para) + ("text" to ""))
     }
 
+    fun replaceParagraphText(doc: OpenDocument, para: Paragraph, value: String) {
+        editing = null
+        editDraft = null
+        if (value != para.text) vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to value))
+    }
+
     /** The page's colour just outside [para], for typing over it. */
     suspend fun paperColor(doc: OpenDocument, para: Paragraph): androidx.compose.ui.graphics.Color? {
         val eng = vm.engine ?: return null
@@ -224,7 +246,7 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
             val box = FloatArray(4) { k -> rect.optDouble(k).toFloat() }
             if (at.x in box[0]..box[2] && at.y in box[1]..box[3]) {
                 val full = o.optJSONArray("rect") ?: rect
-                return EditImage(at.page, o.optInt("image"), FloatArray(4) { k -> full.optDouble(k).toFloat() })
+                return EditImage(at.page, o.optInt("image"), FloatArray(4) { k -> full.optDouble(k).toFloat() }, box, o.optString("kind") != "form", o.optBoolean("has_editor_crop"))
             }
         }
         return null
@@ -232,20 +254,40 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
 
     /** Put [img] in [rect] (points): a move or a resize. */
     fun placeImage(doc: OpenDocument, img: EditImage, rect: FloatArray) {
-        editImage = img.copy(rect = rect)
-        vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to "move", "rect" to rect.map { it.toDouble() }))
+        imageAction(doc, img, "move", mapOf("rect" to rect.map { it.toDouble() }))
     }
 
     fun turnImage(doc: OpenDocument, img: EditImage, quarters: Int) {
-        vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to "rotate", "quarters" to quarters)) {
-            // the turned picture keeps its centre; read its new box
-            selectImageAt(doc, PagePoint(img.page, (img.rect[0] + img.rect[2]) / 2f, (img.rect[1] + img.rect[3]) / 2f))
-        }
+        imageAction(doc, img, "rotate", mapOf("quarters" to quarters))
     }
 
     fun deleteImage(doc: OpenDocument, img: EditImage) {
         editImage = null
         vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to "delete"))
+    }
+
+    fun imageAction(doc: OpenDocument, img: EditImage, action: String, args: Map<String, Any?> = emptyMap()) {
+        vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to action) + args,
+            onDone = {
+                editImage = null
+                if (action !in setOf("bring_to_front", "send_to_back", "bring_forward", "send_backward", "delete")) {
+                    vm.viewModelScope.launch {
+                        val arr = runCatching { vm.engine?.tool("page_images", mapOf("doc" to doc.id, "page" to img.page + 1))?.optJSONArray("images") }.getOrNull()
+                        val o = (0 until (arr?.length() ?: 0)).mapNotNull { arr?.optJSONObject(it) }.firstOrNull { it.optInt("image") == img.number }
+                        val rect = o?.optJSONArray("rect")
+                        val visible = o?.optJSONArray("visible_rect") ?: rect
+                        if (rect != null && visible != null && !doc.closed && editImage == null && vm.document === doc) editImage = img.copy(rect = FloatArray(4) { rect.optDouble(it).toFloat() },
+                            visibleRect = FloatArray(4) { visible.optDouble(it).toFloat() }, hasCrop = o.optBoolean("has_editor_crop"))
+                    }
+                }
+            })
+    }
+
+    private var replacement: Pair<OpenDocument, EditImage>? = null
+    fun replaceImage(doc: OpenDocument, img: EditImage) {
+        replacement = doc to img
+        imageFor = doc
+        imagePicks.trySend(doc)
     }
 
     /** New page text being typed in Edit PDF (Add text). */
@@ -310,7 +352,9 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     fun addImage(uri: Uri?) {
         val doc = imageFor ?: return
         imageFor = null
-        if (uri == null) return
+        val replacing = replacement
+        replacement = null
+        if (uri == null) { imageAt = null; return }
         vm.viewModelScope.launch {
             try {
                 val name = vm.files.displayName(uri).removeSuffix(".pdf")
@@ -320,6 +364,12 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
                         requireNotNull(input) { text(R.string.msg_picture_unreadable) }
                         f.outputStream().use { input.copyTo(it) }
                     }
+                }
+                if (replacing != null) {
+                    val (target, img) = replacing
+                    vm.runTool(target, "image_edit", mapOf("page" to img.page + 1, "image" to img.number,
+                        "action" to "replace", "path" to f.absolutePath), onFinished = { f.delete() }, onDone = { editImage = null })
+                    return@launch
                 }
                 if (name.lowercase().endsWith(".gif")) {
                     vm.tell(text(R.string.msg_gif_not_supported))

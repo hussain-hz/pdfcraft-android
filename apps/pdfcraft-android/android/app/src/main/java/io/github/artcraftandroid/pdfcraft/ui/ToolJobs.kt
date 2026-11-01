@@ -62,7 +62,7 @@ class ToolJobs internal constructor(private val vm: AppViewModel) {
     }
 
     /** Put [file] into Downloads as [name] and say so, with Open. */
-    private suspend fun deliver(file: File, name: String, mime: String = "application/pdf") {
+    internal suspend fun deliver(file: File, name: String, mime: String = "application/pdf") {
         val uri = withContext(Dispatchers.IO) { vm.files.saveToDownloads(file, name, mime).also { file.delete() } }
         val size = withContext(Dispatchers.IO) { vm.files.size(uri) }
         val saved = size?.let { text(R.string.msg_saved_downloads_size, name, formatSize(it)) } ?: text(R.string.msg_saved_downloads, name)
@@ -75,7 +75,7 @@ class ToolJobs internal constructor(private val vm: AppViewModel) {
     internal fun tempFile(ext: String) = File(app.cacheDir, "out-${System.nanoTime()}.$ext")
 
     /** Compress PDF at [level] (0 high, 1 medium, 2 low compression). */
-    fun compress(doc: OpenDocument, level: Int) = job(text(R.string.msg_busy_compressing)) { eng ->
+    fun compress(doc: OpenDocument, level: Int, mono: MonoCompression = MonoCompression.Group4, downsampleMono: Boolean = true) = job(text(R.string.msg_busy_compressing)) { eng ->
         val (ppi, above, quality) = when (level) {
             0 -> Triple(72, 108, 40)
             2 -> Triple(300, 450, 80)
@@ -85,6 +85,7 @@ class ToolJobs internal constructor(private val vm: AppViewModel) {
         val out = tempFile("pdf")
         eng.tool("doc_optimize", mapOf(
             "doc" to doc.id, "path" to out.absolutePath, "color" to images, "gray" to images,
+            "mono" to monoOptions(mono, downsampleMono),
             "discard_thumbnails" to true, "remove_unreferenced_dests" to true,
         ))
         vm.toolScreen = null
@@ -140,13 +141,7 @@ class ToolJobs internal constructor(private val vm: AppViewModel) {
         val out = tempFile(ext)
         eng.tool("doc_export_office", mapOf("doc" to doc.id, "path" to out.absolutePath))
         vm.toolScreen = null
-        val mime = when (ext) {
-            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            "rtf" -> "application/rtf"
-            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            else -> "text/html"
-        }
+        val mime = documentMime(ext)
         deliver(out, "${doc.title}.$ext", mime)
     }
 

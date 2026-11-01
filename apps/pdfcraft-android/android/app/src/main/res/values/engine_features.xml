@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_markdown">Markdown (.md)</string>
+    <string name="feature_mono_title">Black-and-white scanned images</string>
+    <string name="feature_mono_group4">CCITT Group 4 — lossless</string>
+    <string name="feature_mono_jbig2">JBIG2 — lossless</string>
+    <string name="feature_mono_retain">Keep the original compression</string>
+    <string name="feature_mono_downsample">Reduce images above 450 dpi to 300 dpi</string>
+    <string name="feature_import_comments">Import comments from another PDF</string>
+    <string name="feature_import_comments_hint">Comments are copied to matching page numbers. You can undo the import.</string>
+    <string name="feature_import_comments_done">Comments imported</string>
+    <string name="feature_bookmarks_create">Create contents from headings</string>
+    <string name="feature_bookmarks_hint">Choose heading styles in order: level 1, then level 2. Tap again to remove a style. Up to 9 levels.</string>
+    <string name="feature_bookmarks_tagged">Use tagged document headings</string>
+    <string name="feature_no_heading_styles">No text styles found in this document</string>
+    <string name="feature_bookmarks_done">Contents created</string>
+    <string name="feature_image_tools">Image tools</string>
+    <string name="feature_image_crop">Crop image</string>
+    <string name="feature_image_uncrop">Remove image crop</string>
+    <string name="feature_image_flip_h">Flip horizontally</string>
+    <string name="feature_image_flip_v">Flip vertically</string>
+    <string name="feature_image_replace">Replace image</string>
+    <string name="feature_image_export">Save image</string>
+    <string name="feature_image_front">Bring to front</string>
+    <string name="feature_image_back">Send to back</string>
+    <string name="feature_image_forward">Bring forward</string>
+    <string name="feature_image_backward">Send backward</string>
+    <string name="feature_crop_hint">Drag the handles to select the part to keep, then apply.</string>
+    <string name="feature_apply">Apply</string>
+    <string name="feature_cancel">Cancel</string>
+    <string name="feature_create">Create</string>
+    <string name="feature_selected_lines">Align selected lines only</string>
+    <string name="feature_resize_handle">Resize image</string>
+</resources>
