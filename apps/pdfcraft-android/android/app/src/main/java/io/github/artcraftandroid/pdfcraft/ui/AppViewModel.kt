@@ -387,6 +387,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val r = doc.saveMutex.withLock {
                     if (doc.closed) return@launch
                     val result = eng.tool(name, args + ("doc" to doc.id))
+                    if (document === doc && name in setOf("edit_undo", "edit_redo")) edit.historyChanged()
                     refresh(doc, io.github.artcraftandroid.pdfcraft.engine.metadataFor(name))
                     result
                 }
@@ -405,13 +406,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun undo(doc: OpenDocument) {
         doc.localUndo?.let { it.undo(); return }
         val label = doc.info.undo ?: return
-        runTool(doc, "edit_undo") { tell(text(R.string.msg_undone, label)) }
+        runTool(doc, "edit_undo") { tell(text(R.string.msg_undone, arabicEngineLabel(label))) }
     }
 
     fun redo(doc: OpenDocument) {
         doc.localUndo?.let { it.redo(); return }
         val label = doc.info.redo ?: return
-        runTool(doc, "edit_redo") { tell(text(R.string.msg_redone, label)) }
+        runTool(doc, "edit_redo") { tell(text(R.string.msg_redone, arabicEngineLabel(label))) }
     }
 
     /** Switch the viewer to [tool], unless the document forbids what it does. */

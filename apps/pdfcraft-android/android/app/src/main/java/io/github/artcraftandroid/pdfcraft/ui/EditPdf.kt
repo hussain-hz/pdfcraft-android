@@ -123,6 +123,15 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     var selectedRows by mutableStateOf<IntRange?>(null)
     var alignOnlySelected by mutableStateOf(false)
     private val lineAlignments = mutableMapOf<Triple<ULong, Int, Int>, List<String?>>()
+
+    /** History can restore another image box or line alignment; discard stale selection geometry. */
+    fun historyChanged() {
+        editImage = null
+        lineAlignments.clear()
+        editAlign.clear()
+        selectedRows = null
+        alignOnlySelected = false
+    }
     var editSelectAll = false
     var editDraft: String? = null
 
