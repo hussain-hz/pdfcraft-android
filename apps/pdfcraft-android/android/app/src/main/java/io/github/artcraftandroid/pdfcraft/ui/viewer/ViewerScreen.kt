@@ -246,6 +246,7 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
 
         // The active tool takes the touches over the pages.
         ToolLayer(vm, doc)
+        DocumentFontDialogs(vm, doc)
         if (ctl.tool == ViewerTool.Edit) EditOverlay(vm, doc)
         vm.textPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postText) }
         vm.fillTextPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postFillText) }

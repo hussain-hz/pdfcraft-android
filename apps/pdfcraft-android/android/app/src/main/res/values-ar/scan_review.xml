@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_importing">جارٍ إضافة الصور…</string>
+    <string name="scan_page_limit">يمكن أن يحتوي المسح على 50 صفحة كحد أقصى.</string>
+    <string name="scan_photo_limit">يجب ألا يتجاوز حجم الصورة 32 ميغابايت.</string>
+    <string name="scan_photo_invalid">تعذّر قراءة الصورة. اختر صورة JPEG أو PNG.</string>
+    <string name="scan_saved_without_ocr">حُفظ المسح دون نص قابل للبحث؛ التعرف على النص غير مثبت.</string>
+    <string name="scan_original_view">الصورة الأصلية</string>
+    <string name="scan_result_view">النتيجة بعد المعالجة</string>
+    <string name="scan_compare_original">مقارنة بالأصل</string>
+    <string name="scan_preview_retry">تعذّرت المعاينة — أعد المحاولة</string>
+    <string name="scan_import_photos">استيراد صور</string>
+    <string name="scan_strength">القوة: %1$d</string>
+    <string name="scan_strength_label">قوة تحسين الصورة</string>
+    <string name="scan_apply_all">تطبيق على الكل</string>
+    <string name="scan_rotate">تدوير</string>
+    <string name="scan_move_before">تقديم الصفحة</string>
+    <string name="scan_move_after">تأخير الصفحة</string>
+    <string name="scan_searchable">نص قابل للبحث</string>
+    <string name="scan_apply_all_hint">تُطبق على جميع صفحات المسح الحالي فقط. تحتفظ كل صفحة بصورتها وحدود ورقتها.</string>
+    <string name="scan_apply_look">تحسين الصورة وقوته</string>
+    <string name="scan_apply_rotation">نفس تدوير الصفحة</string>
+    <string name="scan_apply_crop">قص كل صفحة حسب حدودها المكتشفة</string>
+    <string name="scan_crop_invalid">أعد ضبط زوايا الصفحة؛ يجب أن يحيط القص بمساحة صحيحة من المستند.</string>
+</resources>

@@ -18,8 +18,27 @@ pub fn face_key(name: &str) -> String {
 
 /// Full, approved faces of the source family. This never silently selects another family.
 pub fn matching_faces(name: &str) -> Vec<&'static crate::CraftFont> {
+    static BUILTIN: &[crate::CraftFont] = &[
+        crate::CraftFont { family: "Inter", style: "Regular", scripts: &[], bytes: include_bytes!("../../../assets/fonts/Inter-Regular.ttf") },
+        crate::CraftFont { family: "Inter", style: "Medium", scripts: &[], bytes: include_bytes!("../../../assets/fonts/Inter-Medium.ttf") },
+        crate::CraftFont { family: "Inter", style: "SemiBold", scripts: &[], bytes: include_bytes!("../../../assets/fonts/Inter-SemiBold.ttf") },
+        crate::CraftFont {
+            family: "JetBrains Mono",
+            style: "Regular",
+            scripts: &[],
+            bytes: include_bytes!("../../../assets/fonts/JetBrainsMono-Regular.ttf"),
+        },
+    ];
     let key = face_key(name);
-    crate::CRAFT_FONTS.iter().filter(|f| face_key(f.family) == key || face_key(&f.name()) == key).collect()
+    // The document's static Arabic faces retain contextual tables, unlike the interface's
+    // variable build input. They are valid matching source faces, never another family.
+    [false, true]
+        .into_iter()
+        .filter_map(crate::document_arabic_font_for_style)
+        .chain(BUILTIN.iter())
+        .chain(crate::CRAFT_FONTS.iter())
+        .filter(|f| face_key(f.family) == key || face_key(&f.name()) == key)
+        .collect()
 }
 
 /// Whether a complete font program can show every non-newline character.
@@ -60,9 +79,18 @@ pub fn validate_document_input(bytes: &[u8]) -> Result<(), String> {
         return Err("Adobe-authored font assets are excluded by the project's asset policy".into());
     }
     let license: String = f.localized_strings(StringId::LICENSE_DESCRIPTION).map(|s| s.to_string()).collect();
-    if !["SIL OPEN FONT", "SIL Open Font", "Apache License", "Ubuntu Font Licence", "Bitstream Vera", "MIT License"]
-        .iter()
-        .any(|l| license.contains(l))
+    let license_urls: Vec<_> = f.localized_strings(StringId::LICENSE_URL).map(|s| s.to_string()).collect();
+    let short_ofl = license.contains("Open Font License")
+        && license_urls.iter().any(|url| {
+            matches!(
+                url.trim().trim_end_matches('/').to_ascii_lowercase().as_str(),
+                "http://scripts.sil.org/ofl" | "https://scripts.sil.org/ofl" | "http://openfontlicense.org" | "https://openfontlicense.org"
+            )
+        });
+    if !short_ofl
+        && !["SIL OPEN FONT", "SIL Open Font", "Apache License", "Ubuntu Font Licence", "Bitstream Vera", "MIT License"]
+            .iter()
+            .any(|l| license.contains(l))
     {
         return Err("select an openly licensed font whose name table declares its licence (OFL, Apache, Ubuntu, Bitstream Vera or MIT)".into());
     }

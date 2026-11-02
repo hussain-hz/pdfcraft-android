@@ -81,7 +81,7 @@ pub(crate) fn plain_number(s: &str) -> Option<(String, bool, usize)> {
 fn cell_text(s: &str) -> String {
     let mut out = String::new();
     let mut units = 0usize;
-    for c in s.trim().chars().filter(|c| crate::allowed(*c)) {
+    for c in s.trim().chars().filter(|c| crate::as_html::allowed(*c)) {
         units = units.saturating_add(c.len_utf16());
         if units > MAX_CELL_TEXT {
             break;
@@ -410,11 +410,13 @@ pub fn xlsx(pages: &[Page], title: &str) -> Vec<u8> {
                 break;
             }
             match it {
-                Item::Para(b, _) => {
+                Item::Para(runs, _) => {
+                    let Some(b) = runs.first().map(|r| r.block) else { continue };
+                    let text: String = runs.iter().map(|r| r.text.as_str()).collect();
                     if last == Some(true) {
                         sheet.skip_row();
                     }
-                    sheet.put_row(&[(0, &b.text, Font::new(b.size, b.bold, b.italic, b.color), 1)], &mut styles, &mut strings);
+                    sheet.put_row(&[(0, &text, Font::new(b.size, b.bold, b.italic, b.color), 1)], &mut styles, &mut strings);
                     last = Some(false);
                 }
                 Item::Table(t) => {

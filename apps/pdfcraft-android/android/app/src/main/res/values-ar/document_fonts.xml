@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="font_import">استيراد الخط الأصلي</string>
+    <string name="font_downloads">تنزيل خطوط</string>
+    <string name="font_preview">معاينة الخط</string>
+    <string name="font_original">الخط الأصلي: %1$s</string>
+    <string name="font_matching">مطابق للخط الأصلي. يُحمّل لإكمال الحروف الناقصة مع الحفاظ على تنسيق الفقرة.</string>
+    <string name="font_replacement">سيُستخدم هذا الخط بدل خط الفقرة عند الضغط على تطبيق. تبقى ألوان النص وأحجامه محفوظة.</string>
+    <string name="font_load_original">تحميل الخط الأصلي</string>
+    <string name="font_apply_replacement">تطبيق الخط المختار</string>
+    <string name="font_invalid">اختر خط TTF أو OTF كاملًا ومفتوح الترخيص وصالحًا للتضمين.</string>
+    <string name="font_too_large">يجب ألا يتجاوز حجم الخط 16 ميغابايت.</string>
+    <string name="font_document_changed">تغيّر المستند. حدّد الفقرة من جديد.</string>
+    <string name="font_applied">تم تطبيق الخط المختار في المستند.</string>
+    <string name="font_empty">استورد خطًا من الجوال أو نزّل أحد الخطوط من المكتبة.</string>
+    <string name="font_catalog_hint">نزّل عائلة الخط بجميع أوزانها المتاحة، أو ثبّت المجموعة كاملة دفعة واحدة. تعمل الخطوط المحفوظة دون اتصال. اختر الوزن من الخطوط المحفوظة لمعاينته.</string>
+    <string name="font_source_license">المصدر وترخيص OFL</string>
+    <string name="font_regular">عادي</string>
+    <string name="font_bold">عريض</string>
+    <string name="font_downloaded">المجموعة محفوظة</string>
+    <string name="font_cancel_work">إلغاء</string>
+    <string name="font_working">جارٍ تجهيز الخط…</string>
+    <string name="font_download_progress">جارٍ تنزيل الخط… ‎%1$d%%</string>
+    <string name="font_unsupported">الخط المختار لا يدعم جميع حروف النص. اختر خطًا آخر.</string>
+    <string name="font_download_failed">تعذّر تنزيل الخط أو التحقق منه. تحقق من الاتصال وحاول مجددًا.</string>
+    <string name="font_original_unavailable">الخط الأصلي %1$s غير متوفر للتنزيل التلقائي. استورد ملفه الكامل TTF أو OTF، أو عاين خطًا بديلًا. تعديلك محفوظ للمحاولة مجددًا.</string>
+    <string name="font_download_all">تنزيل جميع مجموعات الخطوط</string>
+    <string name="font_phone">خطوط الهاتف</string>
+    <string name="font_list">الخطوط</string>
+    <string name="font_installed_extra">خطوط مضافة</string>
+    <string name="font_auto_installing">جارٍ تجهيز مجموعات الخطوط تلقائيًا…</string>
+    <string name="font_auto_retry_hint">تعذّر تنزيل بعض الخطوط. تبقى خطوط الهاتف متاحة؛ أعد المحاولة من تنزيل الخطوط.</string>
+</resources>

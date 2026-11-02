@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_importing">Añadiendo fotos…</string>
+    <string name="scan_page_limit">Un escaneo admite hasta 50 páginas.</string>
+    <string name="scan_photo_limit">Cada foto debe ocupar como máximo 32 MB.</string>
+    <string name="scan_photo_invalid">No se puede leer la foto. Elige una imagen JPEG o PNG.</string>
+    <string name="scan_saved_without_ocr">Se guardó sin texto buscable; el reconocimiento de texto no está instalado.</string>
+    <string name="scan_original_view">Foto original</string>
+    <string name="scan_result_view">Resultado procesado</string>
+    <string name="scan_compare_original">Comparar original</string>
+    <string name="scan_preview_retry">Falló la vista previa — reintentar</string>
+    <string name="scan_import_photos">Importar fotos</string>
+    <string name="scan_strength">Intensidad: %1$d</string>
+    <string name="scan_strength_label">Intensidad de mejora</string>
+    <string name="scan_apply_all">Aplicar a todas</string>
+    <string name="scan_rotate">Girar</string>
+    <string name="scan_move_before">Mover antes</string>
+    <string name="scan_move_after">Mover después</string>
+    <string name="scan_searchable">Texto buscable</string>
+    <string name="scan_apply_all_hint">Se aplica a todas las páginas del escaneo actual. Cada una conserva su foto y sus bordes.</string>
+    <string name="scan_apply_look">Mejora de imagen e intensidad</string>
+    <string name="scan_apply_rotation">Mismo giro de página</string>
+    <string name="scan_apply_crop">Recortar cada página según sus bordes detectados</string>
+    <string name="scan_crop_invalid">Ajusta las esquinas; el recorte debe delimitar una zona válida del documento.</string>
+</resources>

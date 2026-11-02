@@ -379,7 +379,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * Run engine tool [name] on [doc] (its `doc` argument is filled in), then refresh. [onDone]
      * gets the result; a refusal is told in a snackbar.
      */
-    fun runTool(doc: OpenDocument, name: String, args: Map<String, Any?> = emptyMap(), onFinished: () -> Unit = {}, onDone: (JSONObject) -> Unit = {}) {
+    fun runTool(doc: OpenDocument, name: String, args: Map<String, Any?> = emptyMap(), onFinished: () -> Unit = {}, onError: (Exception) -> Boolean = { false }, onDone: (JSONObject) -> Unit = {}) {
         if (doc.closed || doc.closing) { onFinished(); return }
         val eng = engine ?: run { onFinished(); return }
         viewModelScope.launch {
@@ -387,6 +387,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val r = doc.saveMutex.withLock {
                     if (doc.closed) return@launch
                     val result = eng.tool(name, args + ("doc" to doc.id))
+                    if (document === doc && name in setOf("edit_undo", "edit_redo")) edit.historyChanged()
                     refresh(doc, io.github.artcraftandroid.pdfcraft.engine.metadataFor(name))
                     result
                 }
@@ -394,7 +395,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                tell(e.userMessage)
+                if (!onError(e)) tell(e.userMessage)
             } finally {
                 onFinished()
             }
@@ -405,13 +406,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun undo(doc: OpenDocument) {
         doc.localUndo?.let { it.undo(); return }
         val label = doc.info.undo ?: return
-        runTool(doc, "edit_undo") { tell(text(R.string.msg_undone, label)) }
+        runTool(doc, "edit_undo") { tell(text(R.string.msg_undone, arabicEngineLabel(label))) }
     }
 
     fun redo(doc: OpenDocument) {
         doc.localUndo?.let { it.redo(); return }
         val label = doc.info.redo ?: return
-        runTool(doc, "edit_redo") { tell(text(R.string.msg_redone, label)) }
+        runTool(doc, "edit_redo") { tell(text(R.string.msg_redone, arabicEngineLabel(label))) }
     }
 
     /** Switch the viewer to [tool], unless the document forbids what it does. */
@@ -1179,6 +1180,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---- File pickers -----------------------------------------------------------------------
 
     /** File pickers for the activity: what the files are for, the types, and whether several may be picked. */
+    val fonts = DocumentFonts(this)
+    val features = DocumentFeatures(this)
+
     val filePicks = Channel<FilePickKind>(Channel.BUFFERED)
 
     private var insertFileAt: Pair<OpenDocument, Int>? = null
@@ -1205,6 +1209,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     runTool(doc, "page_insert_file", mapOf("path" to f.absolutePath, "at" to at))
                 }
             }
+            FilePickKind.ImportComments -> features.importComments(uris.first())
+            FilePickKind.ImportFont -> fonts.importPicked(uris.first())
+            FilePickKind.ScanImages -> scan.importPhotos(uris)
             FilePickKind.Open -> open(uris.first())
             FilePickKind.DigitalId -> viewModelScope.launch {
                 val uri = uris.first()
@@ -1391,7 +1398,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // Launch only after every state property and lazy delegate has been initialized.
     init {
         viewModelScope.launch {
-            application.engine.await().onSuccess { engine = it }.onFailure { engineProblem = it.userMessage }
+            application.engine.await().onSuccess { engine = it; fonts.initialize() }.onFailure { engineProblem = it.userMessage }
             refreshRecents()
             // the signers the reader trusts, before any signature is checked
             // (a document opened from another app meanwhile is checked again)

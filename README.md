@@ -4,7 +4,7 @@
 
 <h1 align="center">PdfCraft for Android</h1>
 
-This fork retains the PdfCraft name and application ID, with engine **0.14.0**, Arabic/English/Spanish UI, Arabic PDF editing, Office import, Excel export, voice comments, recovery saves and optimized previews. See [the engine upgrade notes](docs/engine-0.14.0.md) and [the import and build notes](docs/jahfan-import.md).
+This fork retains the PdfCraft name and application ID, with engine **0.17.0**, Arabic/English/Spanish UI, Arabic PDF editing, Office import, Excel/Markdown export, image editing, voice comments, recovery saves, original-font preservation with system-font support and grouped downloads, and per-page scan enhancement. See [the engine upgrade notes](docs/engine-0.17.0.md), [the Android tools and emulator validation](docs/engine-0.17.0-android-tools.md), and [the import and build notes](docs/jahfan-import.md).
 
 <p align="center">
   <b>An Android native open-source PDF reader and editor written in Rust, built on the same engine as the desktop app, <a href="https://github.com/storytold/pdfcraft">PdfCraft</a>, with a Kotlin/Jetpack Compose UI.</b><br>
@@ -23,7 +23,7 @@ This fork retains the PdfCraft name and application ID, with engine **0.14.0**, 
   <img alt="Minimum: Android 10 (API 29)" src="https://img.shields.io/badge/min-Android%2010%20%28API%2029%29-blue?style=flat">
   <img alt="Target: Android 17 (API 37)" src="https://img.shields.io/badge/target-Android%2017%20%28API%2037%29-blue?style=flat">
   <img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue?style=flat">
-  <img alt="Status: beta" src="https://img.shields.io/badge/status-beta-lightblue?style=flat">
+  <img alt="Status: stable" src="https://img.shields.io/badge/status-stable-lightblue?style=flat">
 </p>
 
 <p align="center">

@@ -110,6 +110,8 @@ internal fun localizedEngineError(message: String?): String {
     val raw = message?.takeIf { it.isNotBlank() } ?: return appText(R.string.files_error_generic)
     if (io.github.artcraftandroid.pdfcraft.AppLanguage.current != "ar") return raw
     return when {
+        raw.contains("separate paragraph", true) -> "حدّد فقرة نص منفصلة قبل تطبيق خط من ملف خارجي. لم يُغيّر النص."
+        raw.contains("preserving this font", true) -> "الخط المضمّن ناقص ولا يدعم النص الجديد. يلزم الخط الأصلي الكامل للحفاظ على شكله. لم يُغيّر النص."
         raw.contains("complete source", true) || raw.contains("mixed contextual", true) -> "يحتاج هذا النص إلى خط كامل متوافق أو تنسيق موحد. لم تُغيّر الفقرة."
         raw.contains("glyph", true) || raw.contains("can't show", true) -> "الخط الحالي لا يدعم بعض الأحرف. جرّب خطًا متوافقًا."
         raw.contains("read-only", true) || raw.contains("Permission denied", true) -> "لا يمكن الكتابة إلى هذا الملف. احفظ نسخة في موقع آخر."

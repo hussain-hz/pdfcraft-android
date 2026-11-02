@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_markdown">Markdown (.md)</string>
+    <string name="feature_mono_title">Imágenes escaneadas en blanco y negro</string>
+    <string name="feature_mono_group4">CCITT Group 4 — sin pérdida</string>
+    <string name="feature_mono_jbig2">JBIG2 — sin pérdida</string>
+    <string name="feature_mono_retain">Mantener la compresión original</string>
+    <string name="feature_mono_downsample">Reducir imágenes de más de 450 ppp a 300 ppp</string>
+    <string name="feature_import_comments">Importar comentarios de otro PDF</string>
+    <string name="feature_import_comments_hint">Los comentarios se copian a las páginas del mismo número. Puede deshacer la importación.</string>
+    <string name="feature_import_comments_done">Comentarios importados</string>
+    <string name="feature_bookmarks_create">Crear índice a partir de encabezados</string>
+    <string name="feature_bookmarks_hint">Elija estilos en orden: nivel 1, después nivel 2. Pulse de nuevo para quitar. Hasta 9 niveles.</string>
+    <string name="feature_bookmarks_tagged">Usar encabezados etiquetados</string>
+    <string name="feature_no_heading_styles">No se encontraron estilos de texto</string>
+    <string name="feature_bookmarks_done">Índice creado</string>
+    <string name="feature_image_tools">Herramientas de imagen</string>
+    <string name="feature_image_crop">Recortar imagen</string>
+    <string name="feature_image_uncrop">Quitar recorte</string>
+    <string name="feature_image_flip_h">Voltear horizontalmente</string>
+    <string name="feature_image_flip_v">Voltear verticalmente</string>
+    <string name="feature_image_replace">Reemplazar imagen</string>
+    <string name="feature_image_export">Guardar imagen</string>
+    <string name="feature_image_front">Traer al frente</string>
+    <string name="feature_image_back">Enviar al fondo</string>
+    <string name="feature_image_forward">Traer adelante</string>
+    <string name="feature_image_backward">Enviar atrás</string>
+    <string name="feature_crop_hint">Arrastre los controles para elegir la parte que desea conservar y aplique.</string>
+    <string name="feature_apply">Aplicar</string>
+    <string name="feature_cancel">Cancelar</string>
+    <string name="feature_create">Crear</string>
+    <string name="feature_selected_lines">Alinear solo las líneas seleccionadas</string>
+    <string name="feature_resize_handle">Cambiar tamaño de imagen</string>
+</resources>

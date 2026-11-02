@@ -65,7 +65,7 @@ fn ending_pair(kind: &str, endings: Option<&[LineEnding]>) -> Result<[LineEnding
     }
 }
 
-fn hex(c: [f32; 3]) -> String {
+pub(crate) fn hex(c: [f32; 3]) -> String {
     let b = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
     format!("#{:02X}{:02X}{:02X}", b(c[0]), b(c[1]), b(c[2]))
 }
@@ -532,6 +532,10 @@ impl Automation {
         if sensitivity.is_some() && !scan {
             return Err(ToolError::InvalidArgs("sensitivity is only for scan: true".into()));
         }
+        let requested_color = a.color("color")?;
+        if requested_color.is_some() && !matches!(kind, "text" | "date") {
+            return Err(ToolError::InvalidArgs("color is only for type text or date".into()));
+        }
         let requested_size = a.opt_num("font_size")?;
         if requested_size.is_some() && !matches!(kind, "text" | "date") {
             return Err(ToolError::InvalidArgs("font_size is only for type text or date".into()));
@@ -610,7 +614,10 @@ impl Automation {
                 (Shape::Mark { rect: mark.rect_at(at, i64::from(info.rotation)), mark }, String::new())
             }
         };
-        let style = Style::default_for(&shape);
+        let mut style = Style::default_for(&shape);
+        if let Some(color) = requested_color {
+            style.color = color;
+        }
         self.apply(a, Edit::AddAnnotation(NewAnnotation { page, shape, style, contents, author }))
     }
 

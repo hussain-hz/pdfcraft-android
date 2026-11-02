@@ -35,6 +35,19 @@ fn opens_a_document_and_describes_its_pages() {
 }
 
 #[test]
+fn editor_source_fonts_are_read_only_and_scoped_to_the_document() {
+    let s = MobileSession::new();
+    let a = s.open(blank_pdf(1), None).unwrap();
+    let b = s.open(blank_pdf(1), None).unwrap();
+    s.execute("page_add_text".into(), json!({"doc":a.id,"page":1,"text":"نص عربي","at":[60,60],"size":20}).to_string()).unwrap();
+    let before = s.with_doc(a.id, |d| (d.edit_generation(), d.can_undo().map(str::to_owned))).unwrap();
+    let fonts = s.editor_fonts(a.id, 0).unwrap();
+    assert!(fonts.iter().any(|f| f.face.contains("Noto") && !f.bytes.is_empty()));
+    assert!(s.editor_fonts(b.id, 0).unwrap().is_empty());
+    assert_eq!(s.with_doc(a.id, |d| (d.edit_generation(), d.can_undo().map(str::to_owned))).unwrap(), before);
+}
+
+#[test]
 fn renders_a_page_and_a_tile() {
     let s = MobileSession::new();
     let doc = s.open(blank_pdf(1), None).unwrap().id;
@@ -793,4 +806,23 @@ fn upright_comment_hit_boxes_match_the_engine_on_rotated_pages() {
         let listed_rect: Vec<f64> = listed["comments"][0]["rect"].as_array().unwrap().iter().map(|v| v.as_f64().unwrap()).collect();
         assert!(rect.iter().zip(listed_rect).all(|(a, b)| (*a as f64 - b).abs() < 0.1), "rotation {rotation}");
     }
+}
+
+#[test]
+fn applying_a_complete_font_to_added_text_is_one_undoable_edit() {
+    let s = MobileSession::new();
+    let doc = s.open(blank_pdf(1), None).unwrap().id;
+    s.execute(
+        "page_add_text".into(),
+        json!({"doc":doc,"page":1,"text":"Original English text","at":[60,60],"color":"#2457AD","size":22}).to_string(),
+    )
+    .unwrap();
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/Inter-Regular.ttf");
+    s.execute("content_font".into(), json!({"doc":doc,"page":1,"index":1,"path":path,"text":"Edited English text"}).to_string()).unwrap();
+    let items: Value = serde_json::from_str(&s.execute("content_list".into(), json!({"doc":doc,"page":1}).to_string()).unwrap()).unwrap();
+    assert_eq!(items["count"], 0);
+    s.execute("edit_undo".into(), json!({"doc":doc}).to_string()).unwrap();
+    let items: Value = serde_json::from_str(&s.execute("content_list".into(), json!({"doc":doc,"page":1}).to_string()).unwrap()).unwrap();
+    assert_eq!(items["items"][0]["text"], "Original English text");
+    assert_eq!(items["items"][0]["color"], "#2457AD");
 }

@@ -249,6 +249,7 @@ android {
         targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersion
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters.addAll(rustAbis) }
     }
 
@@ -385,4 +386,6 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.jna) { artifact { type = "aar" } }
     testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

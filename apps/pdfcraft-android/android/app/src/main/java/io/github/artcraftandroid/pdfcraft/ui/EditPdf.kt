@@ -74,9 +74,17 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
             val r = o.optJSONArray("rect") ?: return@mapNotNull null
             val ink = o.optJSONArray("ink_rect") ?: r
             val index = o.optInt("index")
-            Paragraph(page, -index, o.optString("text"),
-                FloatArray(4) { ink.optDouble(it).toFloat() }, o.optString("font"), o.optDouble("size", 12.0).toFloat(),
-                o.optBoolean("bold"), o.optBoolean("italic"), null, addedIndex = index, placementBox = FloatArray(4) { r.optDouble(it).toFloat() })
+            val contentText = o.optString("text")
+            val letters = contentText.filterNot(Char::isWhitespace)
+            val sourceFont = source.firstOrNull {
+                it.text.filterNot(Char::isWhitespace) == letters &&
+                    it.box[0] < ink.optDouble(2) && it.box[2] > ink.optDouble(0) &&
+                    it.box[1] < ink.optDouble(3) && it.box[3] > ink.optDouble(1)
+            }?.font ?: o.optString("font")
+            Paragraph(page, -index, contentText,
+                FloatArray(4) { ink.optDouble(it).toFloat() }, sourceFont, o.optDouble("size", 12.0).toFloat(),
+                o.optBoolean("bold"), o.optBoolean("italic"), o.optString("color").takeIf { it.startsWith("#") },
+                addedIndex = index, placementBox = FloatArray(4) { r.optDouble(it).toFloat() })
         }
         paragraphs[page] = source.filter { inventory == null || it.number in sourceIndexes } + placed
         editSelection?.takeIf { it.page == page }?.let { sel -> editSelection = paragraphs[page]?.firstOrNull { it.number == sel.number } }
@@ -120,12 +128,41 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     val editUnderline = androidx.compose.runtime.mutableStateMapOf<Pair<Int, Int>, Boolean>()
 
     /** Typing in a paragraph: whether it opened with everything selected, and the text so far. */
+    var selectedRows by mutableStateOf<IntRange?>(null)
+    var alignOnlySelected by mutableStateOf(false)
+    private val lineAlignments = mutableMapOf<Triple<ULong, Int, Int>, List<String?>>()
+
+    /** History can restore another image box or line alignment; discard stale selection geometry. */
+    fun historyChanged() {
+        editImage = null
+        pendingText.clear()
+        editFont.clear()
+        lineAlignments.clear()
+        editAlign.clear()
+        selectedRows = null
+        alignOnlySelected = false
+    }
     var editSelectAll = false
     var editDraft: String? = null
+    private val pendingText = mutableMapOf<Triple<ULong, Int, Int>, String>()
+    fun paragraphDraft(doc: OpenDocument, para: Paragraph): String =
+        pendingText[Triple(doc.id, para.page, para.number)] ?: para.text
+
+    private fun writeText(doc: OpenDocument, para: Paragraph, text: String) {
+        val key = Triple(doc.id, para.page, para.number)
+        pendingText[key] = text
+        val generation = doc.info.generation
+        vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text),
+            onError = { vm.fonts.recover(doc, para, text, generation, it) }) {
+            if (pendingText[key] == text) pendingText.remove(key)
+        }
+    }
 
     fun startInlineEdit(para: Paragraph, selectAll: Boolean) {
+        alignOnlySelected = false
+        selectedRows = if (selectAll) 0 until para.text.split('\n').size else null
         editSelectAll = selectAll
-        editDraft = para.text
+        editDraft = vm.document?.let { paragraphDraft(it, para) } ?: para.text
         editSelection = para
         editing = para
     }
@@ -136,12 +173,14 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         val text = editDraft ?: para.text
         editing = null
         editDraft = null
-        if (text != para.text) vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text))
+        selectedRows = null
+        alignOnlySelected = false
+        if (text != para.text) writeText(doc, para, text)
     }
 
     private fun paragraphTool(para: Paragraph) = if (para.addedIndex == null) "text_edit" else "content_update"
     private fun paraArgs(para: Paragraph) = mapOf<String, Any?>("page" to para.page + 1) +
-        if (para.addedIndex == null) mapOf("paragraph" to para.number) else mapOf("index" to para.addedIndex)
+        if (para.addedIndex == null) mapOf("paragraph" to para.number, "preserve_font" to true) else mapOf("index" to para.addedIndex)
 
     /** Make [para] a list of [style] (or plain again), with any typing so far. */
     fun listParagraph(doc: OpenDocument, para: Paragraph, style: ListStyle) {
@@ -150,17 +189,28 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         val text = ListStyle.apply(base, style)
         if (text == base) return
         if (typing) editDraft = text
-        vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text))
+        writeText(doc, para, text)
     }
 
     /** A formatting change to [para], applied to the page at once (with any typing so far). */
     fun styleParagraph(doc: OpenDocument, para: Paragraph, style: Map<String, Any?>) {
+        var appliedStyle = style
+        if (alignOnlySelected && editing?.page == para.page && editing?.number == para.number && style["align"] is String && selectedRows != null) {
+            val lines = (editDraft ?: para.text).split('\n').size
+            val key = Triple(doc.id, para.page, para.number)
+            val previous = lineAlignments[key].orEmpty()
+            val aligns = List(lines) { i -> if (i in selectedRows!!) style["align"] as String else previous.getOrNull(i) }
+            lineAlignments[key] = aligns
+            appliedStyle = (style - "align") + ("aligns" to aligns)
+        }
         val typed = editDraft?.takeIf { editing != null && it != para.text }
-        if (para.addedIndex != null && style.keys.any { it !in setOf("size", "font", "bold", "italic", "color", "align") }) {
+        if (para.addedIndex != null && style.keys.any { it !in setOf("size", "font", "bold", "italic", "color", "align", "aligns") }) {
             vm.tell(text(R.string.msg_added_text_format_unsupported))
             return
         }
-        vm.runTool(doc, paragraphTool(para), paraArgs(para) + style + (if (typed != null) mapOf("text" to typed) else emptyMap()))
+        val fontChoice = if (para.addedIndex == null && style.keys.any { it in setOf("font", "font_resource", "bold", "italic") })
+            mapOf("preserve_font" to false) else emptyMap()
+        vm.runTool(doc, paragraphTool(para), paraArgs(para) + fontChoice + appliedStyle + (if (typed != null) mapOf("text" to typed) else emptyMap()))
     }
 
     /** Move [para] by ([dx], [dy]) points (right and down on screen). */
@@ -196,6 +246,12 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         else vm.runTool(doc, "text_edit", paraArgs(para) + ("text" to ""))
     }
 
+    fun replaceParagraphText(doc: OpenDocument, para: Paragraph, value: String) {
+        editing = null
+        editDraft = null
+        if (value != para.text) writeText(doc, para, value)
+    }
+
     /** The page's colour just outside [para], for typing over it. */
     suspend fun paperColor(doc: OpenDocument, para: Paragraph): androidx.compose.ui.graphics.Color? {
         val eng = vm.engine ?: return null
@@ -224,7 +280,7 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
             val box = FloatArray(4) { k -> rect.optDouble(k).toFloat() }
             if (at.x in box[0]..box[2] && at.y in box[1]..box[3]) {
                 val full = o.optJSONArray("rect") ?: rect
-                return EditImage(at.page, o.optInt("image"), FloatArray(4) { k -> full.optDouble(k).toFloat() })
+                return EditImage(at.page, o.optInt("image"), FloatArray(4) { k -> full.optDouble(k).toFloat() }, box, o.optString("kind") != "form", o.optBoolean("has_editor_crop"))
             }
         }
         return null
@@ -232,20 +288,40 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
 
     /** Put [img] in [rect] (points): a move or a resize. */
     fun placeImage(doc: OpenDocument, img: EditImage, rect: FloatArray) {
-        editImage = img.copy(rect = rect)
-        vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to "move", "rect" to rect.map { it.toDouble() }))
+        imageAction(doc, img, "move", mapOf("rect" to rect.map { it.toDouble() }))
     }
 
     fun turnImage(doc: OpenDocument, img: EditImage, quarters: Int) {
-        vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to "rotate", "quarters" to quarters)) {
-            // the turned picture keeps its centre; read its new box
-            selectImageAt(doc, PagePoint(img.page, (img.rect[0] + img.rect[2]) / 2f, (img.rect[1] + img.rect[3]) / 2f))
-        }
+        imageAction(doc, img, "rotate", mapOf("quarters" to quarters))
     }
 
     fun deleteImage(doc: OpenDocument, img: EditImage) {
         editImage = null
         vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to "delete"))
+    }
+
+    fun imageAction(doc: OpenDocument, img: EditImage, action: String, args: Map<String, Any?> = emptyMap()) {
+        vm.runTool(doc, "image_edit", mapOf("page" to img.page + 1, "image" to img.number, "action" to action) + args,
+            onDone = {
+                editImage = null
+                if (action !in setOf("bring_to_front", "send_to_back", "bring_forward", "send_backward", "delete")) {
+                    vm.viewModelScope.launch {
+                        val arr = runCatching { vm.engine?.tool("page_images", mapOf("doc" to doc.id, "page" to img.page + 1))?.optJSONArray("images") }.getOrNull()
+                        val o = (0 until (arr?.length() ?: 0)).mapNotNull { arr?.optJSONObject(it) }.firstOrNull { it.optInt("image") == img.number }
+                        val rect = o?.optJSONArray("rect")
+                        val visible = o?.optJSONArray("visible_rect") ?: rect
+                        if (rect != null && visible != null && !doc.closed && editImage == null && vm.document === doc) editImage = img.copy(rect = FloatArray(4) { rect.optDouble(it).toFloat() },
+                            visibleRect = FloatArray(4) { visible.optDouble(it).toFloat() }, hasCrop = o.optBoolean("has_editor_crop"))
+                    }
+                }
+            })
+    }
+
+    private var replacement: Pair<OpenDocument, EditImage>? = null
+    fun replaceImage(doc: OpenDocument, img: EditImage) {
+        replacement = doc to img
+        imageFor = doc
+        imagePicks.trySend(doc)
     }
 
     /** New page text being typed in Edit PDF (Add text). */
@@ -310,7 +386,9 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     fun addImage(uri: Uri?) {
         val doc = imageFor ?: return
         imageFor = null
-        if (uri == null) return
+        val replacing = replacement
+        replacement = null
+        if (uri == null) { imageAt = null; return }
         vm.viewModelScope.launch {
             try {
                 val name = vm.files.displayName(uri).removeSuffix(".pdf")
@@ -320,6 +398,12 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
                         requireNotNull(input) { text(R.string.msg_picture_unreadable) }
                         f.outputStream().use { input.copyTo(it) }
                     }
+                }
+                if (replacing != null) {
+                    val (target, img) = replacing
+                    vm.runTool(target, "image_edit", mapOf("page" to img.page + 1, "image" to img.number,
+                        "action" to "replace", "path" to f.absolutePath), onFinished = { f.delete() }, onDone = { editImage = null })
+                    return@launch
                 }
                 if (name.lowercase().endsWith(".gif")) {
                     vm.tell(text(R.string.msg_gif_not_supported))

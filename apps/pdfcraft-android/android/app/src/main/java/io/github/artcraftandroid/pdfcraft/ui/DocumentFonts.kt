@@ -1,0 +1,253 @@
+package io.github.artcraftandroid.pdfcraft.ui
+
+import android.app.Application
+import android.net.Uri
+import android.graphics.Typeface
+import androidx.compose.runtime.*
+import androidx.lifecycle.viewModelScope
+import io.github.artcraftandroid.pdfcraft.R
+import io.github.artcraftandroid.pdfcraft.core.EditorFont
+import io.github.artcraftandroid.pdfcraft.engine.*
+import io.github.artcraftandroid.pdfcraft.text
+import io.github.artcraftandroid.pdfcraft.ui.viewer.*
+import java.io.File
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.withLock
+
+/** A font choice captures its document and draft; a delayed picker cannot affect another file. */
+data class FontTarget(val doc: OpenDocument, val para: Paragraph, val draft: String, val generation: ULong)
+data class StoredDocumentFont(val file: File, val family: String, val face: String)
+data class InstalledDocumentFont(val font: StoredDocumentFont, val system: Boolean)
+
+fun installedDocumentFonts(phone: List<StoredDocumentFont>, privateFonts: List<StoredDocumentFont>): List<InstalledDocumentFont> {
+    val order = compareBy<StoredDocumentFont> { it.family.lowercase(java.util.Locale.ROOT) }.thenBy { it.face.lowercase(java.util.Locale.ROOT) }
+    return (phone.sortedWith(order).map { InstalledDocumentFont(it, true) } +
+        privateFonts.sortedWith(order).map { InstalledDocumentFont(it, false) }).distinctBy { editorFaceKey(it.font.face) }
+}
+
+data class FontPreview(val font: StoredDocumentFont?, val typeface: Typeface?, val standard: String? = null, val matching: Boolean = false)
+enum class FontSheet { Installed, Downloads, Preview }
+
+class DocumentFonts internal constructor(private val vm: AppViewModel, private val customDirectory: File? = null) {
+    private val app: Application get() = vm.getApplication()
+    val directory: File get() = (customDirectory ?: File(app.filesDir, "document-fonts")).apply { mkdirs() }
+    val catalog by lazy { readFontCatalog(app.assets.open("font-catalog.json").bufferedReader().use { it.readText() }) }
+    var target by mutableStateOf<FontTarget?>(null); private set
+    var sheet by mutableStateOf(FontSheet.Installed); private set
+    var preview by mutableStateOf<FontPreview?>(null); private set
+    var stored by mutableStateOf<List<StoredDocumentFont>>(emptyList()); private set
+    var phone by mutableStateOf<List<StoredDocumentFont>>(emptyList()); private set
+    private var phoneLoaded = false
+    var installingDefaults by mutableStateOf(false); private set
+    var defaultsFailed by mutableStateOf(false); private set
+    private var startupJob: Job? = null
+    var working by mutableStateOf(false); private set
+    var applying by mutableStateOf(false); private set
+    var progress by mutableStateOf<Float?>(null); private set
+    var problem by mutableStateOf<String?>(null); private set
+    private var job: Job? = null
+    @Volatile private var operation = 0L
+
+    /** Prepare fonts on first launch; verified cache hits make subsequent launches offline. */
+    fun initialize() {
+        if (startupJob?.isActive == true) return
+        startupJob = vm.viewModelScope.launch {
+            installingDefaults = true; defaultsFailed = false
+            try {
+                loadPhone()
+                withContext(Dispatchers.IO) { cacheDocumentFonts(catalog, directory) }
+                loadStored()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { defaultsFailed = true }
+            finally { installingDefaults = false }
+        }
+    }
+
+    private fun capture(doc: OpenDocument, para: Paragraph) = FontTarget(doc, para,
+        vm.edit.editDraft?.takeIf { vm.edit.editing?.page == para.page && vm.edit.editing?.number == para.number }
+            ?: vm.edit.paragraphDraft(doc, para), doc.info.generation)
+
+    fun show(doc: OpenDocument, para: Paragraph, downloads: Boolean = false) {
+        close()
+        target = capture(doc, para)
+        sheet = if (downloads) FontSheet.Downloads else FontSheet.Installed
+        work { loadPhone(); loadStored() }
+    }
+    fun standard(doc: OpenDocument, para: Paragraph, font: String) {
+        close(); target = capture(doc, para); preview = FontPreview(null, null, font); sheet = FontSheet.Preview
+    }
+    fun close() {
+        if (applying) return
+        operation++; job?.cancel(); working = false; progress = null; problem = null; target = null; preview = null
+    }
+    fun installed() { sheet = FontSheet.Installed; preview = null; work { loadPhone(); loadStored() } }
+    fun downloads() { sheet = FontSheet.Downloads; preview = null; problem = null }
+    fun pick() {
+        if (applying) return
+        operation++; job?.cancel(); working = false; problem = null
+        vm.pickFiles(FilePickKind.ImportFont)
+    }
+
+    private fun work(action: suspend () -> Unit) {
+        val token = ++operation
+        job?.cancel(); problem = null; working = true; progress = null
+        job = vm.viewModelScope.launch {
+            try { action() }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { if (operation == token) problem = e.userMessage }
+            finally { if (operation == token) { working = false; progress = null; applying = false } }
+        }
+    }
+    private suspend fun loadStored() {
+        val engine = vm.engine ?: return
+        val result = engine.tool("text_font_files", mapOf("directories" to listOf(directory.absolutePath))).getJSONArray("fonts")
+        stored = List(result.length()) { i -> result.getJSONObject(i).let { StoredDocumentFont(File(it.getString("path")), it.getString("family"), it.getString("font")) } }
+    }
+    private suspend fun loadPhone(refresh: Boolean = false) {
+        if (phoneLoaded && !refresh) return
+        val engine = vm.engine ?: return
+        val roots = phoneFontDirectories()
+        if (roots.isEmpty()) { phone = emptyList(); phoneLoaded = true; return }
+        val result = engine.tool("text_font_files", mapOf("directories" to roots)).getJSONArray("fonts")
+        phone = List(result.length()) { i -> result.getJSONObject(i).let {
+            StoredDocumentFont(File(it.getString("path")), it.getString("family"), it.getString("font"))
+        } }
+        phoneLoaded = true
+    }
+    fun importPicked(uri: Uri) {
+        if (target == null) return
+        work {
+            val file = withContext(Dispatchers.IO) {
+                val bytes = app.contentResolver.openInputStream(uri)?.use { input -> input.readBytesBounded() }
+                    ?: error(text(R.string.font_invalid))
+                val out = File(directory, "import-${fontDigest(bytes)}.ttf")
+                if (!out.isFile) out.writeBytes(bytes)
+                out
+            }
+            try { prepare(file) } catch (e: Exception) {
+                if (e !is CancellationException && stored.none { it.file.canonicalPath == file.canonicalPath })
+                    withContext(Dispatchers.IO) { file.delete() }
+                throw e
+            }
+        }
+    }
+    private fun java.io.InputStream.readBytesBounded(): ByteArray {
+        val out = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192)
+        while (true) {
+            val read = read(buffer); if (read < 0) break
+            require(out.size() + read <= MAX_DOCUMENT_FONT_BYTES) { text(R.string.font_too_large) }
+            out.write(buffer, 0, read)
+        }
+        return out.toByteArray()
+    }
+    private suspend fun prepare(file: File) {
+        loadStored()
+        loadPhone()
+        val available = stored + phone
+        val font = available.firstOrNull { it.file.canonicalPath == file.canonicalPath } ?: withContext(Dispatchers.IO) {
+            val digest = fontDigest(file.readBytes())
+            available.firstOrNull { it.file.length() == file.length() && fontDigest(it.file.readBytes()) == digest }
+        } ?: error(text(R.string.font_invalid))
+        val t = target ?: return
+        val supported = vm.engine?.tool("text_font_check", mapOf("path" to file.absolutePath, "text" to t.draft))?.optBoolean("supported") == true
+        require(supported) { text(R.string.font_unsupported) }
+        val face = withContext(Dispatchers.Default) {
+            documentEditorTypefaces(listOf(EditorFont("selected", font.face, file.readBytes()))).values.firstOrNull()
+                ?: error(text(R.string.font_invalid))
+        }
+        val source = editorFaceKey(t.para.font)
+        val matching = source == editorFaceKey(font.face)
+        preview = FontPreview(font, face, matching = matching); sheet = FontSheet.Preview
+    }
+    fun choose(font: StoredDocumentFont) = work { prepare(font.file) }
+    fun downloadGroup(fonts: List<DownloadableFont>) = work {
+        val token = operation
+        try {
+            withContext(Dispatchers.IO) { cacheDocumentFonts(fonts, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) }) }
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { throw IllegalStateException(text(R.string.font_download_failed), e) }
+        loadStored()
+        preview = null; sheet = FontSheet.Installed
+    }
+
+    /** Recover only a refused font-preserving edit; never pick a substitute automatically. */
+    fun recover(doc: OpenDocument, para: Paragraph, draft: String, generation: ULong, error: Exception): Boolean {
+        if (!needsOriginalFont(error) || working || applying || target != null || vm.document !== doc || doc.closed || doc.closing) return false
+        close()
+        target = FontTarget(doc, para, draft, generation)
+        sheet = FontSheet.Installed
+        work {
+            loadStored()
+            loadPhone()
+            val key = editorFaceKey(para.font)
+            val saved = (stored + phone).firstOrNull { font ->
+                editorFaceKey(font.face) == key && vm.engine?.tool("text_font_check",
+                    mapOf("path" to font.file.absolutePath, "text" to draft))?.optBoolean("supported") == true
+            }
+            val remote = matchingOriginalFont(para.font, catalog)
+            val file = saved?.file ?: remote?.let { font ->
+                val token = operation
+                try {
+                    withContext(Dispatchers.IO) {
+                        cacheDocumentFonts(catalog.filter { it.family == font.family }, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) })
+                        File(directory, "${font.id}.ttf")
+                    }
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) { throw IllegalStateException(text(R.string.font_download_failed), e) }
+            }
+            if (file == null) {
+                problem = text(R.string.font_original_unavailable, para.font)
+                return@work
+            }
+            prepare(file)
+            val choice = requireNotNull(preview)
+            check(choice.matching) { text(R.string.font_original_unavailable, para.font) }
+            applyChoice(requireNotNull(target), choice)
+        }
+        return true
+    }
+
+    fun apply() {
+        val t = target ?: return; val choice = preview ?: return
+        work { applyChoice(t, choice) }
+    }
+
+    private suspend fun applyChoice(t: FontTarget, choice: FontPreview) {
+            applying = true
+            val engine = vm.engine ?: return
+            t.doc.saveMutex.withLock {
+                check(vm.document === t.doc && !t.doc.closed && !t.doc.closing && engine.command { document(t.doc.id).generation } == t.generation) { text(R.string.font_document_changed) }
+                val base = mapOf("doc" to t.doc.id, "page" to t.para.page + 1)
+                try {
+                if (choice.standard != null) {
+                    engine.tool(if (t.para.addedIndex == null) "text_edit" else "content_update", base +
+                        (if (t.para.addedIndex == null) mapOf("paragraph" to t.para.number) else mapOf("index" to t.para.addedIndex)) +
+                        mapOf("font" to choice.standard, "bold" to t.para.bold, "italic" to t.para.italic, "text" to t.draft))
+                } else {
+                    val font = requireNotNull(choice.font)
+                    if (t.para.addedIndex != null && !choice.matching) {
+                        engine.tool("content_font", base + mapOf("index" to t.para.addedIndex, "path" to font.file.absolutePath, "text" to t.draft))
+                    } else {
+                        val imported = engine.tool("text_font_import", base + ("path" to font.file.absolutePath))
+                        if (choice.matching) {
+                            if (t.draft != t.para.text) engine.tool(if (t.para.addedIndex == null) "text_edit" else "content_update", base +
+                                (if (t.para.addedIndex == null) mapOf("paragraph" to t.para.number, "preserve_font" to true) else mapOf("index" to t.para.addedIndex)) + ("text" to t.draft))
+                        } else {
+                            val resource = imported.optString("resource").takeIf { it.isNotBlank() }
+                                ?: engine.command { editorFonts(t.doc.id, t.para.page.toUInt()) }.firstOrNull {
+                                    !it.resource.startsWith("PCApproved") && editorFaceKey(it.face) == editorFaceKey(font.face)
+                                }?.resource ?: error(text(R.string.font_invalid))
+                            engine.tool("text_edit", base + mapOf("paragraph" to t.para.number, "font_resource" to resource, "text" to t.draft))
+                        }
+                    }
+                }
+                vm.edit.editing = null; vm.edit.editDraft = null; vm.edit.editSelection = null; vm.edit.historyChanged()
+                } finally {
+                    vm.refresh(t.doc)
+                    target = target?.copy(generation = t.doc.info.generation)
+                }
+            }
+            target = null; preview = null
+            vm.tell(text(R.string.font_applied))
+    }
+}

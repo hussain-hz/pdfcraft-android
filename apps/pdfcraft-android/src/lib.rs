@@ -50,6 +50,14 @@ pub enum MobileError {
     NoDocument(u64),
 }
 
+/// A document face for the inline editor only. Kept in memory, never installed or exported.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct EditorFont {
+    pub resource: String,
+    pub face: String,
+    pub bytes: Vec<u8>,
+}
+
 /// A page as the viewer lays it out.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct PageInfo {
@@ -840,6 +848,14 @@ impl MobileSession {
     pub fn reading_blocks(&self, doc: u64, page: u32) -> Result<Vec<ReadingBlock>, MobileError> {
         let text = self.page_text(doc, page)?;
         Ok(reading_blocks(&text, page))
+    }
+
+    /// Embedded source faces and matching approved full faces, within the engine's byte budget.
+    /// Pages are zero-based, as for rendering. This does not change the PDF or its history.
+    pub fn editor_fonts(&self, doc: u64, page: u32) -> Result<Vec<EditorFont>, MobileError> {
+        self.with_doc(doc, |d| {
+            d.text_editor_fonts(page as usize).into_iter().map(|f| EditorFont { resource: f.resource, face: f.face, bytes: f.bytes }).collect()
+        })
     }
 
     /// All of page `page`'s text (Read Aloud, select all).
