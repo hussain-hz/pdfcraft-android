@@ -151,7 +151,9 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     private fun writeText(doc: OpenDocument, para: Paragraph, text: String) {
         val key = Triple(doc.id, para.page, para.number)
         pendingText[key] = text
-        vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text)) {
+        val generation = doc.info.generation
+        vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text),
+            onError = { vm.fonts.recover(doc, para, text, generation, it) }) {
             if (pendingText[key] == text) pendingText.remove(key)
         }
     }

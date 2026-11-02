@@ -128,11 +128,46 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         prepare(out)
     }
 
+    /** Recover only a refused font-preserving edit; never pick a substitute automatically. */
+    fun recover(doc: OpenDocument, para: Paragraph, draft: String, generation: ULong, error: Exception): Boolean {
+        if (!needsOriginalFont(error) || working || applying || target != null || vm.document !== doc || doc.closed || doc.closing) return false
+        close()
+        target = FontTarget(doc, para, draft, generation)
+        sheet = FontSheet.Library
+        work {
+            loadStored()
+            val key = editorFaceKey(para.font)
+            val saved = stored.firstOrNull { editorFaceKey(it.face) == key }
+            val remote = matchingOriginalFont(para.font, catalog)
+            val file = saved?.file ?: remote?.let { font ->
+                val token = operation
+                try {
+                    withContext(Dispatchers.IO) {
+                        cacheDocumentFont(font, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) })
+                    }
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) { throw IllegalStateException(text(R.string.font_download_failed), e) }
+            }
+            if (file == null) {
+                problem = text(R.string.font_original_unavailable, para.font)
+                return@work
+            }
+            prepare(file)
+            val choice = requireNotNull(preview)
+            check(choice.matching) { text(R.string.font_original_unavailable, para.font) }
+            applyChoice(requireNotNull(target), choice)
+        }
+        return true
+    }
+
     fun apply() {
         val t = target ?: return; val choice = preview ?: return
-        work {
+        work { applyChoice(t, choice) }
+    }
+
+    private suspend fun applyChoice(t: FontTarget, choice: FontPreview) {
             applying = true
-            val engine = vm.engine ?: return@work
+            val engine = vm.engine ?: return
             t.doc.saveMutex.withLock {
                 check(vm.document === t.doc && !t.doc.closed && !t.doc.closing && engine.command { document(t.doc.id).generation } == t.generation) { text(R.string.font_document_changed) }
                 val base = mapOf("doc" to t.doc.id, "page" to t.para.page + 1)
@@ -167,6 +202,5 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
             }
             target = null; preview = null
             vm.tell(text(R.string.font_applied))
-        }
     }
 }

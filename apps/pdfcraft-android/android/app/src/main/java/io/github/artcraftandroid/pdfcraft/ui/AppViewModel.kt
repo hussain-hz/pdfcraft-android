@@ -379,7 +379,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * Run engine tool [name] on [doc] (its `doc` argument is filled in), then refresh. [onDone]
      * gets the result; a refusal is told in a snackbar.
      */
-    fun runTool(doc: OpenDocument, name: String, args: Map<String, Any?> = emptyMap(), onFinished: () -> Unit = {}, onDone: (JSONObject) -> Unit = {}) {
+    fun runTool(doc: OpenDocument, name: String, args: Map<String, Any?> = emptyMap(), onFinished: () -> Unit = {}, onError: (Exception) -> Boolean = { false }, onDone: (JSONObject) -> Unit = {}) {
         if (doc.closed || doc.closing) { onFinished(); return }
         val eng = engine ?: run { onFinished(); return }
         viewModelScope.launch {
@@ -395,7 +395,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                tell(e.userMessage)
+                if (!onError(e)) tell(e.userMessage)
             } finally {
                 onFinished()
             }

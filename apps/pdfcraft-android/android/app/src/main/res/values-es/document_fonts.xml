@@ -24,4 +24,5 @@
     <string name="font_download_progress">Descargando fuente… %1$d%%</string>
     <string name="font_unsupported">La fuente seleccionada no admite todos los caracteres del texto. Elige otra fuente.</string>
     <string name="font_download_failed">No se pudo descargar o verificar la fuente. Comprueba la conexión e inténtalo de nuevo.</string>
+    <string name="font_original_unavailable">La fuente original %1$s no está disponible para descarga automática. Importa su archivo TTF/OTF completo o previsualiza otra fuente. Se conserva tu edición.</string>
 </resources>

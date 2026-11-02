@@ -38,4 +38,23 @@ class FontDownloadsTest {
             assertTrue(directory.listFiles().orEmpty().isEmpty())
         } finally { directory.deleteRecursively() }
     }
+    @Test fun automaticLookupRequiresAnUnambiguousExactFace() {
+        fun font(id: String) = DownloadableFont(id, "Sample", "Regular", false, "ofl/sample/$id.ttf",
+            "a".repeat(64), 1, "ofl/sample/OFL.txt", "b".repeat(64), "c".repeat(40))
+        val regular = font("Amiri-Regular"); val bold = font("Amiri-Bold")
+        assertEquals(bold, matchingOriginalFont("ABCDEF+Amiri-Bold", listOf(regular, bold)))
+        assertEquals(regular, matchingOriginalFont("Amiri Regular", listOf(regular, bold)))
+        assertNull(matchingOriginalFont("Amiri", listOf(regular, bold)))
+        assertNull(matchingOriginalFont("Amiri-Italic", listOf(regular, bold)))
+        assertNull(matchingOriginalFont("Arial", listOf(regular, bold)))
+        assertNull(matchingOriginalFont("Amiri-Bold", listOf(bold, bold)))
+    }
+
+    @Test fun automaticRecoveryDoesNotInterceptUnrelatedErrors() {
+        assertTrue(needsOriginalFont(IllegalStateException("complete source font is needed for preserving this font")))
+        assertTrue(needsOriginalFont(Exception("wrapper", Exception("preserving this font"))))
+        assertFalse(needsOriginalFont(Exception("document is read-only")))
+        assertFalse(needsOriginalFont(Exception("font is invalid")))
+    }
+
 }

@@ -53,3 +53,25 @@ multiple separate source paragraphs; those cases are refused rather than partial
 
 QA uses the newly compiled ARM64 native library on the existing API 37 emulator, under the debug
 application ID. No stable release or previous release asset is replaced by this source change.
+
+## Automatic recovery of incomplete original fonts
+
+When a font-preserving text edit is refused, Android now looks for the exact original PostScript
+face in the private library and then the pinned download catalog. Subset prefixes and punctuation
+are normalized, but ambiguous matches, weight changes and family aliases are rejected. A matching
+font is checked for the draft glyphs, imported and the original edit retried under the existing
+document identity/generation and save-lock guards. Other fonts still require an explicit preview.
+The font dialog also remains available after leaving Edit PDF. If the original is unavailable,
+its name is displayed with import/replacement choices and the pending draft is retained.
+
+This is bounded automatic recovery for catalogued open fonts and locally imported exact faces;
+it does not promise access to arbitrary proprietary fonts. Download integrity, licences, bounded
+transfers, cancellation and offline caching use the existing verified path.
+
+Validation: exact/ambiguous/weight matching and unrelated-error tests added to the JVM suite.
+A new emulator test creates a genuinely subset Scheherazade New Bold PDF with Android PdfDocument,
+verifies the initial edit is refused, exercises the actual AppViewModel text-commit recovery path,
+then saves/reopens and checks the original face, text, color and size. All three font download
+instrumentation tests pass, including the existing download/coverage/integrity/Undo checks.
+
+Final recovery validation: 101 JVM tests and all 18 emulator instrumentation tests pass.

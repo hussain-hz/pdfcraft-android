@@ -24,4 +24,5 @@
     <string name="font_download_progress">جارٍ تنزيل الخط… ‎%1$d%%</string>
     <string name="font_unsupported">الخط المختار لا يدعم جميع حروف النص. اختر خطًا آخر.</string>
     <string name="font_download_failed">تعذّر تنزيل الخط أو التحقق منه. تحقق من الاتصال وحاول مجددًا.</string>
+    <string name="font_original_unavailable">الخط الأصلي %1$s غير متوفر للتنزيل التلقائي. استورد ملفه الكامل TTF أو OTF، أو عاين خطًا بديلًا. تعديلك محفوظ للمحاولة مجددًا.</string>
 </resources>

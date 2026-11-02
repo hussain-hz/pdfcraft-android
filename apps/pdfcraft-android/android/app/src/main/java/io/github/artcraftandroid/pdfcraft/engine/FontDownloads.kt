@@ -87,3 +87,13 @@ suspend fun cacheDocumentFont(font: DownloadableFont, directory: File, progress:
     } finally { part.delete() }
     return out
 }
+
+/** Subset prefixes are metadata; family/weight aliases must never select a different face. */
+fun matchingOriginalFont(source: String, fonts: List<DownloadableFont>): DownloadableFont? {
+    fun key(name: String) = name.substringAfterLast('+').filter { it.isLetterOrDigit() }.lowercase(java.util.Locale.ROOT)
+    val wanted = key(source)
+    return fonts.singleOrNull { key(it.id) == wanted }
+}
+
+fun needsOriginalFont(error: Throwable): Boolean =
+    generateSequence(error) { it.cause }.take(8).any { it.message?.contains("preserving this font", ignoreCase = true) == true }

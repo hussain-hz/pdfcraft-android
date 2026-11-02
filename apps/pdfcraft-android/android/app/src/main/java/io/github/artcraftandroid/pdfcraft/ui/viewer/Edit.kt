@@ -381,7 +381,6 @@ private fun AlignPanel(current: String, onAlign: (String) -> Unit) {
  */
 @Composable
 fun BoxScope.EditOverlay(vm: AppViewModel, doc: OpenDocument) {
-    DocumentFontDialogs(vm, doc)
     val pages = doc.viewer.visiblePages()
     LaunchedEffect(pages, doc.info.generation) { for (p in pages) vm.edit.loadParagraphs(doc, p) }
     val accent = pdfColors.accent

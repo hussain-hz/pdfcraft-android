@@ -80,4 +80,62 @@ class FontDownloadsDeviceTest {
             assertEquals(before.undo,session.document(doc).undo)
         } finally { session.documents().forEach { session.close(it,true) } }
     }
+    @Test fun missingSubsetIsRecoveredAutomaticallyWithoutChangingFaceOrStyle() = runBlocking {
+        val directory = File(context.getExternalFilesDir(null), "font-auto-qa/${System.nanoTime()}").apply { mkdirs() }
+        val catalog = readFontCatalog(context.assets.open("font-catalog.json").bufferedReader().use { it.readText() })
+        val face = catalog.single { it.id == "ScheherazadeNew-Bold" }
+        val full = withContext(Dispatchers.IO) { cacheDocumentFont(face, directory) }
+        val source = File(directory, "subset.pdf")
+        val pdf = PdfDocument()
+        try {
+            val page = pdf.startPage(PdfDocument.PageInfo.Builder(612,792,1).create())
+            page.canvas.drawText("Original", 60f, 100f, android.graphics.Paint().apply {
+                typeface = android.graphics.Typeface.createFromFile(full); textSize = 22f; color = android.graphics.Color.rgb(36,87,173)
+            })
+            pdf.finishPage(page)
+            source.outputStream().use { pdf.writeTo(it) }
+        } finally { pdf.close() }
+        val application = context.applicationContext as PdfcraftApplication
+        val store = androidx.lifecycle.ViewModelStore()
+        val vm = withContext(Dispatchers.Main) {
+            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(application).also { store.put("auto-font",it); it.open(android.net.Uri.fromFile(source)) }
+        }
+        try {
+            kotlinx.coroutines.withTimeout(60000) {
+                while (withContext(Dispatchers.Main) { vm.document == null }) kotlinx.coroutines.delay(50)
+            }
+            val doc = withContext(Dispatchers.Main) { requireNotNull(vm.document) }
+            val engine = requireNotNull(vm.engine)
+            val original = engine.tool("text_paragraphs", mapOf("doc" to doc.id,"page" to 1)).getJSONArray("paragraphs").getJSONObject(0)
+            assertEquals(face, matchingOriginalFont(original.getString("font"),catalog))
+            val draft = "Original Zxy"
+            // A genuinely subset source must refuse first, without changing the document.
+            try {
+                engine.tool("text_edit",mapOf("doc" to doc.id,"page" to 1,"paragraph" to 1,"text" to draft,"preserve_font" to true))
+                fail("The fixture must require the full original font")
+            } catch (e: Exception) { assertTrue(e.message, needsOriginalFont(e)) }
+            withContext(Dispatchers.Main) {
+                vm.edit.loadParagraphs(doc,0)
+                vm.edit.replaceParagraphText(doc, requireNotNull(vm.edit.paragraphs[0]).first(), draft)
+            }
+            kotlinx.coroutines.withTimeout(60000) {
+                while (engine.tool("text_paragraphs",mapOf("doc" to doc.id,"page" to 1)).getJSONArray("paragraphs").getJSONObject(0).getString("editor_text") != draft) {
+                    kotlinx.coroutines.delay(100)
+                }
+            }
+            val saved = File(directory,"recovered.pdf")
+            engine.tool("doc_save",mapOf("doc" to doc.id,"path" to saved.absolutePath,"full" to true))
+            val reopened = engine.command { open(saved.absolutePath,null).id }
+            val paragraph = engine.tool("text_paragraphs",mapOf("doc" to reopened,"page" to 1)).getJSONArray("paragraphs").getJSONObject(0)
+            assertEquals(draft,paragraph.getString("editor_text"))
+            assertEquals(face,matchingOriginalFont(paragraph.getString("font"),catalog))
+            assertEquals(original.getString("color"),paragraph.getString("color"))
+            assertEquals(original.getDouble("size"),paragraph.getDouble("size"),.01)
+            engine.command { close(reopened, true) }
+            assertTrue(File(vm.fonts.directory,"${face.id}.ttf").isFile)
+        } finally {
+            withContext(Dispatchers.Main) { vm.fonts.close(); store.clear() }
+        }
+    }
+
 }
