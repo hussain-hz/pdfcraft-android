@@ -4,7 +4,7 @@
 
 <h1 align="center">PdfCraft for Android</h1>
 
-This fork retains the PdfCraft name and application ID, with engine **0.17.0**, Arabic/English/Spanish UI, Arabic PDF editing, Office import, Excel export, voice comments, recovery saves and optimized previews. See [the engine upgrade notes](docs/engine-0.17.0.md) and [the import and build notes](docs/jahfan-import.md).
+This fork retains the PdfCraft name and application ID, with engine **0.17.0**, Arabic/English/Spanish UI, Arabic PDF editing, Office import, Excel/Markdown export, image editing, voice comments, recovery saves and optimized previews. See [the engine upgrade notes](docs/engine-0.17.0.md), [the Android tools and emulator validation](docs/engine-0.17.0-android-tools.md), and [the import and build notes](docs/jahfan-import.md).
 
 <p align="center">
   <b>An Android native open-source PDF reader and editor written in Rust, built on the same engine as the desktop app, <a href="https://github.com/storytold/pdfcraft">PdfCraft</a>, with a Kotlin/Jetpack Compose UI.</b><br>
