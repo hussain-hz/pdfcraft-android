@@ -35,8 +35,7 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
     val preview = manager.preview
     val title = when (manager.sheet) {
         FontSheet.Downloads -> R.string.font_downloads
-        FontSheet.Library -> R.string.font_library
-        FontSheet.Phone -> R.string.font_phone
+        FontSheet.Installed -> R.string.font_list
         FontSheet.Preview -> R.string.font_preview
     }
     AlertDialog(onDismissRequest = manager::close, containerColor = colors.menu, titleContentColor = colors.text,
@@ -51,22 +50,25 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
                 if (progress == null) LinearProgressIndicator(Modifier.fillMaxWidth())
                 else LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
             } else when (manager.sheet) {
-                FontSheet.Library -> {
+                FontSheet.Installed -> {
+                    if (manager.installingDefaults) Text(stringResource(R.string.font_auto_installing), color = colors.toolAccent, fontSize = 13.sp)
+                    if (manager.defaultsFailed) Text(stringResource(R.string.font_auto_retry_hint), color = colors.textSecondary, fontSize = 13.sp)
+                    val choices = installedDocumentFonts(manager.phone, manager.stored)
+                    if (choices.isEmpty()) Text(stringResource(R.string.font_empty))
+                    choices.forEachIndexed { index, choice ->
+                        if (index == 0 || choice.system != choices[index - 1].system) {
+                            Text(stringResource(if (choice.system) R.string.font_phone else R.string.font_installed_extra), color = colors.toolAccent, fontSize = 13.sp)
+                        }
+                        TextButton(onClick = { manager.choose(choice.font) }, modifier = Modifier.fillMaxWidth()) { Text(choice.font.face, color = colors.text) }
+                    }
+                    if (!inlineRtl(target.draft)) {
+                        listOf("helvetica" to R.string.edit_font_sans, "times" to R.string.edit_font_serif, "courier" to R.string.edit_font_mono).forEach { (font, label) ->
+                            TextButton(onClick = { manager.standard(doc, target.para, font) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(label), color = colors.text) }
+                        }
+                    }
+                    HorizontalDivider(color = colors.divider)
                     TextButton(onClick = manager::pick, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_import), color = colors.toolAccent) }
-                    TextButton(onClick = manager::phoneFonts, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_phone), color = colors.toolAccent) }
                     TextButton(onClick = manager::downloads, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_downloads), color = colors.toolAccent) }
-                    if (manager.stored.isEmpty()) Text(stringResource(R.string.font_empty))
-                    manager.stored.forEach { font ->
-                        TextButton(onClick = { manager.choose(font) }, modifier = Modifier.fillMaxWidth()) { Text(font.face, color = colors.text) }
-                    }
-                }
-                FontSheet.Phone -> {
-                    Text(stringResource(R.string.font_phone_hint), fontSize = 13.sp)
-                    if (manager.phone.isEmpty()) Text(stringResource(R.string.font_phone_empty))
-                    manager.phone.sortedBy { editorFaceKey(it.face) != editorFaceKey(target.para.font) }.forEach { font ->
-                        TextButton(onClick = { manager.choose(font) }, modifier = Modifier.fillMaxWidth()) { Text(font.face, color = colors.text) }
-                    }
-                    TextButton(onClick = manager::library) { Text(stringResource(R.string.font_library), color = colors.toolAccent) }
                 }
                 FontSheet.Downloads -> {
                     Text(stringResource(R.string.font_catalog_hint), fontSize = 13.sp)
@@ -106,7 +108,7 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
                             fontStyle = if (preview.standard != null && target.para.italic) FontStyle.Italic else FontStyle.Normal,
                             style = TextStyle(textDirection = TextDirection.Content))
                     }
-                    TextButton(onClick = manager::library) { Text(stringResource(R.string.font_library), color = colors.toolAccent) }
+                    TextButton(onClick = manager::installed) { Text(stringResource(R.string.font_list), color = colors.toolAccent) }
                 }
             }
         } },

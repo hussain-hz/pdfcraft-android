@@ -3,6 +3,7 @@ package io.github.artcraftandroid.pdfcraft.ui
 import io.github.artcraftandroid.pdfcraft.engine.*
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -85,6 +86,30 @@ class FontDownloadsTest {
             assertEquals(1f,progress.last(),0f)
             assertTrue(progress.zipWithNext().all { (a,b) -> b >= a })
             assertEquals(files,cacheDocumentFonts(fonts,directory,transfer = { _,_,_,_,_ -> error("offline") }))
+        } finally { directory.deleteRecursively() }
+    }
+
+    @Test fun installedListKeepsSystemFirstAndDeduplicatesPrivateCopies() {
+        fun font(face: String, family: String = face) = StoredDocumentFont(java.io.File("/$face.ttf"),family,face)
+        val system = listOf(font("Zeta-Bold"),font("Alpha-Regular"))
+        val extra = listOf(font("ABCDEF+Alpha-Regular"),font("Amiri-Bold"))
+        val result = installedDocumentFonts(system,extra)
+        assertEquals(listOf("Alpha-Regular","Zeta-Bold","Amiri-Bold"),result.map { it.font.face })
+        assertEquals(listOf(true,true,false),result.map { it.system })
+    }
+
+    @Test fun simultaneousStartupAndManualDownloadsShareOneVerifiedWrite() = runBlocking {
+        val directory = Files.createTempDirectory("font-concurrent-cache").toFile()
+        val bytes = "font data".toByteArray(); val terms = "OFL licence".toByteArray()
+        val font = DownloadableFont("Concurrent-Regular","Concurrent","Regular",false,"ofl/concurrent/Concurrent.ttf",
+            fontDigest(bytes),bytes.size,"ofl/concurrent/OFL.txt",fontDigest(terms),"a".repeat(40))
+        var calls = 0
+        val transfer: FontTransfer = { url,_,_,_,_ -> calls++; kotlinx.coroutines.delay(10); if(url.endsWith("OFL.txt")) terms else bytes }
+        try {
+            val jobs = List(2) { async { cacheDocumentFont(font,directory,transfer=transfer) } }
+            assertEquals(jobs[0].await(),jobs[1].await())
+            assertEquals(2,calls)
+            assertArrayEquals(bytes,java.io.File(directory,"${font.id}.ttf").readBytes())
         } finally { directory.deleteRecursively() }
     }
 

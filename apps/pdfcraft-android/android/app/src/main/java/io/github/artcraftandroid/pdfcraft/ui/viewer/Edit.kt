@@ -120,7 +120,7 @@ private val EditColors = listOf(
 )
 
 /** Which formatting panel is open over the bar. */
-private enum class FormatPanel { None, Size, Font, Color, Align, List }
+private enum class FormatPanel { None, Size, Color, Align, List }
 
 /**
  * Edit PDF's bottom bar. With nothing selected: Organize pages, then Add text and Add image. With a
@@ -191,14 +191,6 @@ private fun EditFormatBar(vm: AppViewModel, doc: OpenDocument, para: Paragraph) 
     Column(Modifier.fillMaxWidth().background(c.surface)) {
         when (panel) {
             FormatPanel.Size -> SizePanel(para) { vm.edit.styleParagraph(doc, para, mapOf("size" to it.toDouble())) }
-            FormatPanel.Font -> Column {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    TextButton(onClick = { vm.fonts.show(doc, para); vm.fonts.pick() }) { Text(stringResource(R.string.font_import), color = c.toolAccent) }
-                    TextButton(onClick = { vm.fonts.show(doc, para, downloads = true) }) { Text(stringResource(R.string.font_downloads), color = c.toolAccent) }
-                }
-                TextButton(onClick = { vm.fonts.show(doc, para) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_library), color = c.toolAccent) }
-                if (!inlineRtl(para.text)) FontPanel(vm.edit.editFont[para.page to para.number]) { f -> vm.fonts.standard(doc, para, f) }
-            }
             FormatPanel.Color -> ColorPanel(para.color) { vm.edit.styleParagraph(doc, para, mapOf("color" to it)) }
             FormatPanel.Align -> Column {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -232,9 +224,9 @@ private fun EditFormatBar(vm: AppViewModel, doc: OpenDocument, para: Paragraph) 
             LetterButton("tT", stringResource(R.string.edit_text_size), panel == FormatPanel.Size, small = true) { toggle(FormatPanel.Size) }
             val fontLabel = stringResource(R.string.edit_font)
             Box(
-                Modifier.size(44.dp).clickable(role = Role.Button) { toggle(FormatPanel.Font) }.semantics { contentDescription = fontLabel },
+                Modifier.size(44.dp).clickable(role = Role.Button) { panel = FormatPanel.None; vm.fonts.show(doc, para) }.semantics { contentDescription = fontLabel },
                 contentAlignment = Alignment.Center,
-            ) { Text("Ag", color = if (panel == FormatPanel.Font) c.toolAccent else c.icon, fontSize = 20.sp, fontFamily = FontFamily.Serif) }
+            ) { Text("Ag", color = if (vm.fonts.target != null) c.toolAccent else c.icon, fontSize = 20.sp, fontFamily = FontFamily.Serif) }
             val colourLabel = stringResource(R.string.edit_colour)
             Box(
                 Modifier.size(44.dp).clickable(role = Role.Button) { toggle(FormatPanel.Color) }.semantics { contentDescription = colourLabel },

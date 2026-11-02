@@ -2,7 +2,6 @@
 <resources>
     <string name="font_import">Import original font</string>
     <string name="font_downloads">Download fonts</string>
-    <string name="font_library">Saved fonts</string>
     <string name="font_preview">Font preview</string>
     <string name="font_original">Original font: %1$s</string>
     <string name="font_matching">Matches the original font. Load it to complete missing glyphs without replacing the paragraph’s styles.</string>
@@ -27,6 +26,8 @@
     <string name="font_original_unavailable">The original font %1$s is not available for automatic download. Import its complete TTF/OTF file, or preview a replacement. Your edit is kept.</string>
     <string name="font_download_all">Download all font families</string>
     <string name="font_phone">Phone fonts</string>
-    <string name="font_phone_hint">Fonts available on this phone that can be embedded in an editable PDF. The matching original font is used automatically before downloading. Other fonts require preview and selection.</string>
-    <string name="font_phone_empty">No supported phone fonts are accessible. Import a complete font or download a font family.</string>
+    <string name="font_list">Fonts</string>
+    <string name="font_installed_extra">Installed fonts</string>
+    <string name="font_auto_installing">Preparing font families automatically…</string>
+    <string name="font_auto_retry_hint">Some fonts could not be downloaded. Your phone fonts remain available; retry from Download fonts.</string>
 </resources>

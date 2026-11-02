@@ -2,7 +2,6 @@
 <resources>
     <string name="font_import">Importar fuente original</string>
     <string name="font_downloads">Descargar fuentes</string>
-    <string name="font_library">Fuentes guardadas</string>
     <string name="font_preview">Vista previa de fuente</string>
     <string name="font_original">Fuente original: %1$s</string>
     <string name="font_matching">Coincide con la fuente original. Completa los caracteres sin sustituir los estilos del párrafo.</string>
@@ -27,6 +26,8 @@
     <string name="font_original_unavailable">La fuente original %1$s no está disponible para descarga automática. Importa su archivo TTF/OTF completo o previsualiza otra fuente. Se conserva tu edición.</string>
     <string name="font_download_all">Descargar todas las familias</string>
     <string name="font_phone">Fuentes del teléfono</string>
-    <string name="font_phone_hint">Fuentes accesibles en este teléfono que pueden incrustarse en un PDF editable. La fuente original coincidente se usa automáticamente antes de descargar. Otras fuentes requieren vista previa y selección.</string>
-    <string name="font_phone_empty">No hay fuentes compatibles del teléfono accesibles. Importa una fuente completa o descarga una familia.</string>
+    <string name="font_list">Fuentes</string>
+    <string name="font_installed_extra">Fuentes añadidas</string>
+    <string name="font_auto_installing">Preparando las familias automáticamente…</string>
+    <string name="font_auto_retry_hint">No se pudieron descargar algunas fuentes. Las del teléfono siguen disponibles; reintenta desde Descargar fuentes.</string>
 </resources>

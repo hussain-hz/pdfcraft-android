@@ -5,6 +5,8 @@ import java.net.HttpURLConnection
 import java.net.URI
 import java.security.MessageDigest
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.coroutineContext
 import org.json.JSONObject
 
@@ -69,7 +71,12 @@ suspend fun fetchFontBytes(url: String, sha256: String, limit: Int, expected: In
 typealias FontTransfer = suspend (String, String, Int, Int?, (Float) -> Unit) -> ByteArray
 
 /** Verified private cache; a valid font and licence require no network on subsequent uses. */
-suspend fun cacheDocumentFont(font: DownloadableFont, directory: File, progress: (Float) -> Unit = {}, transfer: FontTransfer = ::fetchFontBytes): File {
+private val documentFontCacheMutex = Mutex()
+
+suspend fun cacheDocumentFont(font: DownloadableFont, directory: File, progress: (Float) -> Unit = {}, transfer: FontTransfer = ::fetchFontBytes): File =
+    documentFontCacheMutex.withLock { cacheDocumentFontLocked(font, directory, progress, transfer) }
+
+private suspend fun cacheDocumentFontLocked(font: DownloadableFont, directory: File, progress: (Float) -> Unit, transfer: FontTransfer): File {
     val out = File(directory, "${font.id}.ttf")
     val license = File(directory, "${font.id}-OFL.txt")
     val valid = out.isFile && out.length() == font.size.toLong() && fontDigest(out.readBytes()) == font.sha256

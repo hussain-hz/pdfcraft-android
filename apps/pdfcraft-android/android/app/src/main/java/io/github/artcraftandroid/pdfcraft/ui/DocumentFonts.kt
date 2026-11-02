@@ -17,25 +17,51 @@ import kotlinx.coroutines.sync.withLock
 /** A font choice captures its document and draft; a delayed picker cannot affect another file. */
 data class FontTarget(val doc: OpenDocument, val para: Paragraph, val draft: String, val generation: ULong)
 data class StoredDocumentFont(val file: File, val family: String, val face: String)
-data class FontPreview(val font: StoredDocumentFont?, val typeface: Typeface?, val standard: String? = null, val matching: Boolean = false)
-enum class FontSheet { Library, Phone, Downloads, Preview }
+data class InstalledDocumentFont(val font: StoredDocumentFont, val system: Boolean)
 
-class DocumentFonts internal constructor(private val vm: AppViewModel) {
+fun installedDocumentFonts(phone: List<StoredDocumentFont>, privateFonts: List<StoredDocumentFont>): List<InstalledDocumentFont> {
+    val order = compareBy<StoredDocumentFont> { it.family.lowercase(java.util.Locale.ROOT) }.thenBy { it.face.lowercase(java.util.Locale.ROOT) }
+    return (phone.sortedWith(order).map { InstalledDocumentFont(it, true) } +
+        privateFonts.sortedWith(order).map { InstalledDocumentFont(it, false) }).distinctBy { editorFaceKey(it.font.face) }
+}
+
+data class FontPreview(val font: StoredDocumentFont?, val typeface: Typeface?, val standard: String? = null, val matching: Boolean = false)
+enum class FontSheet { Installed, Downloads, Preview }
+
+class DocumentFonts internal constructor(private val vm: AppViewModel, private val customDirectory: File? = null) {
     private val app: Application get() = vm.getApplication()
-    val directory: File get() = File(app.filesDir, "document-fonts").apply { mkdirs() }
+    val directory: File get() = (customDirectory ?: File(app.filesDir, "document-fonts")).apply { mkdirs() }
     val catalog by lazy { readFontCatalog(app.assets.open("font-catalog.json").bufferedReader().use { it.readText() }) }
     var target by mutableStateOf<FontTarget?>(null); private set
-    var sheet by mutableStateOf(FontSheet.Library); private set
+    var sheet by mutableStateOf(FontSheet.Installed); private set
     var preview by mutableStateOf<FontPreview?>(null); private set
     var stored by mutableStateOf<List<StoredDocumentFont>>(emptyList()); private set
     var phone by mutableStateOf<List<StoredDocumentFont>>(emptyList()); private set
     private var phoneLoaded = false
+    var installingDefaults by mutableStateOf(false); private set
+    var defaultsFailed by mutableStateOf(false); private set
+    private var startupJob: Job? = null
     var working by mutableStateOf(false); private set
     var applying by mutableStateOf(false); private set
     var progress by mutableStateOf<Float?>(null); private set
     var problem by mutableStateOf<String?>(null); private set
     private var job: Job? = null
     @Volatile private var operation = 0L
+
+    /** Prepare fonts on first launch; verified cache hits make subsequent launches offline. */
+    fun initialize() {
+        if (startupJob?.isActive == true) return
+        startupJob = vm.viewModelScope.launch {
+            installingDefaults = true; defaultsFailed = false
+            try {
+                loadPhone()
+                withContext(Dispatchers.IO) { cacheDocumentFonts(catalog, directory) }
+                loadStored()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { defaultsFailed = true }
+            finally { installingDefaults = false }
+        }
+    }
 
     private fun capture(doc: OpenDocument, para: Paragraph) = FontTarget(doc, para,
         vm.edit.editDraft?.takeIf { vm.edit.editing?.page == para.page && vm.edit.editing?.number == para.number }
@@ -44,8 +70,8 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
     fun show(doc: OpenDocument, para: Paragraph, downloads: Boolean = false) {
         close()
         target = capture(doc, para)
-        sheet = if (downloads) FontSheet.Downloads else FontSheet.Library
-        work { loadStored() }
+        sheet = if (downloads) FontSheet.Downloads else FontSheet.Installed
+        work { loadPhone(); loadStored() }
     }
     fun standard(doc: OpenDocument, para: Paragraph, font: String) {
         close(); target = capture(doc, para); preview = FontPreview(null, null, font); sheet = FontSheet.Preview
@@ -54,8 +80,7 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         if (applying) return
         operation++; job?.cancel(); working = false; progress = null; problem = null; target = null; preview = null
     }
-    fun library() { sheet = FontSheet.Library; preview = null; work { loadStored() } }
-    fun phoneFonts() { sheet = FontSheet.Phone; preview = null; work { loadPhone(refresh = true) } }
+    fun installed() { sheet = FontSheet.Installed; preview = null; work { loadPhone(); loadStored() } }
     fun downloads() { sheet = FontSheet.Downloads; preview = null; problem = null }
     fun pick() {
         if (applying) return
@@ -142,7 +167,7 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) { throw IllegalStateException(text(R.string.font_download_failed), e) }
         loadStored()
-        preview = null; sheet = FontSheet.Library
+        preview = null; sheet = FontSheet.Installed
     }
 
     /** Recover only a refused font-preserving edit; never pick a substitute automatically. */
@@ -150,7 +175,7 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         if (!needsOriginalFont(error) || working || applying || target != null || vm.document !== doc || doc.closed || doc.closing) return false
         close()
         target = FontTarget(doc, para, draft, generation)
-        sheet = FontSheet.Library
+        sheet = FontSheet.Installed
         work {
             loadStored()
             loadPhone()

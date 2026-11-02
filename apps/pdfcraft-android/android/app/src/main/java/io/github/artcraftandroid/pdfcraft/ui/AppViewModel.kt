@@ -1397,7 +1397,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // Launch only after every state property and lazy delegate has been initialized.
     init {
         viewModelScope.launch {
-            application.engine.await().onSuccess { engine = it }.onFailure { engineProblem = it.userMessage }
+            application.engine.await().onSuccess { engine = it; fonts.initialize() }.onFailure { engineProblem = it.userMessage }
             refreshRecents()
             // the signers the reader trusts, before any signature is checked
             // (a document opened from another app meanwhile is checked again)

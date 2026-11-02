@@ -2,7 +2,6 @@
 <resources>
     <string name="font_import">استيراد الخط الأصلي</string>
     <string name="font_downloads">تنزيل خطوط</string>
-    <string name="font_library">الخطوط المحفوظة</string>
     <string name="font_preview">معاينة الخط</string>
     <string name="font_original">الخط الأصلي: %1$s</string>
     <string name="font_matching">مطابق للخط الأصلي. يُحمّل لإكمال الحروف الناقصة مع الحفاظ على تنسيق الفقرة.</string>
@@ -27,6 +26,8 @@
     <string name="font_original_unavailable">الخط الأصلي %1$s غير متوفر للتنزيل التلقائي. استورد ملفه الكامل TTF أو OTF، أو عاين خطًا بديلًا. تعديلك محفوظ للمحاولة مجددًا.</string>
     <string name="font_download_all">تنزيل جميع مجموعات الخطوط</string>
     <string name="font_phone">خطوط الهاتف</string>
-    <string name="font_phone_hint">خطوط متاحة على هذا الهاتف وصالحة للتضمين في PDF قابل للتحرير. يُستخدم الخط الأصلي المطابق تلقائيًا قبل التنزيل. اختيار خط مختلف يتطلب المعاينة والتطبيق.</string>
-    <string name="font_phone_empty">لا توجد خطوط هاتف متاحة يدعمها المحرر. استورد خطًا كاملًا أو نزّل مجموعة خطوط.</string>
+    <string name="font_list">الخطوط</string>
+    <string name="font_installed_extra">خطوط مضافة</string>
+    <string name="font_auto_installing">جارٍ تجهيز مجموعات الخطوط تلقائيًا…</string>
+    <string name="font_auto_retry_hint">تعذّر تنزيل بعض الخطوط. تبقى خطوط الهاتف متاحة؛ أعد المحاولة من تنزيل الخطوط.</string>
 </resources>

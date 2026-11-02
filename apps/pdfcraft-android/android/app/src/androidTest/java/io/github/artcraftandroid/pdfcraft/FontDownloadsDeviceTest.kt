@@ -225,4 +225,27 @@ class FontDownloadsDeviceTest {
         } finally { session.close() }
     }
 
+    @Test fun firstRunPreparesPhoneAndDownloadedFontsWithoutOpeningAPdf() = runBlocking {
+        val directory = File(context.getExternalFilesDir(null),"font-startup-qa/${System.nanoTime()}")
+        val store = androidx.lifecycle.ViewModelStore()
+        val vm = withContext(Dispatchers.Main) {
+            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(context.applicationContext as PdfcraftApplication).also { store.put("startup-fonts",it) }
+        }
+        try {
+            kotlinx.coroutines.withTimeout(60000) { while(withContext(Dispatchers.Main) { vm.engine == null }) kotlinx.coroutines.delay(50) }
+            val manager = withContext(Dispatchers.Main) {
+                io.github.artcraftandroid.pdfcraft.ui.DocumentFonts(vm,directory).also { it.initialize() }
+            }
+            kotlinx.coroutines.withTimeout(60000) {
+                while(withContext(Dispatchers.Main) { manager.installingDefaults || manager.stored.size < manager.catalog.size || manager.phone.isEmpty() }) kotlinx.coroutines.delay(100)
+            }
+            assertFalse(manager.defaultsFailed)
+            assertNull(vm.document)
+            manager.catalog.forEach { font -> assertEquals(font.sha256,fontDigest(File(directory,"${font.id}.ttf").readBytes())) }
+            val choices = io.github.artcraftandroid.pdfcraft.ui.installedDocumentFonts(manager.phone,manager.stored)
+            assertTrue(choices.first().system)
+            assertEquals(choices.map { io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(it.font.face) }.distinct().size,choices.size)
+        } finally { withContext(Dispatchers.Main) { store.clear() } }
+    }
+
 }

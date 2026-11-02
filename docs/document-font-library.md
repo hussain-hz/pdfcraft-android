@@ -115,3 +115,24 @@ font library. The first test fixture used Latin text and correctly detected Andr
 fallback rather than Noto; the fixture was corrected to Arabic before the successful test.
 Samsung's SEC Naskh cannot be runtime-verified on this AOSP emulator; device availability and
 embedding eligibility still determine whether that specific face can be used.
+
+## Unified font list and automatic first-run setup
+
+The font toolbar now opens one Fonts dialog directly. Eligible system faces appear first, followed
+by downloaded/imported faces, deduplicated by normalized face name and alphabetized within each
+source. Import remains available and Download fonts is the last entry. The separate Saved fonts
+and Phone fonts navigation options are removed; replacement previews return to the same list.
+Existing Latin standard-face controls remain in that list before import/download.
+
+After engine initialization, Android prepares the phone catalog and downloads the catalogued font
+families in the background without waiting for an open PDF. Subsequent launches verify/reuse
+cached files offline. Failed transfers leave phone fonts usable and show a nonmodal retry hint
+inside the font list. Manual download remains available for retry. All font cache writes share a
+mutex so startup, user requests and font recovery cannot race on the same .part files. No document
+is modified by this setup.
+
+Validation: 104 JVM tests pass, including ordering/deduplication and simultaneous startup/manual
+cache writes. All 21 emulator instrumentation tests pass, including setup against an empty
+isolated font directory without opening a PDF, complete verified download and combined system /
+private list checks. The user confirmed successful phone use of RC.6 before these list changes;
+this UI/setup revision still requires its own phone trial.
