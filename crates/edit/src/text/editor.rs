@@ -21,22 +21,22 @@ pub fn text_editor_fonts(doc: &Document, page: usize) -> Result<Vec<TextEditorFo
     // Every program decoded counts, usable or not, so aliases of one program can't repeat the work.
     let mut decode = DecodeBudget::new(2 * budget, 0);
     let mut result = Vec::new();
+    let mut source_faces = Vec::new();
     for (name, font) in fonts.iter().take(128) {
         let Some(font) = doc.dict(font) else { continue };
+        let face = Metrics::from_dict(doc, &font).base_font.rsplit('+').next().unwrap_or_default().to_owned();
+        // Outline (Type3) fonts have no sfnt program, but a matching approved full face can
+        // still preview their logical text faithfully and supply missing inserted letters.
+        source_faces.push(face.clone());
         let Some(bytes) = pdfcraft_fonts::pdf::embedded_sfnt_within(doc, &font, &mut decode) else { continue };
         if bytes.len() > budget {
             continue;
         }
         budget -= bytes.len();
-        result.push(TextEditorFont {
-            resource: String::from_utf8_lossy(name).into_owned(),
-            face: Metrics::from_dict(doc, &font).base_font.rsplit('+').next().unwrap_or_default().to_owned(),
-            bytes,
-        });
+        result.push(TextEditorFont { resource: String::from_utf8_lossy(name).into_owned(), face, bytes });
     }
     // The approved full face follows all source subsets in the editor's font stack. It can
     // display newly inserted glyphs before Apply without changing the source text's face.
-    let source_faces: Vec<_> = result.iter().map(|p| p.face.clone()).collect();
     for face in source_faces {
         for full in pdfcraft_fonts::embedding::matching_faces(&face) {
             if full.bytes.len() > budget || result.iter().any(|p| p.resource == format!("PCApproved{}", full.name())) {

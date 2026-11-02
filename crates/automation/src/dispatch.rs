@@ -529,6 +529,9 @@ impl Automation {
                             "lines": b.lines.iter().map(|l| l + 1).collect::<Vec<_>>(),
                             "rect": [r(u[0].min(v[0])), r(u[1].min(v[1])), r(u[0].max(v[0])), r(u[1].max(v[1]))],
                             "font": b.base_font,
+                            "bold": b.bold,
+                            "italic": b.italic,
+                            "color": comments::hex(b.color.map(|v| v as f32)),
                             "size": (b.size * 100.0).round() / 100.0,
                         })
                     })
@@ -631,6 +634,7 @@ impl Automation {
                     None => block.text.clone(),
                 };
                 let mut style = pdfcraft_engine::BlockStyle {
+                    preserve_font: a.opt_bool("preserve_font")?.unwrap_or(false),
                     ranges: parse_style_ranges(a.get("ranges"))?,
                     resource: a.opt_str("font_resource")?.map(str::to_owned),
                     bold: a.opt_bool("bold")?,

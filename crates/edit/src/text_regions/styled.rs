@@ -135,16 +135,35 @@ impl CharacterPreparation<'_> {
             let has_arabic = span.chars().any(|c| matches!(c as u32, 0x0600..=0x06ff | 0x0750..=0x077f | 0x08a0..=0x08ff));
             let mut shaped_face = None;
             if has_arabic && style.resource.is_none() && overrides.get(&index).is_none_or(|r| r.resource.is_none()) {
-                let original = resolver
-                    .fonts
-                    .get(source.font.as_bytes())
-                    .and_then(|f| resolver.doc.dict(f))
-                    .and_then(|f| pdfcraft_fonts::pdf::embedded_sfnt(resolver.doc, &f));
-                let usable = original.as_ref().is_some_and(|bytes| {
+                let usable = |bytes: &[u8]| {
                     pdfcraft_fonts::embedding::validate(bytes).is_ok()
                         && span.lines().all(|row| pdfcraft_fonts::source_shaping::shape(bytes, row).is_ok())
-                });
-                if !usable {
+                };
+                // A subset may lack contextual tables. Look for its own complete face before
+                // falling back to Noto; otherwise editing changes an available Arabic family.
+                let matching = std::iter::once(source.font.clone())
+                    .chain(
+                        resolver
+                            .metrics
+                            .iter()
+                            .filter(|(_, m)| {
+                                pdfcraft_fonts::embedding::face_key(&m.base_font) == pdfcraft_fonts::embedding::face_key(&source.base_font)
+                            })
+                            .map(|(name, _)| name.clone()),
+                    )
+                    .find(|name| {
+                        resolver
+                            .fonts
+                            .get(name.as_bytes())
+                            .and_then(|f| resolver.doc.dict(f))
+                            .and_then(|f| pdfcraft_fonts::pdf::embedded_sfnt(resolver.doc, &f))
+                            .is_some_and(|b| usable(&b))
+                    });
+                if let Some(name) = matching {
+                    shaped_face = Some(name);
+                } else if let Some(face) = pdfcraft_fonts::embedding::matching_faces(&source.base_font).into_iter().find(|f| usable(f.bytes)) {
+                    shaped_face = Some(resolver.embed_face(face.name(), face.bytes, face.family, "the source Arabic font could not be loaded")?);
+                } else {
                     let face = pdfcraft_fonts::document_arabic_font_for_style(source.bold).ok_or_else(|| no_fallback_font(span))?;
                     for row in span.lines() {
                         pdfcraft_fonts::source_shaping::shape(face.bytes, row).map_err(EditError::Invalid)?;

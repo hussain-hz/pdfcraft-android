@@ -35,6 +35,19 @@ fn opens_a_document_and_describes_its_pages() {
 }
 
 #[test]
+fn editor_source_fonts_are_read_only_and_scoped_to_the_document() {
+    let s = MobileSession::new();
+    let a = s.open(blank_pdf(1), None).unwrap();
+    let b = s.open(blank_pdf(1), None).unwrap();
+    s.execute("page_add_text".into(), json!({"doc":a.id,"page":1,"text":"نص عربي","at":[60,60],"size":20}).to_string()).unwrap();
+    let before = s.with_doc(a.id, |d| (d.edit_generation(), d.can_undo().map(str::to_owned))).unwrap();
+    let fonts = s.editor_fonts(a.id, 0).unwrap();
+    assert!(fonts.iter().any(|f| f.face.contains("Noto") && !f.bytes.is_empty()));
+    assert!(s.editor_fonts(b.id, 0).unwrap().is_empty());
+    assert_eq!(s.with_doc(a.id, |d| (d.edit_generation(), d.can_undo().map(str::to_owned))).unwrap(), before);
+}
+
+#[test]
 fn renders_a_page_and_a_tile() {
     let s = MobileSession::new();
     let doc = s.open(blank_pdf(1), None).unwrap().id;

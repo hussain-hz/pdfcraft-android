@@ -6462,15 +6462,22 @@ fn rich_region_edits_preserve_styles_positions_and_delete_all_runs_after_reopen(
     let before = text::text_lines(&original, 0).unwrap();
     let block = text::text_blocks(&original, 0).unwrap()[1].clone();
     let mut doc = original.clone();
-    text::replace_block(&mut doc, 0, 1, &block.editor_text.replace("Plain", "Other")).unwrap();
+    text::rewrite_block(
+        &mut doc,
+        0,
+        1,
+        Some(&block.editor_text.replace("Plain", "Other")),
+        &text::BlockStyle { preserve_font: true, ..Default::default() },
+    )
+    .unwrap();
     let reopened = reopen(&doc);
     let blocks = text::text_blocks(&reopened, 0).unwrap();
     assert_eq!(blocks.len(), 3);
     assert_eq!(blocks[1].editor_text, "About\nOther bold text.\nItalic footer");
     let lines = text::text_lines(&reopened, 0).unwrap();
-    for word in ["About", "bold", "Italic footer"] {
-        let source = before.iter().find(|l| l.text == word).unwrap();
-        let after = lines.iter().find(|l| l.text == word).unwrap();
+    for (old, new) in [("About", "About"), ("Plain", "Other"), ("bold", "bold"), ("Italic footer", "Italic footer")] {
+        let source = before.iter().find(|l| l.text.trim() == old).unwrap();
+        let after = lines.iter().find(|l| l.text.trim() == new).unwrap();
         assert_eq!(
             (after.base_font.as_str(), after.size, after.color, after.bold, after.italic),
             (source.base_font.as_str(), source.size, source.color, source.bold, source.italic)
@@ -7371,6 +7378,51 @@ fn a_new_character_comes_from_the_source_fonts_own_embedded_program() {
 }
 
 #[test]
+fn arabic_edit_uses_a_matching_complete_page_face_before_substituting() {
+    let full = include_bytes!("../../../assets/fonts/JahfanArabic-Regular.ttf");
+    let mut subset = full.to_vec();
+    let tables = u16::from_be_bytes([subset[4], subset[5]]) as usize;
+    for i in 0..tables {
+        let tag = 12 + i * 16;
+        if &subset[tag..tag + 4] == b"GSUB" {
+            subset[tag..tag + 4].copy_from_slice(b"ZZZZ");
+        }
+    }
+    assert!(pdfcraft_fonts::source_shaping::shape(&subset, "نص عربي").is_err());
+    let mut doc = embedded_program_page("BT /F1 18 Tf 72 700 Td (Original) Tj ET", "ABCDEF+NotoSansArabic-Regular");
+    let page = pdfcraft_model::pages(&doc).remove(0);
+    let mut resources = doc.dict(page.dict.get(b"Resources").unwrap()).unwrap();
+    let mut fonts = doc.dict(resources.get(b"Font").unwrap()).unwrap();
+    let original = doc.dict(fonts.get(b"F1").unwrap()).unwrap();
+    for (name, bytes) in [(b"F1".as_slice(), subset.as_slice()), (b"FullOriginal".as_slice(), full.as_slice())] {
+        let mut font = original.clone();
+        let mut descriptor = doc.dict(font.get(b"FontDescriptor").unwrap()).unwrap();
+        let program = doc.add(Object::Stream(Stream::flate(Dict::new(), bytes)));
+        descriptor.set(b"FontFile2".to_vec(), Object::Ref(program));
+        font.set(b"FontDescriptor".to_vec(), Object::Dict(descriptor));
+        fonts.set(name.to_vec(), Object::Dict(font));
+    }
+    resources.set(b"Font".to_vec(), Object::Dict(fonts));
+    doc.update_dict(page.obj, |d| d.set(b"Resources".to_vec(), Object::Dict(resources))).unwrap();
+    let edit = text::rewrite_block(&mut doc, 0, 0, Some("نص عربي معدل"), &text::BlockStyle::default()).unwrap();
+    assert_eq!(edit.substituted, None, "the complete source face is available on the page");
+    let reopened = reopen(&doc);
+    assert_eq!(text::text_blocks(&reopened, 0).unwrap()[0].editor_text, "نص عربي معدل");
+    assert!(text::text_lines(&reopened, 0).unwrap().iter().all(|l| l.base_font.contains("NotoSansArabic-Regular")));
+}
+
+#[test]
+fn preserving_an_unavailable_source_face_refuses_without_changing_the_document() {
+    let mut doc = text_page("BT /F1 18 Tf 72 700 Td (Original text) Tj ET");
+    let before = write_incremental(&doc, &SaveOptions::default()).unwrap();
+    for draft in ["نص عربي", "Original text ş"] {
+        let error = text::rewrite_block(&mut doc, 0, 0, Some(draft), &text::BlockStyle { preserve_font: true, ..Default::default() }).unwrap_err();
+        assert!(error.to_string().contains("complete source font"), "{error}");
+        assert_eq!(write_incremental(&doc, &SaveOptions::default()).unwrap(), before);
+    }
+}
+
+#[test]
 fn a_shaped_run_is_one_text_object_with_each_glyph_where_shaping_put_it() {
     let inter = include_bytes!("../../../assets/fonts/Inter-Regular.ttf");
     let mut doc = text_page("BT /F1 12 Tf 72 700 Td (Stable text) Tj ET");
@@ -7426,7 +7478,7 @@ fn a_shaped_run_is_one_text_object_with_each_glyph_where_shaping_put_it() {
 
 #[test]
 fn a_subset_program_is_not_trusted_for_new_characters_and_the_error_names_the_character() {
-    let mut doc = embedded_program_page("BT /F1 12 Tf 72 700 Td (Stable text) Tj ET", "ABCDEF+Inter-Regular");
+    let mut doc = embedded_program_page("BT /F1 12 Tf 72 700 Td (Stable text) Tj ET", "ABCDEF+UnknownOriginal");
     // The subset's own program is not trusted for a character: a fallback face draws it through a
     // generated font instead (the subset may map a code whose outline was dropped). The Japanese
     // sans face leads the fallbacks when built with craft-fonts; the bundled Inter face otherwise.
@@ -7441,6 +7493,17 @@ fn a_subset_program_is_not_trusted_for_new_characters_and_the_error_names_the_ch
     let Err(EditError::Invalid(msg)) = result else { panic!("expected a clear error, got {result:?}") };
     assert!(msg.contains("ก (U+0E01)") && msg.contains("Load font") && !msg.contains("Japanese"), "{msg}");
     assert_eq!(page_content_bytes(&doc, 0), before);
+}
+
+#[test]
+fn a_known_subset_uses_its_approved_complete_face_without_changing_family() {
+    let mut doc = embedded_program_page("BT /F1 12 Tf 72 700 Td (Stable text) Tj ET", "ABCDEF+Inter-Regular");
+    let edit = text::rewrite_block(&mut doc, 0, 0, Some("Stable tőxt"), &text::BlockStyle { preserve_font: true, ..Default::default() }).unwrap();
+    assert_eq!(edit.substituted, None);
+    let reopened = reopen(&doc);
+    assert_eq!(text::text_blocks(&reopened, 0).unwrap()[0].editor_text, "Stable tőxt");
+    let inter = include_bytes!("../../../assets/fonts/Inter-Regular.ttf");
+    assert!(page_font_programs(&reopened).iter().any(|(subtype, bytes)| subtype == b"Type0" && bytes.as_deref() == Some(inter.as_slice())));
 }
 
 #[test]

@@ -805,6 +805,16 @@ pub(crate) fn rewrite_block_from(
     style: &BlockStyle,
     max_glyphs: usize,
 ) -> Result<LineEdit, EditError> {
+    if style.preserve_font {
+        let mut draft = doc.clone();
+        let style = BlockStyle { preserve_font: false, ..style.clone() };
+        let edit = rewrite_block_from(&mut draft, page, lines, block, text, &style, max_glyphs)?;
+        if edit.substituted.is_some() {
+            return Err(EditError::Invalid("preserving this font needs the complete source font; the original paragraph was not changed".into()));
+        }
+        *doc = draft;
+        return Ok(edit);
+    }
     let blocks = group_blocks(&lines);
     let b = blocks.get(block).cloned().ok_or_else(|| EditError::Invalid(format!("page {} has no paragraph {}", page + 1, block + 1)))?;
     // Existing PDF paragraphs do not yet persist selected-row alignment intent. Refuse

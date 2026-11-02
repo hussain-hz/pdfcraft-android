@@ -124,6 +124,7 @@ impl Automation {
                         v["size"] = json!(t.size);
                         v["bold"] = json!(t.bold);
                         v["italic"] = json!(t.italic);
+                        v["color"] = json!(crate::comments::hex(t.color.map(|v| v as f32)));
                         // Keep the editable wrapping box, but give touch UIs a compact selection.
                         let ink_rect = pdfcraft_engine::added_text_rect(t);
                         let mut ink = doc.info.pages.get(it.page).map_or(ink_rect, |p| to_view(ink_rect, p.height as f64));

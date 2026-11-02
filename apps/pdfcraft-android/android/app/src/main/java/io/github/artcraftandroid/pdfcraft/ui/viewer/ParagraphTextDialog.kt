@@ -22,12 +22,13 @@ import io.github.artcraftandroid.pdfcraft.ui.pdfColors
 @Composable
 fun ParagraphTextDialog(vm: AppViewModel, doc: OpenDocument, para: Paragraph, onDismiss: () -> Unit) {
     val c = pdfColors
-    var value by remember(para.page, para.number) { mutableStateOf(vm.edit.editDraft ?: para.text) }
+    val family = editorFamily(para.font, rememberEditorFonts(vm, doc, para.page))
+    var value by remember(doc.id, para.page, para.number) { mutableStateOf(vm.edit.editDraft ?: vm.edit.paragraphDraft(doc, para)) }
     AlertDialog(onDismissRequest = onDismiss, containerColor = c.menu, titleContentColor = c.text,
         title = { Text(stringResource(R.string.edit_paragraph_text)) },
         text = { OutlinedTextField(value = value, onValueChange = { value = it }, minLines = 4,
             modifier = Modifier.fillMaxWidth().heightIn(max = 350.dp),
-            textStyle = TextStyle(color = c.text, textDirection = TextDirection.Content),
+            textStyle = TextStyle(color = c.text, fontFamily = family, textDirection = TextDirection.Content),
             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = c.text, unfocusedTextColor = c.text,
                 cursorColor = c.toolAccent, focusedBorderColor = c.toolAccent)) },
         confirmButton = { TextButton(onClick = { vm.edit.replaceParagraphText(doc, para, value); onDismiss() }) {

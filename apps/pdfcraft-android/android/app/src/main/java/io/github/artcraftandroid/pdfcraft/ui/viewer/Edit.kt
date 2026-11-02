@@ -482,7 +482,8 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
     val ppp = doc.viewer.pixelsPerPoint(para.page)
     val focus = remember { FocusRequester() }
     var value by remember(para) {
-        mutableStateOf(TextFieldValue(para.text, if (vm.edit.editSelectAll) TextRange(0, para.text.length) else TextRange(para.text.length)))
+        val draft = vm.edit.editDraft ?: para.text
+        mutableStateOf(TextFieldValue(draft, if (vm.edit.editSelectAll) TextRange(0, draft.length) else TextRange(draft.length)))
     }
     LaunchedEffect(para) { runCatching { focus.requestFocus() } }
     val ime = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(density)
@@ -511,11 +512,7 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
     val paragraphLabel = stringResource(R.string.edit_paragraph_text)
     val fontPx = para.size * ppp
     val sp = with(density) { (fontPx / fontScale).toSp() }
-    val family = when (vm.edit.editFont[para.page to para.number] ?: baseFont(para.font)) {
-        "times" -> FontFamily.Serif
-        "courier" -> FontFamily.Monospace
-        else -> FontFamily.SansSerif
-    }
+    val family = editorFamily(vm.edit.editFont[para.page to para.number] ?: para.font, rememberEditorFonts(vm, doc, para.page))
     with(density) {
         Box(
             Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.width((b.x - a.x).toDp()).heightIn(min = (b.y - a.y).toDp())

@@ -60,6 +60,21 @@ class EngineToolsDeviceTest {
         call("doc_save", "doc" to doc.toLong(), "path" to it.absolutePath, "full" to true)
     }
 
+    /** Turn generated test text into ordinary source content, without changing its glyphs/fonts.
+     * Equal-length private-key renames preserve PDF byte offsets. Not a production file operation. */
+    private fun ordinarySource(doc: ULong): ULong {
+        val file = save(doc, "source-${doc}.pdf")
+        val bytes = file.readBytes()
+        val data = bytes.toString(Charsets.ISO_8859_1)
+        assertTrue("fixture must contain the added-object marker", data.contains("/PCAdded"))
+        val source = data.replace("/PCAdded", "/QAAdded").replace("/PCMark", "/QAMark").toByteArray(Charsets.ISO_8859_1)
+        assertEquals(bytes.size, source.size)
+        file.writeBytes(source)
+        return session.open(file.absolutePath, null).id.also {
+            assertEquals(0, call("content_list", "doc" to it.toLong(), "page" to 1).getJSONArray("items").length())
+        }
+    }
+
     private fun picture(name: String = "picture.png", color: Int = Color.BLUE): File {
         val file = File(dir, name)
         val bitmap = Bitmap.createBitmap(100, 80, Bitmap.Config.ARGB_8888)
@@ -90,6 +105,126 @@ class EngineToolsDeviceTest {
         }
         call("edit_undo", "doc" to doc.toLong())
         assertTrue(call("content_list", "doc" to doc.toLong(), "page" to 1).toString().contains("اختبار العربية"))
+    }
+
+    @Test fun documentFontsRemainOriginalWhileEditingAndAfterReopen() {
+        val fontFile = File(dir, "Inter-Regular.ttf")
+        context.resources.openRawResource(R.font.inter_regular).use { input -> fontFile.outputStream().use { input.copyTo(it) } }
+        for ((before, after) in listOf("Original English text" to "Edited English text", "نص عربي أصلي" to "نص عربي معدل")) {
+            var doc = blank()
+            text(doc, before, 22)
+            if (before.startsWith("Original")) {
+                val resource = call("text_font_import", "doc" to doc.toLong(), "page" to 1, "path" to fontFile.absolutePath).getString("resource")
+                call("text_paragraphs", "doc" to doc.toLong(), "page" to 1)
+                call("text_edit", "doc" to doc.toLong(), "page" to 1, "paragraph" to 1, "font_resource" to resource, "text" to before)
+            }
+            doc = ordinarySource(doc)
+            fun paragraph(id: ULong) = call("text_paragraphs", "doc" to id.toLong(), "page" to 1).getJSONArray("paragraphs").getJSONObject(0)
+            val originalFont = paragraph(doc).getString("font")
+            save(doc, "ui-original.pdf").copyTo(File(context.getExternalFilesDir(null),
+                if (before.startsWith("Original")) "font-ui-english.pdf" else "font-ui-arabic.pdf"), overwrite = true)
+            val generation = session.document(doc).generation
+            val fonts = session.editorFonts(doc, 0u)
+            assertTrue("embedded document font available for typing: $originalFont", fonts.isNotEmpty())
+            val previews = io.github.artcraftandroid.pdfcraft.ui.viewer.documentEditorTypefaces(fonts)
+            assertTrue(previews.containsKey(io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(originalFont)))
+            assertEquals(generation, session.document(doc).generation)
+            call("text_edit", "doc" to doc.toLong(), "page" to 1, "paragraph" to 1, "text" to after, "preserve_font" to true)
+            val reopened = session.open(save(doc, "font-preserved-${doc}.pdf").absolutePath, null).id
+            assertEquals(io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(originalFont),
+                io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(paragraph(reopened).getString("font")))
+            assertEquals(after, paragraph(reopened).getString("editor_text"))
+            assertTrue(session.renderPage(reopened, 0u, 1f, null).rgba.isNotEmpty())
+        }
+        // Independent reference: the preview face must measure like the packaged source Inter,
+        // rather than Android's default sans-serif used by the old editor.
+        val bytes = fontFile.readBytes()
+        val faces = io.github.artcraftandroid.pdfcraft.ui.viewer.documentEditorTypefaces(listOf(
+            io.github.artcraftandroid.pdfcraft.core.EditorFont("F1", "ABCDEF+Inter-Regular", bytes)))
+        val actual = android.graphics.Paint().apply { textSize = 40f; typeface = faces.getValue("interregular") }.measureText("Wiim original")
+        val expected = android.graphics.Paint().apply { textSize = 40f; typeface = context.resources.getFont(R.font.inter_regular) }.measureText("Wiim original")
+        assertEquals(expected, actual, .1f)
+    }
+
+    @Test fun unavailableOriginalFontDoesNotSilentlyChangeTheSavedParagraph() {
+        val generated = blank()
+        text(generated, "Original English text", 22)
+        val doc = ordinarySource(generated)
+        call("text_paragraphs", "doc" to doc.toLong(), "page" to 1)
+        val before = session.document(doc)
+        try {
+            call("text_edit", "doc" to doc.toLong(), "page" to 1, "paragraph" to 1, "text" to "نص عربي", "preserve_font" to true)
+            fail("Must not substitute Noto for the original Helvetica without an explicit font choice")
+        } catch (e: io.github.artcraftandroid.pdfcraft.core.MobileException) {
+            assertTrue(e.message.orEmpty().contains("complete source font"))
+        }
+        assertEquals(before.generation, session.document(doc).generation)
+        assertEquals(before.undo, session.document(doc).undo)
+        val reopened = session.open(save(doc, "refused-font-change.pdf").absolutePath, null).id
+        assertTrue(session.pagePlainText(reopened, 0u).contains("Original English text"))
+        assertFalse(session.pagePlainText(reopened, 0u).contains("نص عربي"))
+    }
+
+    @Test fun typingRetainsColorSizeWeightItalicAndRowFormattingAfterReopen() {
+        for (arabic in listOf(false, true)) {
+            val original = if (arabic) "النص العربي الأول\nالسطر الثاني" else "Original first line\nSecond line"
+            val edited = if (arabic) original.replace("الأول", "أول") else original.replace("Original", "Edited")
+            val generated = blank()
+            text(generated, original, 22)
+            val doc = ordinarySource(generated)
+            fun paragraph(id: ULong) = call("text_paragraphs", "doc" to id.toLong(), "page" to 1).getJSONArray("paragraphs").getJSONObject(0)
+            paragraph(doc)
+            val fontArgs: Array<Pair<String, Any?>> = if (arabic) {
+                val bold = session.editorFonts(doc, 0u).first { it.resource.startsWith("PCApproved") && it.resource.endsWith("Bold") }
+                val file = File(dir, "Arabic-Bold.ttf").apply { writeBytes(bold.bytes) }
+                val resource = call("text_font_import", "doc" to doc.toLong(), "page" to 1, "path" to file.absolutePath).getString("resource")
+                arrayOf("font_resource" to resource)
+            } else arrayOf("font" to "courier", "bold" to true, "italic" to true)
+            call("text_edit", "doc" to doc.toLong(), "page" to 1, "paragraph" to 1, "text" to original,
+                "size" to 22, "width" to 480, "color" to if (arabic) "#2457AD" else "#AA3344", *fontArgs)
+            val before = paragraph(doc)
+            val firstRun = before.getJSONArray("editor_rows").getJSONObject(0).getJSONArray("runs").getJSONObject(0)
+            assertTrue(firstRun.getBoolean("bold"))
+            assertEquals(!arabic, firstRun.getBoolean("italic"))
+            assertEquals(2, before.getJSONArray("editor_rows").length())
+            call("text_edit", "doc" to doc.toLong(), "page" to 1, "paragraph" to 1, "text" to edited, "preserve_font" to true)
+            val reopened = session.open(save(doc, "format-preserved-${arabic}.pdf").absolutePath, null).id
+            val after = paragraph(reopened)
+            assertEquals(edited, after.getString("editor_text"))
+            for (key in listOf("font", "size", "color")) assertEquals("$key / Arabic=$arabic", before.get(key), after.get(key))
+            val a = before.getJSONArray("editor_rows")
+            val b = after.getJSONArray("editor_rows")
+            assertEquals(a.length(), b.length())
+            for (row in 0 until a.length()) {
+                assertEquals(a.getJSONObject(row).getDouble("baseline"), b.getJSONObject(row).getDouble("baseline"), .01)
+                val sourceRun = a.getJSONObject(row).getJSONArray("runs").getJSONObject(0)
+                val runs = b.getJSONObject(row).getJSONArray("runs")
+                for (i in 0 until runs.length()) for (key in listOf("font", "size", "color", "bold", "italic"))
+                    assertEquals("run $row/$i $key", sourceRun.get(key).toString(), runs.getJSONObject(i).get(key).toString())
+            }
+        }
+    }
+
+    @Test fun retypingAddedTextKeepsItsColorAndFormattingMetadata() {
+        for (arabic in listOf(false, true)) {
+            val doc = blank()
+            val original = if (arabic) "نص عربي ملون" else "Colored English text"
+            text(doc, original, 26)
+            call("content_update", "doc" to doc.toLong(), "page" to 1, "index" to 1,
+                "font" to "courier", "bold" to true, "italic" to true, "color" to "#2457AD", "align" to "center", "char_spacing" to .2)
+            fun item(id: ULong) = call("content_list", "doc" to id.toLong(), "page" to 1).getJSONArray("items").getJSONObject(0)
+            val before = item(doc)
+            assertEquals("#2457AD", before.getString("color"))
+            call("content_update", "doc" to doc.toLong(), "page" to 1, "index" to 1,
+                "text" to if (arabic) "نص عربي جديد" else "Edited English text")
+            val file = save(doc, "added-format-${arabic}.pdf")
+            val reopened = session.open(file.absolutePath, null).id
+            val after = item(reopened)
+            for (key in listOf("font", "size", "color", "bold", "italic", "char_spacing"))
+                assertEquals("$key / Arabic=$arabic", before.get(key), after.get(key))
+            file.copyTo(File(context.getExternalFilesDir(null),
+                if (arabic) "font-ui-arabic-colored.pdf" else "font-ui-english-colored.pdf"), overwrite = true)
+        }
     }
 
     @Test fun imageCropFlipReplaceResizeExportAndHistory() {

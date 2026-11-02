@@ -84,19 +84,17 @@ fun remapInlineRuns(old: String, new: String, runs: List<InlineRun>): List<Inlin
     return result
 }
 
-private fun inlineFamily(name: String): FontFamily = when {
-    name.contains("Mono", true) || name.contains("Courier", true) -> FontFamily.Monospace
-    name.contains("Serif", true) || name.contains("Times", true) || name.contains("Naskh", true) -> FontFamily.Serif
-    else -> FontFamily.SansSerif
-}
-
 /** Fixed source baselines keep unrelated rows still while one row is typed in. */
 @Composable
 fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: Paragraph) {
+    val fonts = rememberEditorFonts(vm, doc, para.page)
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val ppp = doc.viewer.pixelsPerPoint(para.page)
-    val values = remember(para) { mutableStateListOf(*para.rows.map { TextFieldValue(it.text) }.toTypedArray()) }
+    val values = remember(para) {
+        val draftRows = vm.edit.editDraft?.split('\n')?.takeIf { it.size == para.rows.size }
+        mutableStateListOf(*para.rows.mapIndexed { i, row -> TextFieldValue(draftRows?.get(i) ?: row.text) }.toTypedArray())
+    }
     val styles = remember(para) { mutableStateListOf(*para.rows.map { it.runs }.toTypedArray()) }
     var paper by remember(para) { mutableStateOf<Color?>(null) }
     LaunchedEffect(para) { paper = vm.edit.paperColor(doc, para) }
@@ -123,7 +121,7 @@ fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: P
             append(text)
             for (run in styles[index]) if (run.start < run.end && run.end <= length) {
                 addStyle(SpanStyle(color = if (visible) Color(run.rgb[0], run.rgb[1], run.rgb[2]) else Color.Transparent,
-                    fontSize = with(density) { (run.size * ppp * scale).toSp() }, fontFamily = inlineFamily(run.font),
+                    fontSize = with(density) { (run.size * ppp * scale).toSp() }, fontFamily = editorFamily(run.font, fonts),
                     fontWeight = if (run.bold) FontWeight.Bold else FontWeight.Normal,
                     fontStyle = if (run.italic) FontStyle.Italic else FontStyle.Normal), run.start, run.end)
             }
@@ -143,7 +141,7 @@ fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: P
             singleLine = true,
             visualTransformation = transform,
             textStyle = TextStyle(fontSize = with(density) { (first.size * ppp * scale).toSp() },
-                fontFamily = inlineFamily(first.font), color = if (visible) Color(first.rgb[0], first.rgb[1], first.rgb[2]) else Color.Transparent,
+                fontFamily = editorFamily(first.font, fonts), color = if (visible) Color(first.rgb[0], first.rgb[1], first.rgb[2]) else Color.Transparent,
                 textAlign = if (inlineRtl(current.text)) TextAlign.Right else TextAlign.Left,
                 textDirection = TextDirection.Content,
                 platformStyle = PlatformTextStyle(includeFontPadding = false)),

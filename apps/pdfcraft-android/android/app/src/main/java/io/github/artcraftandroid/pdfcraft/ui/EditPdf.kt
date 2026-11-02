@@ -74,9 +74,17 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
             val r = o.optJSONArray("rect") ?: return@mapNotNull null
             val ink = o.optJSONArray("ink_rect") ?: r
             val index = o.optInt("index")
-            Paragraph(page, -index, o.optString("text"),
-                FloatArray(4) { ink.optDouble(it).toFloat() }, o.optString("font"), o.optDouble("size", 12.0).toFloat(),
-                o.optBoolean("bold"), o.optBoolean("italic"), null, addedIndex = index, placementBox = FloatArray(4) { r.optDouble(it).toFloat() })
+            val contentText = o.optString("text")
+            val letters = contentText.filterNot(Char::isWhitespace)
+            val sourceFont = source.firstOrNull {
+                it.text.filterNot(Char::isWhitespace) == letters &&
+                    it.box[0] < ink.optDouble(2) && it.box[2] > ink.optDouble(0) &&
+                    it.box[1] < ink.optDouble(3) && it.box[3] > ink.optDouble(1)
+            }?.font ?: o.optString("font")
+            Paragraph(page, -index, contentText,
+                FloatArray(4) { ink.optDouble(it).toFloat() }, sourceFont, o.optDouble("size", 12.0).toFloat(),
+                o.optBoolean("bold"), o.optBoolean("italic"), o.optString("color").takeIf { it.startsWith("#") },
+                addedIndex = index, placementBox = FloatArray(4) { r.optDouble(it).toFloat() })
         }
         paragraphs[page] = source.filter { inventory == null || it.number in sourceIndexes } + placed
         editSelection?.takeIf { it.page == page }?.let { sel -> editSelection = paragraphs[page]?.firstOrNull { it.number == sel.number } }
@@ -127,6 +135,8 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     /** History can restore another image box or line alignment; discard stale selection geometry. */
     fun historyChanged() {
         editImage = null
+        pendingText.clear()
+        editFont.clear()
         lineAlignments.clear()
         editAlign.clear()
         selectedRows = null
@@ -134,12 +144,23 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     }
     var editSelectAll = false
     var editDraft: String? = null
+    private val pendingText = mutableMapOf<Triple<ULong, Int, Int>, String>()
+    fun paragraphDraft(doc: OpenDocument, para: Paragraph): String =
+        pendingText[Triple(doc.id, para.page, para.number)] ?: para.text
+
+    private fun writeText(doc: OpenDocument, para: Paragraph, text: String) {
+        val key = Triple(doc.id, para.page, para.number)
+        pendingText[key] = text
+        vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text)) {
+            if (pendingText[key] == text) pendingText.remove(key)
+        }
+    }
 
     fun startInlineEdit(para: Paragraph, selectAll: Boolean) {
         alignOnlySelected = false
         selectedRows = if (selectAll) 0 until para.text.split('\n').size else null
         editSelectAll = selectAll
-        editDraft = para.text
+        editDraft = vm.document?.let { paragraphDraft(it, para) } ?: para.text
         editSelection = para
         editing = para
     }
@@ -152,12 +173,12 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         editDraft = null
         selectedRows = null
         alignOnlySelected = false
-        if (text != para.text) vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text))
+        if (text != para.text) writeText(doc, para, text)
     }
 
     private fun paragraphTool(para: Paragraph) = if (para.addedIndex == null) "text_edit" else "content_update"
     private fun paraArgs(para: Paragraph) = mapOf<String, Any?>("page" to para.page + 1) +
-        if (para.addedIndex == null) mapOf("paragraph" to para.number) else mapOf("index" to para.addedIndex)
+        if (para.addedIndex == null) mapOf("paragraph" to para.number, "preserve_font" to true) else mapOf("index" to para.addedIndex)
 
     /** Make [para] a list of [style] (or plain again), with any typing so far. */
     fun listParagraph(doc: OpenDocument, para: Paragraph, style: ListStyle) {
@@ -166,7 +187,7 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         val text = ListStyle.apply(base, style)
         if (text == base) return
         if (typing) editDraft = text
-        vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to text))
+        writeText(doc, para, text)
     }
 
     /** A formatting change to [para], applied to the page at once (with any typing so far). */
@@ -185,7 +206,9 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
             vm.tell(text(R.string.msg_added_text_format_unsupported))
             return
         }
-        vm.runTool(doc, paragraphTool(para), paraArgs(para) + appliedStyle + (if (typed != null) mapOf("text" to typed) else emptyMap()))
+        val fontChoice = if (para.addedIndex == null && style.keys.any { it in setOf("font", "font_resource", "bold", "italic") })
+            mapOf("preserve_font" to false) else emptyMap()
+        vm.runTool(doc, paragraphTool(para), paraArgs(para) + fontChoice + appliedStyle + (if (typed != null) mapOf("text" to typed) else emptyMap()))
     }
 
     /** Move [para] by ([dx], [dy]) points (right and down on screen). */
@@ -224,7 +247,7 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     fun replaceParagraphText(doc: OpenDocument, para: Paragraph, value: String) {
         editing = null
         editDraft = null
-        if (value != para.text) vm.runTool(doc, paragraphTool(para), paraArgs(para) + ("text" to value))
+        if (value != para.text) writeText(doc, para, value)
     }
 
     /** The page's colour just outside [para], for typing over it. */
