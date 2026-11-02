@@ -119,13 +119,14 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         preview = FontPreview(font, face, matching = matching); sheet = FontSheet.Preview
     }
     fun choose(font: StoredDocumentFont) = work { prepare(font.file) }
-    fun download(font: DownloadableFont) = work {
+    fun downloadGroup(fonts: List<DownloadableFont>) = work {
         val token = operation
-        val out = try {
-            withContext(Dispatchers.IO) { cacheDocumentFont(font, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) }) }
+        try {
+            withContext(Dispatchers.IO) { cacheDocumentFonts(fonts, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) }) }
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) { throw IllegalStateException(text(R.string.font_download_failed), e) }
-        prepare(out)
+        loadStored()
+        preview = null; sheet = FontSheet.Library
     }
 
     /** Recover only a refused font-preserving edit; never pick a substitute automatically. */
@@ -143,7 +144,8 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
                 val token = operation
                 try {
                     withContext(Dispatchers.IO) {
-                        cacheDocumentFont(font, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) })
+                        cacheDocumentFonts(catalog.filter { it.family == font.family }, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) })
+                        File(directory, "${font.id}.ttf")
                     }
                 } catch (e: CancellationException) { throw e }
                 catch (e: Exception) { throw IllegalStateException(text(R.string.font_download_failed), e) }

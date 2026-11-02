@@ -30,6 +30,8 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
     val target = manager.target?.takeIf { it.doc === doc } ?: return
     val colors = pdfColors
     val licenseLabel = stringResource(R.string.font_source_license)
+    val regularLabel = stringResource(R.string.font_regular)
+    val boldLabel = stringResource(R.string.font_bold)
     val preview = manager.preview
     val title = when (manager.sheet) {
         FontSheet.Downloads -> R.string.font_downloads
@@ -58,13 +60,18 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
                 }
                 FontSheet.Downloads -> {
                     Text(stringResource(R.string.font_catalog_hint), fontSize = 13.sp)
-                    manager.catalog.sortedBy { !it.arabic }.forEach { font ->
+                    TextButton(onClick = { manager.downloadGroup(manager.catalog) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.font_download_all), color = colors.toolAccent)
+                    }
+                    manager.catalog.sortedBy { !it.arabic }.groupBy { it.family }.forEach { (family, fonts) ->
+                        val font = fonts.first()
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { manager.download(font) }, modifier = Modifier.weight(1f)) {
+                            TextButton(onClick = { manager.downloadGroup(fonts) }, modifier = Modifier.weight(1f)) {
                                 Column {
-                                    Text(font.family + " — " + stringResource(if (font.style == "Bold") R.string.font_bold else R.string.font_regular), color = colors.text)
-                                    Text(if (java.io.File(manager.directory, "${font.id}.ttf").isFile) stringResource(R.string.font_downloaded)
-                                        else "${font.size / 1024} KB", color = colors.toolAccent, fontSize = 12.sp)
+                                    Text(family, color = colors.text)
+                                    Text(fonts.joinToString("، ") { if (it.style == "Bold") boldLabel else regularLabel }, color = colors.textSecondary, fontSize = 12.sp)
+                                    Text(if (fonts.all { java.io.File(manager.directory, "${it.id}.ttf").isFile && java.io.File(manager.directory, "${it.id}-OFL.txt").isFile }) stringResource(R.string.font_downloaded)
+                                        else "${fonts.sumOf { it.size } / 1024} KB", color = colors.toolAccent, fontSize = 12.sp)
                                 }
                             }
                             TextButton(onClick = { vm.intents.trySend(Intent(Intent.ACTION_VIEW, font.sourceUrl.toUri())) },

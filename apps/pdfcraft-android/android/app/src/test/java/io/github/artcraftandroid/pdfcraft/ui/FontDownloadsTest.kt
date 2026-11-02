@@ -57,4 +57,35 @@ class FontDownloadsTest {
         assertFalse(needsOriginalFont(Exception("font is invalid")))
     }
 
+    @Test fun groupDownloadResumesAfterFailureAndReusesCompletedFacesOffline() = runBlocking {
+        val directory = Files.createTempDirectory("font-group-cache").toFile()
+        val terms = "OFL".toByteArray()
+        val data = mapOf("Sample-Regular" to "regular".toByteArray(),"Sample-Bold" to "bold".toByteArray())
+        val fonts = data.map { (id,bytes) -> DownloadableFont(id,"Sample",id.substringAfter('-'),false,
+            "ofl/sample/$id.ttf",fontDigest(bytes),bytes.size,"ofl/sample/OFL.txt",fontDigest(terms),"a".repeat(40)) }
+        val progress = mutableListOf<Float>()
+        val transfer: FontTransfer = { url,_,_,_,_ ->
+            if (url.endsWith("OFL.txt")) terms else data.getValue(url.substringAfterLast('/').removeSuffix(".ttf"))
+        }
+        try {
+            try {
+                cacheDocumentFonts(fonts,directory,transfer = { url,a,b,c,d ->
+                    if (url.endsWith("Sample-Bold.ttf")) error("connection lost")
+                    transfer(url,a,b,c,d)
+                })
+                fail("Must report interrupted family")
+            } catch (_: IllegalStateException) { }
+            assertTrue(java.io.File(directory,"Sample-Regular.ttf").isFile)
+            assertFalse(java.io.File(directory,"Sample-Bold.ttf").isFile)
+            val files = cacheDocumentFonts(fonts,directory,{progress += it},transfer = { url,a,b,c,d ->
+                assertFalse("Completed regular must not download twice",url.endsWith("Sample-Regular.ttf"))
+                transfer(url,a,b,c,d)
+            })
+            assertEquals(2,files.size)
+            assertEquals(1f,progress.last(),0f)
+            assertTrue(progress.zipWithNext().all { (a,b) -> b >= a })
+            assertEquals(files,cacheDocumentFonts(fonts,directory,transfer = { _,_,_,_,_ -> error("offline") }))
+        } finally { directory.deleteRecursively() }
+    }
+
 }

@@ -14,15 +14,16 @@
     <string name="font_document_changed">The document changed. Select the paragraph again.</string>
     <string name="font_applied">The selected font is ready in this document.</string>
     <string name="font_empty">Import a font from your phone or download one from the library.</string>
-    <string name="font_catalog_hint">Arabic and English fonts from Google Fonts. Download once, then use them offline. A different family is applied only after preview and confirmation.</string>
+    <string name="font_catalog_hint">Download each family with all available weights, or install the whole collection at once. Saved fonts work offline. Choose a weight from saved fonts to preview it.</string>
     <string name="font_source_license">Source and OFL licence</string>
     <string name="font_regular">Regular</string>
     <string name="font_bold">Bold</string>
-    <string name="font_downloaded">Saved • Preview</string>
+    <string name="font_downloaded">Family saved</string>
     <string name="font_cancel_work">Cancel</string>
     <string name="font_working">Preparing font…</string>
     <string name="font_download_progress">Downloading font… %1$d%%</string>
     <string name="font_unsupported">The selected font cannot show all the characters in this text. Choose another font.</string>
     <string name="font_download_failed">The font could not be downloaded or verified. Check your connection and try again.</string>
     <string name="font_original_unavailable">The original font %1$s is not available for automatic download. Import its complete TTF/OTF file, or preview a replacement. Your edit is kept.</string>
+    <string name="font_download_all">Download all font families</string>
 </resources>

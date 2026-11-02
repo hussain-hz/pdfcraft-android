@@ -14,15 +14,16 @@
     <string name="font_document_changed">El documento cambió. Selecciona el párrafo de nuevo.</string>
     <string name="font_applied">La fuente seleccionada está disponible en este documento.</string>
     <string name="font_empty">Importa una fuente del teléfono o descárgala de la biblioteca.</string>
-    <string name="font_catalog_hint">Fuentes árabes e inglesas de Google Fonts. Se descargan una vez y funcionan sin conexión. Las sustituciones requieren vista previa y confirmación.</string>
+    <string name="font_catalog_hint">Descarga cada familia con todos sus estilos o instala la colección completa. Las fuentes guardadas funcionan sin conexión. Elige un estilo guardado para previsualizarlo.</string>
     <string name="font_source_license">Origen y licencia OFL</string>
     <string name="font_regular">Normal</string>
     <string name="font_bold">Negrita</string>
-    <string name="font_downloaded">Guardada • Vista previa</string>
+    <string name="font_downloaded">Familia guardada</string>
     <string name="font_cancel_work">Cancelar</string>
     <string name="font_working">Preparando fuente…</string>
     <string name="font_download_progress">Descargando fuente… %1$d%%</string>
     <string name="font_unsupported">La fuente seleccionada no admite todos los caracteres del texto. Elige otra fuente.</string>
     <string name="font_download_failed">No se pudo descargar o verificar la fuente. Comprueba la conexión e inténtalo de nuevo.</string>
     <string name="font_original_unavailable">La fuente original %1$s no está disponible para descarga automática. Importa su archivo TTF/OTF completo o previsualiza otra fuente. Se conserva tu edición.</string>
+    <string name="font_download_all">Descargar todas las familias</string>
 </resources>

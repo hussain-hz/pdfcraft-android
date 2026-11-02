@@ -75,3 +75,19 @@ then saves/reopens and checks the original face, text, color and size. All three
 instrumentation tests pass, including the existing download/coverage/integrity/Undo checks.
 
 Final recovery validation: 101 JVM tests and all 18 emulator instrumentation tests pass.
+
+## Grouped font installation
+
+The download catalog now shows one entry per family, containing every catalogued weight, plus
+one button to install the complete catalog. Group downloads share aggregate byte progress and
+reuse each verified cached face/licence, including after interruption; a family is displayed as
+saved only when all its face/licence files are present. Installing a group opens Saved fonts for
+explicit face preview and selection, without changing the PDF. Automatic missing-font recovery
+also downloads the matching family together when it needs a remote face, then imports only the
+exact original face for its edit retry.
+
+Tests cover interrupted family download/resume without retransferring completed faces and
+fully offline reuse. Device coverage downloads all six real catalogued fonts, checks their digests,
+licences and native glyph support, and repeats the complete operation without network access.
+
+Grouped-download validation: 102 JVM tests and 19 emulator instrumentation tests pass.

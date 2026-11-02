@@ -138,4 +138,24 @@ class FontDownloadsDeviceTest {
         }
     }
 
+    @Test fun completeCollectionDownloadsAndRemainsUsableOffline() = runBlocking {
+        val directory = File(context.getExternalFilesDir(null), "font-group-qa/${System.nanoTime()}").apply { mkdirs() }
+        val catalog = readFontCatalog(context.assets.open("font-catalog.json").bufferedReader().use { it.readText() })
+        val progress = mutableListOf<Float>()
+        val files = withContext(Dispatchers.IO) { cacheDocumentFonts(catalog,directory,{ progress += it }) }
+        assertEquals(6,files.size)
+        assertEquals(3,catalog.groupBy { it.family }.size)
+        assertEquals(1f,progress.last(),0f)
+        assertTrue(progress.zipWithNext().all { (a,b) -> b >= a })
+        val session = MobileSession()
+        try {
+            files.zip(catalog).forEach { (file,font) ->
+                assertEquals(font.sha256,fontDigest(file.readBytes()))
+                assertTrue(File(directory,"${font.id}-OFL.txt").isFile)
+                assertTrue(call(session,"text_font_check","path" to file.absolutePath,"text" to if(font.arabic) "نص عربي" else "Sample").getBoolean("supported"))
+            }
+            assertEquals(files,cacheDocumentFonts(catalog,directory,transfer = { _,_,_,_,_ -> error("offline") }))
+        } finally { session.close() }
+    }
+
 }

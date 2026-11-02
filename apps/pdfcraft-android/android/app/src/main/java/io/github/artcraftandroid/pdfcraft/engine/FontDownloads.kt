@@ -97,3 +97,18 @@ fun matchingOriginalFont(source: String, fonts: List<DownloadableFont>): Downloa
 
 fun needsOriginalFont(error: Throwable): Boolean =
     generateSequence(error) { it.cause }.take(8).any { it.message?.contains("preserving this font", ignoreCase = true) == true }
+
+/** A family or the whole catalog is one resumable operation; completed verified faces are reused. */
+suspend fun cacheDocumentFonts(fonts: List<DownloadableFont>, directory: File, progress: (Float) -> Unit = {},
+    transfer: FontTransfer = ::fetchFontBytes): List<File> {
+    require(fonts.isNotEmpty() && fonts.distinctBy { it.id }.size == fonts.size)
+    val total = fonts.sumOf { it.size.toLong() }.toFloat()
+    var completed = 0L
+    return fonts.map { font ->
+        coroutineContext.ensureActive()
+        val file = cacheDocumentFont(font, directory, { progress((completed + it.coerceIn(0f, 1f) * font.size) / total) }, transfer)
+        completed += font.size
+        progress(completed / total)
+        file
+    }
+}

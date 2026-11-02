@@ -14,15 +14,16 @@
     <string name="font_document_changed">تغيّر المستند. حدّد الفقرة من جديد.</string>
     <string name="font_applied">تم تطبيق الخط المختار في المستند.</string>
     <string name="font_empty">استورد خطًا من الجوال أو نزّل أحد الخطوط من المكتبة.</string>
-    <string name="font_catalog_hint">خطوط عربية وإنجليزية من Google Fonts. تُنزّل مرة واحدة وتُستخدم دون اتصال. لا يُطبق الخط البديل إلا بعد المعاينة واختيارك.</string>
+    <string name="font_catalog_hint">نزّل عائلة الخط بجميع أوزانها المتاحة، أو ثبّت المجموعة كاملة دفعة واحدة. تعمل الخطوط المحفوظة دون اتصال. اختر الوزن من الخطوط المحفوظة لمعاينته.</string>
     <string name="font_source_license">المصدر وترخيص OFL</string>
     <string name="font_regular">عادي</string>
     <string name="font_bold">عريض</string>
-    <string name="font_downloaded">محفوظ • معاينة</string>
+    <string name="font_downloaded">المجموعة محفوظة</string>
     <string name="font_cancel_work">إلغاء</string>
     <string name="font_working">جارٍ تجهيز الخط…</string>
     <string name="font_download_progress">جارٍ تنزيل الخط… ‎%1$d%%</string>
     <string name="font_unsupported">الخط المختار لا يدعم جميع حروف النص. اختر خطًا آخر.</string>
     <string name="font_download_failed">تعذّر تنزيل الخط أو التحقق منه. تحقق من الاتصال وحاول مجددًا.</string>
     <string name="font_original_unavailable">الخط الأصلي %1$s غير متوفر للتنزيل التلقائي. استورد ملفه الكامل TTF أو OTF، أو عاين خطًا بديلًا. تعديلك محفوظ للمحاولة مجددًا.</string>
+    <string name="font_download_all">تنزيل جميع مجموعات الخطوط</string>
 </resources>
