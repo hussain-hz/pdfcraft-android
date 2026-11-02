@@ -2,6 +2,7 @@ package io.github.artcraftandroid.pdfcraft.ui
 
 import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
@@ -13,6 +14,9 @@ import io.github.artcraftandroid.pdfcraft.ui.viewer.FieldEdit
 import io.github.artcraftandroid.pdfcraft.ui.viewer.PagePoint
 import io.github.artcraftandroid.pdfcraft.ui.viewer.ViewerSheet
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import io.github.artcraftandroid.pdfcraft.core.MobileException
+import io.github.artcraftandroid.pdfcraft.engine.userMessage
 
 /** Filling in a document's form: its fields and buttons, and the words typed into fields before. */
 class FormFilling internal constructor(private val vm: AppViewModel) {
@@ -57,7 +61,7 @@ class FormFilling internal constructor(private val vm: AppViewModel) {
     /**
      * A form button: does what its release action says, as far as a reader does on a phone:
      * clear the form (or the fields it names), open a web address after asking, or go to a page.
-     * Scripts and sending the form online aren't run.
+     * Form scripts run in the engine sandbox; web links still ask before opening.
      */
     private fun pressButton(doc: OpenDocument, w: io.github.artcraftandroid.pdfcraft.core.WidgetInfo) {
         val eng = vm.engine ?: return
@@ -69,18 +73,43 @@ class FormFilling internal constructor(private val vm: AppViewModel) {
             when {
                 act.has("reset") -> {
                     val names = act.optJSONArray("reset")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
-                    vm.runTool(doc, "form_reset", if (names.isEmpty()) emptyMap() else mapOf("fields" to names)) { vm.tell(text(R.string.msg_form_cleared)) }
+                    vm.runTool(doc, "form_reset", if (names.isEmpty()) emptyMap() else mapOf("fields" to names)) { scriptOutput(doc,it); vm.tell(text(R.string.msg_form_cleared)) }
                 }
                 act.has("url") -> vm.linkPrompt = act.optString("url")
                 act.has("page") -> doc.viewer.goToPage((act.optInt("page") - 1).coerceIn(0, doc.pageCount - 1))
                 act.has("submit") -> vm.tell(text(R.string.msg_button_submit))
-                act.has("javascript") -> vm.tell(text(R.string.msg_button_script))
+                act.has("javascript") -> vm.runTool(doc,"js_run",mapOf("field" to w.field,"script" to act.optString("javascript"))) { scriptOutput(doc,it) }
             }
         }
     }
 
     fun fillField(doc: OpenDocument, field: String, value: Any) {
-        vm.runTool(doc, "form_fill", mapOf("values" to mapOf(field to value)))
+        vm.runTool(doc,"form_fill",mapOf("values" to mapOf(field to value)),onError={
+            if(it is MobileException && vm.document === doc) {showScriptAlert(it.userMessage);true} else false
+        }) {scriptOutput(doc,it)}
+    }
+
+    val scriptAlerts = mutableStateListOf<String>()
+    private fun showScriptAlert(message:String) { if(message.isNotBlank() && scriptAlerts.size<20) scriptAlerts.add(message) }
+    fun dismissScriptAlert() {if(scriptAlerts.isNotEmpty()) scriptAlerts.removeAt(0)}
+    private fun scriptOutput(doc:OpenDocument,result:JSONObject) {
+        if(vm.document !== doc) return
+        result.optString("error").takeIf {it.isNotEmpty() && it!="null"}?.let {android.util.Log.w("PdfCraft","form script: $it")}
+        result.optJSONArray("alerts")?.let {a -> for(i in 0 until a.length()) {
+            val item=a.opt(i)
+            val message=if(item is JSONObject) item.optString("message") else item as? String ?: ""
+            showScriptAlert(message)
+        }}
+        val requests=result.optJSONArray("requests") ?: return
+        for(i in 0 until requests.length()) {
+            val request=requests.optJSONObject(i) ?: continue
+            when {
+                request.has("page") -> doc.viewer.goToPage((request.optInt("page")-1).coerceIn(0,doc.pageCount-1))
+                request.has("url") -> vm.linkPrompt=request.optString("url")
+                request.has("print") -> vm.print(doc)
+                request.has("submit") -> vm.tell(text(R.string.msg_button_submit))
+            }
+        }
     }
 
     /** Move to the next (or previous) fillable text or choice field in reading order. */

@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Scan: taking pages with the camera app, and saving them as a PDF (or into the open one). The camera also serves Edit PDF's Add image. */
-class Scanner internal constructor(private val vm: AppViewModel) {
+class Scanner internal constructor(private val vm: AppViewModel, private val saved: androidx.lifecycle.SavedStateHandle) {
     private val app: Application get() = vm.getApplication()
 
     /** Photos for Scan: the activity has the camera app write each into this file. */
@@ -48,10 +48,43 @@ class Scanner internal constructor(private val vm: AppViewModel) {
     /** Scan's pages go into this document at this (1-based) position instead of a new PDF. */
     var insertScanAt: Pair<OpenDocument, Int>? = null
 
-    fun openCameraIfNeeded() { if(!cameraStarted && scanPages.isEmpty() && !receiving) takeScanPhoto() }
+    private var restoringText:String?=saved.get<android.os.Bundle>("scan")?.getString("scan")
+    private var restoreJob:Job?=null
+    private var restoredIndexes:Map<Int,Int>?=null
+    init {
+        saved.setSavedStateProvider("scan") { android.os.Bundle().apply {putString("scan",restoringText ?: snapshot()?.encode())} }
+    }
+    internal fun snapshot():ScanSession? {
+        if(shotFile==null && scanPages.isEmpty()) return null
+        return ScanSession(shotFile?.path,retakeIndex,vm.edit.imageShot,scanName,
+            scanPages.map {ScanSession.Page(it.file.path,it.corners,it.found,it.filter,it.strength,it.rotation)},makeSearchable,insertScanAt!=null)
+    }
+    private fun ownedFile(path:String):File?=runCatching {
+        val file=File(path).canonicalFile
+        file.takeIf {it.parentFile==File(app.cacheDir,"camera").canonicalFile}
+    }.getOrNull()
+    internal fun restore() {
+        val state=ScanSession.decode(restoringText) ?: run {restoringText=null;return}
+        shotFile=state.shot?.let(::ownedFile);retakeIndex=state.retake;vm.edit.imageShot=state.forImage
+        scanName=state.name;makeSearchable=state.searchable;cameraStarted=true;shotSession=session
+        restoreJob=vm.viewModelScope.launch {
+            val restored=withContext(Dispatchers.IO) {state.pages.mapIndexedNotNull {index,page ->
+                val file=ownedFile(page.path) ?: return@mapIndexedNotNull null
+                try {index to ScanPage(file,thumbnail(file),page.corners,page.found,page.filter,page.strength,page.rotation)}
+                catch(e:CancellationException) {throw e} catch(_:Exception) {null}
+            }}
+            restoredIndexes=restored.mapIndexed {new,pair ->pair.first to new}.toMap()
+            scanPages.addAll(restored.map {it.second});restoringText=null
+            if(scanPages.isNotEmpty() && vm.toolScreen==null) vm.toolScreen=ToolScreen.Scan
+            if(state.forInsert && scanPages.isNotEmpty()) vm.tell(text(R.string.scan_restored_as_new))
+        }
+    }
+
+    fun openCameraIfNeeded() { if(restoreJob?.isActive!=true && !cameraStarted && scanPages.isEmpty() && !receiving) takeScanPhoto() }
 
     fun takeScanPhoto(retake: Int? = null) {
         cameraStarted = true
+        restoredIndexes = null
         val dir = File(app.cacheDir, "camera").apply { mkdirs() }
         val f = File(dir, "scan-${System.nanoTime()}.jpg")
         shotFile = f
@@ -78,7 +111,12 @@ class Scanner internal constructor(private val vm: AppViewModel) {
         }
         vm.viewModelScope.launch {
             receiving = true
-            try { acceptPhoto(f, at, token) }
+            try {
+                restoreJob?.join()
+                val mapped=if(restoredIndexes!=null) at?.let {restoredIndexes?.get(it)} else at
+                acceptPhoto(f, mapped, token)
+                restoredIndexes=null
+            }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { f.delete(); vm.tell(e.userMessage) }
             finally { receiving = false }
@@ -112,9 +150,9 @@ class Scanner internal constructor(private val vm: AppViewModel) {
         }
     }
 
-    private suspend fun acceptPhoto(file: File, at: Int?, token: Long) {
+    private suspend fun thumbnail(file:File):ImageBitmap {
         require(file.length() <= 32*1024*1024) { text(R.string.scan_photo_limit) }
-        val bitmap = withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds=true }
             android.graphics.BitmapFactory.decodeFile(file.absolutePath,bounds)
             require(bounds.outWidth > 0 && bounds.outHeight > 0) { text(R.string.scan_photo_invalid) }
@@ -125,6 +163,10 @@ class Scanner internal constructor(private val vm: AppViewModel) {
             val decoded = requireNotNull(android.graphics.BitmapFactory.decodeFile(file.absolutePath,options)) { text(R.string.scan_photo_invalid) }
             orientScanThumbnail(file,decoded).asImageBitmap()
         }
+    }
+
+    private suspend fun acceptPhoto(file: File, at: Int?, token: Long) {
+        val bitmap = thumbnail(file)
         if (token != session) { file.delete(); return }
         require(at != null || scanPages.size < 50) { text(R.string.scan_page_limit) }
         val previous = at?.let { scanPages.getOrNull(it) }
@@ -185,6 +227,7 @@ class Scanner internal constructor(private val vm: AppViewModel) {
 
     fun discardScan() {
         session++; cameraStarted=false
+        restoreJob?.cancel();restoreJob=null;restoringText=null;restoredIndexes=null;shotFile=null;retakeIndex=null
         scanPages.forEach { it.file.delete() }
         scanPages.clear()
         scanName = ""

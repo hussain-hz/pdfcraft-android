@@ -149,6 +149,11 @@ fun AppRoot(vm: AppViewModel, onBrowse: () -> Unit, onPickSignatureImage: () -> 
                 Text(stringResource(R.string.root_open_link_body, shown), color = c.text, fontSize = 14.sp)
             }
         }
+        vm.forms.scriptAlerts.firstOrNull()?.let { message ->
+            PdfDialog(onDismiss=vm.forms::dismissScriptAlert,title=null,confirm=stringResource(R.string.common_ok),onConfirm=vm.forms::dismissScriptAlert,dismiss=null) {
+                Text(message,color=c.text,fontSize=14.sp)
+            }
+        }
         vm.confirmDeleteAllBookmarks?.let { d ->
             PdfDialog(
                 onDismiss = { vm.confirmDeleteAllBookmarks = null }, title = stringResource(R.string.root_delete_bookmarks_title),

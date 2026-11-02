@@ -366,7 +366,8 @@ class ReadAloud(
         // keep the place for next time (the reference offers to resume); a finished reading starts over
         if (key.isNotEmpty()) {
             prefs(prefsCtx).edit {
-                if (finished) remove("pos:$key") else putString("pos:$key", "$page,$index,$offset")
+                val (p, i, o) = if (finished) START_OVER else Triple(page,index,offset)
+                putString("pos:$key", "$p,$i,$o")
             }
         }
         runCatching {
@@ -393,6 +394,7 @@ class ReadAloud(
     }
 
     companion object {
+        val START_OVER = Triple(0,0,0)
         val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
         /** A voice's pace at 1.0x, for turning 15 seconds into words. */
         private const val WORDS_PER_MINUTE = 128f

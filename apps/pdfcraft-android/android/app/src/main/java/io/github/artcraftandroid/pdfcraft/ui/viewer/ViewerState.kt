@@ -133,6 +133,18 @@ class ViewerState(pages: List<PageSize>) {
     var fitButtonVisible by mutableStateOf(false)
         private set
 
+    /**
+     * Zoom in ([steps] > 0) or out by [ZOOM_STEP] a step about [focus], as the zoom buttons, Ctrl
+     * and the wheel, and Ctrl and + or − do; a single page back at fit-width settles on its slot.
+     */
+    fun zoomStep(steps: Int, focus: Offset) {
+        zoomTo(zoom + steps * ZOOM_STEP, focus)
+        if (mode == PageMode.SinglePage && zoom <= MIN_ZOOM + 0.001f) goToPage(currentPage)
+    }
+
+    val canZoomIn: Boolean get() = zoom < maxZoom - 0.001f
+    val canZoomOut: Boolean get() = zoom > minZoom + 0.001f
+
     /** Zoom by [factor] about screen point [focus]. */
     fun zoomBy(factor: Float, focus: Offset) = zoomTo(zoom * factor, focus)
 
@@ -245,6 +257,18 @@ class ViewerState(pages: List<PageSize>) {
         return PagePoint(i, ((lx - r.left) / s).coerceIn(0f, pages[i].width), ((ly - r.top) / s).coerceIn(0f, pages[i].height))
     }
 
+    /** Screen point [p] in page [page]'s points, held to the page (a drag that leaves the page). */
+    fun screenToPageOf(page: Int, p: Offset): PagePoint? {
+        val l = layout
+        val r = l.rects.getOrNull(page) ?: return null
+        val size = pages.getOrNull(page) ?: return null
+        val s = l.scaleOf(page)
+        if (s <= 0f) return null
+        val lx = (p.x + scrollX) / zoom
+        val ly = (p.y + scrollY) / zoom
+        return PagePoint(page, ((lx - r.left) / s).coerceIn(0f, size.width), ((ly - r.top) / s).coerceIn(0f, size.height))
+    }
+
     /** Screen position of a point on page [page] given in its points. */
     fun pageToScreen(page: Int, x: Float, y: Float): Offset {
         val l = layout
@@ -335,6 +359,7 @@ class ViewerState(pages: List<PageSize>) {
         const val LOWRES_BELOW = 0.6f
         const val LOWRES_LEVEL = -1
         const val MAX_ZOOM = 10f
+        const val ZOOM_STEP = 0.25f
         const val TILE = 512
         const val LEVEL_STEP = 1.4142135f
         private const val SNAP_VELOCITY = 400f

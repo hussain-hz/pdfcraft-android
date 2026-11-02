@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_search_count">Número de resultados de búsqueda</string>
+    <string name="home_search_count_body">Muestra el resultado actual y el total, por ejemplo 3 de 12.</string>
+    <string name="viewer_search_count">%1$d de %2$d</string>
+    <string name="viewer_read_from_here">Leer desde aquí</string>
+    <string name="viewer_zoom_in">Acercar</string>
+    <string name="viewer_zoom_out">Alejar</string>
+    <string name="scan_restored_as_new">Se recuperaron las páginas escaneadas. Guárdalas como un PDF nuevo antes de insertarlas en otro documento.</string>
+</resources>

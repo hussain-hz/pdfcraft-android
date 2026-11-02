@@ -29,7 +29,7 @@ class ScanReviewDeviceTest {
         return File(dir,name).also { file -> file.outputStream().use {bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}; bitmap.recycle() }
     }
     private suspend fun model(store:ViewModelStore):AppViewModel {
-        val vm=withContext(Dispatchers.Main) {AppViewModel(context.applicationContext as PdfcraftApplication).also {store.put("scan",it)}}
+        val vm=withContext(Dispatchers.Main) {AppViewModel(context.applicationContext as PdfcraftApplication, androidx.lifecycle.SavedStateHandle()).also {store.put("scan",it)}}
         withTimeout(60000) {while(withContext(Dispatchers.Main) {vm.engine==null}) delay(50)}
         return vm
     }

@@ -176,6 +176,10 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
 
     val search = doc.search
     val selection = doc.selection
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    val desktop = remember(config) { isDesktop(context, config) }
+    val zoomButtons = remember(doc) { ZoomButtonsState(scope) }
+    LaunchedEffect(ctl.barsVisible) { if (!ctl.barsVisible) zoomButtons.hide() }
     val canvasLook = CanvasLook(background = c.desk, pageShadow = c.pageEdge, invert = ctl.nightMode, paper = c.paper)
 
     BackHandler(enabled = ctl.searching || ctl.tool != ViewerTool.None || selection.selection != null) {
@@ -217,6 +221,10 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
                     vm.forms.tapField(doc, at) -> Unit
                     vm.tapComment(doc, at) -> Unit
                     vm.tapLink(doc, at) -> Unit
+                    vm.readAloud != null && at != null && ctl.tool == ViewerTool.None -> scope.launch {
+                        val slop = 12f / doc.viewer.pixelsPerPoint(at.page).coerceAtLeast(.1f) * density.density
+                        if (!vm.readAloudAt(doc, at, slop)) ctl.toggleBars()
+                    }
                     doc.viewer.mode == PageMode.SinglePage && doc.viewer.zoom <= 1.01f && edgeTap(p.x, doc.viewer.viewW) != 0 -> {
                         doc.viewer.goToPage(doc.viewer.currentPage + edgeTap(p.x, doc.viewer.viewW))
                         ctl.barsVisible = false
@@ -226,6 +234,13 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
             },
             // a double tap zooms with the bars out of the way, as the reference's does
             onDoubleTap = { if (ctl.tool == ViewerTool.None && !ctl.searching) ctl.barsVisible = false },
+            onMouseSelect = if (ctl.tool == ViewerTool.None) selection::selectSpan else null,
+            onMouseHover = { p ->
+                val v=doc.viewer
+                val corner=with(density) { p.x > v.viewW-ZOOM_CORNER_WIDTH.toPx() && p.y > v.viewH-ZOOM_CORNER_HEIGHT.toPx() }
+                if(desktop && corner) zoomButtons.poke()
+            },
+            onWheelZoom = { if(desktop) zoomButtons.poke() },
             onLongPress = { p, at ->
                 if (at != null) scope.launch {
                     val slop = 12f / doc.viewer.pixelsPerPoint(at.page).coerceAtLeast(0.1f) * density.density
@@ -305,6 +320,11 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
             }
         }
 
+        if(desktop && !vm.readingMode) ZoomButtons(doc.viewer,
+            visible=ctl.tool==ViewerTool.None && !ctl.searching && (ctl.barsVisible || zoomButtons.showing),
+            bottom=maxOf(122.dp,with(density) {doc.viewer.padBottom.toDp()}+12.dp),
+            onHover={if(!ctl.barsVisible) zoomButtons.poke()},modifier=Modifier.align(Alignment.BottomEnd))
+
         HintToast(hint)
 
         // the file's name in a translucent white chip under the top bar for a moment after it opens
@@ -361,6 +381,11 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
                         onClose = { closeSearch(doc) },
                         onPrev = { search.step(false)?.let { showHit(doc, it) } },
                         onNext = { search.step(true)?.let { showHit(doc, it) } },
+                        // Extra Features: which result is on screen, of how many (still growing while
+                        // the rest of a long document is searched)
+                        count = if (vm.searchCount && search.hits.isNotEmpty()) {
+                            stringResource(R.string.viewer_search_count, (search.current + 1).coerceAtLeast(1), search.hits.size)
+                        } else null,
                     )
                 } else {
                     val fa = vm.forms.fieldActions
