@@ -26,4 +26,7 @@
     <string name="font_download_failed">The font could not be downloaded or verified. Check your connection and try again.</string>
     <string name="font_original_unavailable">The original font %1$s is not available for automatic download. Import its complete TTF/OTF file, or preview a replacement. Your edit is kept.</string>
     <string name="font_download_all">Download all font families</string>
+    <string name="font_phone">Phone fonts</string>
+    <string name="font_phone_hint">Fonts available on this phone that can be embedded in an editable PDF. The matching original font is used automatically before downloading. Other fonts require preview and selection.</string>
+    <string name="font_phone_empty">No supported phone fonts are accessible. Import a complete font or download a font family.</string>
 </resources>

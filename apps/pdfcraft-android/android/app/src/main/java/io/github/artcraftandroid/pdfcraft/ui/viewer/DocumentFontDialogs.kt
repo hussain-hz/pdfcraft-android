@@ -36,6 +36,7 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
     val title = when (manager.sheet) {
         FontSheet.Downloads -> R.string.font_downloads
         FontSheet.Library -> R.string.font_library
+        FontSheet.Phone -> R.string.font_phone
         FontSheet.Preview -> R.string.font_preview
     }
     AlertDialog(onDismissRequest = manager::close, containerColor = colors.menu, titleContentColor = colors.text,
@@ -52,11 +53,20 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
             } else when (manager.sheet) {
                 FontSheet.Library -> {
                     TextButton(onClick = manager::pick, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_import), color = colors.toolAccent) }
+                    TextButton(onClick = manager::phoneFonts, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_phone), color = colors.toolAccent) }
                     TextButton(onClick = manager::downloads, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_downloads), color = colors.toolAccent) }
                     if (manager.stored.isEmpty()) Text(stringResource(R.string.font_empty))
                     manager.stored.forEach { font ->
                         TextButton(onClick = { manager.choose(font) }, modifier = Modifier.fillMaxWidth()) { Text(font.face, color = colors.text) }
                     }
+                }
+                FontSheet.Phone -> {
+                    Text(stringResource(R.string.font_phone_hint), fontSize = 13.sp)
+                    if (manager.phone.isEmpty()) Text(stringResource(R.string.font_phone_empty))
+                    manager.phone.sortedBy { editorFaceKey(it.face) != editorFaceKey(target.para.font) }.forEach { font ->
+                        TextButton(onClick = { manager.choose(font) }, modifier = Modifier.fillMaxWidth()) { Text(font.face, color = colors.text) }
+                    }
+                    TextButton(onClick = manager::library) { Text(stringResource(R.string.font_library), color = colors.toolAccent) }
                 }
                 FontSheet.Downloads -> {
                     Text(stringResource(R.string.font_catalog_hint), fontSize = 13.sp)

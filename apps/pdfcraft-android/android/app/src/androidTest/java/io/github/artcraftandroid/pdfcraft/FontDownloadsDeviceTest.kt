@@ -138,6 +138,73 @@ class FontDownloadsDeviceTest {
         }
     }
 
+    @Test fun phoneFontRecoversSubsetWithoutDownloadOrImport() = runBlocking {
+        val directory = File(context.getExternalFilesDir(null), "font-auto-qa/${System.nanoTime()}").apply { mkdirs() }
+        val catalog = readFontCatalog(context.assets.open("font-catalog.json").bufferedReader().use { it.readText() })
+        val engineForDiscovery = (context.applicationContext as PdfcraftApplication).engine.await().getOrThrow()
+        val roots = phoneFontDirectories()
+        assertTrue(roots.contains("/system/fonts"))
+        val system = engineForDiscovery.tool("text_font_files", mapOf("directories" to roots)).getJSONArray("fonts")
+        val candidates = List(system.length()) { system.getJSONObject(it) }
+        val face = requireNotNull(candidates.firstOrNull { it.getString("font") == "NotoNaskhArabic-Bold" }) {
+            "Missing expected static phone face: " + candidates.map { it.getString("font") }
+        }.getString("font")
+        val full = File(candidates.first { it.getString("font") == face }.getString("path"))
+        val source = File(directory, "subset.pdf")
+        val pdf = PdfDocument()
+        try {
+            val page = pdf.startPage(PdfDocument.PageInfo.Builder(612,792,1).create())
+            page.canvas.drawText("نص عربي", 60f, 100f, android.graphics.Paint().apply {
+                typeface = android.graphics.Typeface.createFromFile(full); textSize = 22f; color = android.graphics.Color.rgb(36,87,173)
+            })
+            pdf.finishPage(page)
+            source.outputStream().use { pdf.writeTo(it) }
+        } finally { pdf.close() }
+        val application = context.applicationContext as PdfcraftApplication
+        val store = androidx.lifecycle.ViewModelStore()
+        val vm = withContext(Dispatchers.Main) {
+            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(application).also { store.put("auto-font",it); it.open(android.net.Uri.fromFile(source)) }
+        }
+        try {
+            kotlinx.coroutines.withTimeout(60000) {
+                while (withContext(Dispatchers.Main) { vm.document == null }) kotlinx.coroutines.delay(50)
+            }
+            val doc = withContext(Dispatchers.Main) { requireNotNull(vm.document) }
+            val engine = requireNotNull(vm.engine)
+            val original = engine.tool("text_paragraphs", mapOf("doc" to doc.id,"page" to 1)).getJSONArray("paragraphs").getJSONObject(0)
+            assertEquals(io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(face), io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(original.getString("font")))
+            assertNull(matchingOriginalFont(original.getString("font"),catalog))
+            val draft = original.getString("editor_text") + " جديد"
+            // A genuinely subset source must refuse first, without changing the document.
+            try {
+                engine.tool("text_edit",mapOf("doc" to doc.id,"page" to 1,"paragraph" to 1,"text" to draft,"preserve_font" to true))
+                fail("The fixture must require the full original font")
+            } catch (e: Exception) { assertTrue(e.message, needsOriginalFont(e)) }
+            withContext(Dispatchers.Main) {
+                vm.edit.loadParagraphs(doc,0)
+                vm.edit.replaceParagraphText(doc, requireNotNull(vm.edit.paragraphs[0]).first(), draft)
+            }
+            kotlinx.coroutines.withTimeout(60000) {
+                while (engine.tool("text_paragraphs",mapOf("doc" to doc.id,"page" to 1)).getJSONArray("paragraphs").getJSONObject(0).getString("editor_text") != draft) {
+                    kotlinx.coroutines.delay(100)
+                }
+            }
+            val saved = File(directory,"recovered.pdf")
+            engine.tool("doc_save",mapOf("doc" to doc.id,"path" to saved.absolutePath,"full" to true))
+            val reopened = engine.command { open(saved.absolutePath,null).id }
+            val paragraph = engine.tool("text_paragraphs",mapOf("doc" to reopened,"page" to 1)).getJSONArray("paragraphs").getJSONObject(0)
+            assertEquals(draft,paragraph.getString("editor_text"))
+            assertEquals(io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(face),io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(paragraph.getString("font")))
+            assertEquals(original.getString("color"),paragraph.getString("color"))
+            assertEquals(original.getDouble("size"),paragraph.getDouble("size"),.01)
+            engine.command { close(reopened, true) }
+            assertTrue(vm.fonts.phone.any { it.face == face && it.file.absolutePath.startsWith("/system/fonts/") })
+            assertFalse(vm.fonts.directory.listFiles().orEmpty().any { it.name.contains("NotoNaskhArabic") })
+        } finally {
+            withContext(Dispatchers.Main) { vm.fonts.close(); store.clear() }
+        }
+    }
+
     @Test fun completeCollectionDownloadsAndRemainsUsableOffline() = runBlocking {
         val directory = File(context.getExternalFilesDir(null), "font-group-qa/${System.nanoTime()}").apply { mkdirs() }
         val catalog = readFontCatalog(context.assets.open("font-catalog.json").bufferedReader().use { it.readText() })

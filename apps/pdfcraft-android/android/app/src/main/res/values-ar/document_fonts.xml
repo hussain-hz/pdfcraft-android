@@ -26,4 +26,7 @@
     <string name="font_download_failed">تعذّر تنزيل الخط أو التحقق منه. تحقق من الاتصال وحاول مجددًا.</string>
     <string name="font_original_unavailable">الخط الأصلي %1$s غير متوفر للتنزيل التلقائي. استورد ملفه الكامل TTF أو OTF، أو عاين خطًا بديلًا. تعديلك محفوظ للمحاولة مجددًا.</string>
     <string name="font_download_all">تنزيل جميع مجموعات الخطوط</string>
+    <string name="font_phone">خطوط الهاتف</string>
+    <string name="font_phone_hint">خطوط متاحة على هذا الهاتف وصالحة للتضمين في PDF قابل للتحرير. يُستخدم الخط الأصلي المطابق تلقائيًا قبل التنزيل. اختيار خط مختلف يتطلب المعاينة والتطبيق.</string>
+    <string name="font_phone_empty">لا توجد خطوط هاتف متاحة يدعمها المحرر. استورد خطًا كاملًا أو نزّل مجموعة خطوط.</string>
 </resources>

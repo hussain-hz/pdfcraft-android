@@ -18,7 +18,7 @@ import kotlinx.coroutines.sync.withLock
 data class FontTarget(val doc: OpenDocument, val para: Paragraph, val draft: String, val generation: ULong)
 data class StoredDocumentFont(val file: File, val family: String, val face: String)
 data class FontPreview(val font: StoredDocumentFont?, val typeface: Typeface?, val standard: String? = null, val matching: Boolean = false)
-enum class FontSheet { Library, Downloads, Preview }
+enum class FontSheet { Library, Phone, Downloads, Preview }
 
 class DocumentFonts internal constructor(private val vm: AppViewModel) {
     private val app: Application get() = vm.getApplication()
@@ -28,6 +28,8 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
     var sheet by mutableStateOf(FontSheet.Library); private set
     var preview by mutableStateOf<FontPreview?>(null); private set
     var stored by mutableStateOf<List<StoredDocumentFont>>(emptyList()); private set
+    var phone by mutableStateOf<List<StoredDocumentFont>>(emptyList()); private set
+    private var phoneLoaded = false
     var working by mutableStateOf(false); private set
     var applying by mutableStateOf(false); private set
     var progress by mutableStateOf<Float?>(null); private set
@@ -53,6 +55,7 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         operation++; job?.cancel(); working = false; progress = null; problem = null; target = null; preview = null
     }
     fun library() { sheet = FontSheet.Library; preview = null; work { loadStored() } }
+    fun phoneFonts() { sheet = FontSheet.Phone; preview = null; work { loadPhone(refresh = true) } }
     fun downloads() { sheet = FontSheet.Downloads; preview = null; problem = null }
     fun pick() {
         if (applying) return
@@ -74,6 +77,17 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         val engine = vm.engine ?: return
         val result = engine.tool("text_font_files", mapOf("directories" to listOf(directory.absolutePath))).getJSONArray("fonts")
         stored = List(result.length()) { i -> result.getJSONObject(i).let { StoredDocumentFont(File(it.getString("path")), it.getString("family"), it.getString("font")) } }
+    }
+    private suspend fun loadPhone(refresh: Boolean = false) {
+        if (phoneLoaded && !refresh) return
+        val engine = vm.engine ?: return
+        val roots = phoneFontDirectories()
+        if (roots.isEmpty()) { phone = emptyList(); phoneLoaded = true; return }
+        val result = engine.tool("text_font_files", mapOf("directories" to roots)).getJSONArray("fonts")
+        phone = List(result.length()) { i -> result.getJSONObject(i).let {
+            StoredDocumentFont(File(it.getString("path")), it.getString("family"), it.getString("font"))
+        } }
+        phoneLoaded = true
     }
     fun importPicked(uri: Uri) {
         if (target == null) return
@@ -103,9 +117,11 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
     }
     private suspend fun prepare(file: File) {
         loadStored()
-        val font = stored.firstOrNull { it.file.canonicalPath == file.canonicalPath } ?: withContext(Dispatchers.IO) {
+        loadPhone()
+        val available = stored + phone
+        val font = available.firstOrNull { it.file.canonicalPath == file.canonicalPath } ?: withContext(Dispatchers.IO) {
             val digest = fontDigest(file.readBytes())
-            stored.firstOrNull { it.file.length() == file.length() && fontDigest(it.file.readBytes()) == digest }
+            available.firstOrNull { it.file.length() == file.length() && fontDigest(it.file.readBytes()) == digest }
         } ?: error(text(R.string.font_invalid))
         val t = target ?: return
         val supported = vm.engine?.tool("text_font_check", mapOf("path" to file.absolutePath, "text" to t.draft))?.optBoolean("supported") == true
@@ -137,8 +153,12 @@ class DocumentFonts internal constructor(private val vm: AppViewModel) {
         sheet = FontSheet.Library
         work {
             loadStored()
+            loadPhone()
             val key = editorFaceKey(para.font)
-            val saved = stored.firstOrNull { editorFaceKey(it.face) == key }
+            val saved = (stored + phone).firstOrNull { font ->
+                editorFaceKey(font.face) == key && vm.engine?.tool("text_font_check",
+                    mapOf("path" to font.file.absolutePath, "text" to draft))?.optBoolean("supported") == true
+            }
             val remote = matchingOriginalFont(para.font, catalog)
             val file = saved?.file ?: remote?.let { font ->
                 val token = operation

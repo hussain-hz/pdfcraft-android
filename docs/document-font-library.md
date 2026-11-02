@@ -91,3 +91,27 @@ fully offline reuse. Device coverage downloads all six real catalogued fonts, ch
 licences and native glyph support, and repeats the complete operation without network access.
 
 Grouped-download validation: 102 JVM tests and 19 emulator instrumentation tests pass.
+
+## Phone fonts
+
+Android 10+ SystemFonts.getAvailableFonts supplies registered font directories, supplemented by
+standard system/product/system_ext/vendor and downloadable-system-font locations. The scan
+uses only accessible canonical roots (at most 16), runs off the UI thread and retains the existing
+native byte/entry/depth bounds, name-table verification and document-embedding validation.
+No storage permission, font copying, redistribution or system-font changes are involved.
+
+Phone fonts has its own screen under Saved fonts, with matching face names first and an explicit
+preview for replacements. Original-font recovery checks eligible saved/phone faces for exact
+PostScript identity and draft glyph support before trying a network download. System results are
+cached per controller and refreshed when reopening the Phone fonts screen. Variable fonts,
+collections and fonts that fail the existing licensing/embedding checks remain unsupported.
+
+Validation: 102 JVM tests pass. All 19 existing device tests passed with this implementation;
+a new twentieth test independently creates an Arabic subset PDF from the emulator's actual
+/system/fonts/NotoNaskhArabic-Bold.ttf, verifies an initial font-preserving edit is refused,
+then exercises AppViewModel recovery using the original phone font. Save/reopen retains the
+original face, text, color and size, and no Noto Naskh file is downloaded/copied into the private
+font library. The first test fixture used Latin text and correctly detected Android's Roboto
+fallback rather than Noto; the fixture was corrected to Arabic before the successful test.
+Samsung's SEC Naskh cannot be runtime-verified on this AOSP emulator; device availability and
+embedding eligibility still determine whether that specific face can be used.
