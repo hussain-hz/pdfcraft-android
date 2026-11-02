@@ -46,3 +46,7 @@ cleaned in finally blocks. The preview cannot replace the original-resolution im
   were reviewed. QA screenshots remain outside the repository.
 - Camera capture latency, edge detection on real photographs, and phone memory use still require
   physical-device trial of the new build. OCR coverage depends on installed models.
+
+The user approved RC.8 for stable release after the phone trial on 2026-11-02. Stable 0.0.4
+contains the same application/engine behavior; the stable version metadata and release packaging
+are verified separately before publication.
