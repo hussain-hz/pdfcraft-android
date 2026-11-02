@@ -1180,6 +1180,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---- File pickers -----------------------------------------------------------------------
 
     /** File pickers for the activity: what the files are for, the types, and whether several may be picked. */
+    val fonts = DocumentFonts(this)
     val features = DocumentFeatures(this)
 
     val filePicks = Channel<FilePickKind>(Channel.BUFFERED)
@@ -1209,6 +1210,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             FilePickKind.ImportComments -> features.importComments(uris.first())
+            FilePickKind.ImportFont -> fonts.importPicked(uris.first())
             FilePickKind.Open -> open(uris.first())
             FilePickKind.DigitalId -> viewModelScope.launch {
                 val uri = uris.first()

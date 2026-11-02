@@ -10486,3 +10486,29 @@ fn review_inside_scope_group_move_matches_direct_transform_under_outer_scale() {
         }
     }
 }
+
+#[test]
+fn applying_a_complete_font_to_added_text_keeps_colors_size_and_editability() {
+    for (value, draft, bytes) in [
+        ("Original English text", "Edited English text", include_bytes!("../../../assets/fonts/Inter-Regular.ttf").as_slice()),
+        ("نص عربي أصلي", "نص عربي معدل", include_bytes!("../../../assets/fonts/JahfanArabic-Regular.ttf").as_slice()),
+    ] {
+        let mut doc = text_page("");
+        let item = AddedText { rect: [60.0, 500.0, 540.0, 700.0], text: value.into(), size: 22.0, color: [0.1, 0.3, 0.8], ..Default::default() };
+        add_content(&mut doc, 0, &Content::Text(item)).unwrap();
+        let before = write_incremental(&doc, &SaveOptions::default()).unwrap();
+        assert!(set_content_font(&mut doc, 0, 0, b"invalid", Some(draft)).is_err());
+        assert_eq!(write_incremental(&doc, &SaveOptions::default()).unwrap(), before);
+        set_content_font(&mut doc, 0, 0, bytes, Some(draft)).unwrap();
+        let reopened = reopen(&doc);
+        assert!(list_added(&reopened).is_empty());
+        let blocks = text::text_blocks(&reopened, 0).unwrap();
+        assert_eq!(blocks[0].editor_text, draft);
+        assert_eq!(blocks[0].size, 22.0);
+        for line in text::text_lines(&reopened, 0).unwrap() {
+            for (actual, wanted) in line.color.iter().zip([0.1, 0.3, 0.8]) {
+                assert!((actual - wanted).abs() < 0.00001);
+            }
+        }
+    }
+}

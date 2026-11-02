@@ -249,6 +249,41 @@ pub fn update_content(doc: &mut Document, page: usize, index: usize, c: &Content
     Ok(())
 }
 
+/// Apply a complete face to one unambiguous added paragraph, atomically retaining its source styles.
+pub fn set_content_font(doc: &mut Document, page: usize, index: usize, bytes: &[u8], text: Option<&str>) -> Result<(), EditError> {
+    let item = find(doc, page, index)?;
+    let Content::Text(old) = &item.content else { return Err(EditError::Invalid("only text can use a document font".into())) };
+    let p = page_list(doc).swap_remove(page);
+    let stream = contents(doc, &p)?
+        .iter()
+        .position(|o| o.as_ref() == Some(item.obj))
+        .ok_or_else(|| EditError::Invalid("the added text stream is missing".into()))?;
+    let lines = crate::text::text_lines(doc, page)?;
+    let blocks = crate::text::text_blocks(doc, page)?;
+    let target = blocks
+        .iter()
+        .position(|b| {
+            b.lines.iter().all(|i| lines.get(*i).is_some_and(|l| l.first_paint_pos().0 == stream))
+                && b.editor_text.split_whitespace().collect::<String>() == old.text.split_whitespace().collect::<String>()
+        })
+        .ok_or_else(|| EditError::Invalid("select one separate paragraph before changing its document font".into()))?;
+    let mut draft = doc.clone();
+    let Object::Stream(mut content) = (*draft.get(item.obj)).clone() else { return Err(EditError::Invalid("the text stream is unreadable".into())) };
+    content.dict.remove(b"PCAdded");
+    content.dict.remove(b"PCMark");
+    draft.set(item.obj, Object::Stream(content));
+    let resource = crate::text::register_text_font(&mut draft, page, bytes)?;
+    crate::text::rewrite_block(
+        &mut draft,
+        page,
+        target,
+        Some(text.unwrap_or(&blocks[target].editor_text)),
+        &crate::text::BlockStyle { resource: Some(resource), ..Default::default() },
+    )?;
+    *doc = draft;
+    Ok(())
+}
+
 /// Remove item `index` of `page`.
 pub fn delete_content(doc: &mut Document, page: usize, index: usize) -> Result<(), EditError> {
     let a = find(doc, page, index)?;

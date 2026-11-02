@@ -79,9 +79,18 @@ pub fn validate_document_input(bytes: &[u8]) -> Result<(), String> {
         return Err("Adobe-authored font assets are excluded by the project's asset policy".into());
     }
     let license: String = f.localized_strings(StringId::LICENSE_DESCRIPTION).map(|s| s.to_string()).collect();
-    if !["SIL OPEN FONT", "SIL Open Font", "Apache License", "Ubuntu Font Licence", "Bitstream Vera", "MIT License"]
-        .iter()
-        .any(|l| license.contains(l))
+    let license_urls: Vec<_> = f.localized_strings(StringId::LICENSE_URL).map(|s| s.to_string()).collect();
+    let short_ofl = license.contains("Open Font License")
+        && license_urls.iter().any(|url| {
+            matches!(
+                url.trim().trim_end_matches('/').to_ascii_lowercase().as_str(),
+                "http://scripts.sil.org/ofl" | "https://scripts.sil.org/ofl" | "http://openfontlicense.org" | "https://openfontlicense.org"
+            )
+        });
+    if !short_ofl
+        && !["SIL OPEN FONT", "SIL Open Font", "Apache License", "Ubuntu Font Licence", "Bitstream Vera", "MIT License"]
+            .iter()
+            .any(|l| license.contains(l))
     {
         return Err("select an openly licensed font whose name table declares its licence (OFL, Apache, Ubuntu, Bitstream Vera or MIT)".into());
     }

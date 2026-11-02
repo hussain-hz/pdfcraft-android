@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="font_import">Importar fuente original</string>
+    <string name="font_downloads">Descargar fuentes</string>
+    <string name="font_library">Fuentes guardadas</string>
+    <string name="font_preview">Vista previa de fuente</string>
+    <string name="font_original">Fuente original: %1$s</string>
+    <string name="font_matching">Coincide con la fuente original. Completa los caracteres sin sustituir los estilos del párrafo.</string>
+    <string name="font_replacement">Sustituye la fuente del párrafo al aplicarla. Conserva los colores y tamaños del texto.</string>
+    <string name="font_load_original">Cargar fuente original</string>
+    <string name="font_apply_replacement">Aplicar fuente seleccionada</string>
+    <string name="font_invalid">Elige una fuente TTF u OTF completa, incrustable y con licencia abierta.</string>
+    <string name="font_too_large">La fuente no debe superar los 16 MB.</string>
+    <string name="font_document_changed">El documento cambió. Selecciona el párrafo de nuevo.</string>
+    <string name="font_applied">La fuente seleccionada está disponible en este documento.</string>
+    <string name="font_empty">Importa una fuente del teléfono o descárgala de la biblioteca.</string>
+    <string name="font_catalog_hint">Fuentes árabes e inglesas de Google Fonts. Se descargan una vez y funcionan sin conexión. Las sustituciones requieren vista previa y confirmación.</string>
+    <string name="font_source_license">Origen y licencia OFL</string>
+    <string name="font_regular">Normal</string>
+    <string name="font_bold">Negrita</string>
+    <string name="font_downloaded">Guardada • Vista previa</string>
+    <string name="font_cancel_work">Cancelar</string>
+    <string name="font_working">Preparando fuente…</string>
+    <string name="font_download_progress">Descargando fuente… %1$d%%</string>
+    <string name="font_unsupported">La fuente seleccionada no admite todos los caracteres del texto. Elige otra fuente.</string>
+    <string name="font_download_failed">No se pudo descargar o verificar la fuente. Comprueba la conexión e inténtalo de nuevo.</string>
+</resources>

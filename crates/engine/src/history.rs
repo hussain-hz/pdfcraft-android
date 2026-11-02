@@ -79,6 +79,7 @@ pub(crate) fn scope_of(edit: &Edit) -> Scope {
         | Edit::EditPageImage { .. }
         | Edit::AddText { .. }
         | Edit::AddImage { .. }
+        | Edit::SetContentFont { .. }
         | Edit::UpdateContent { .. }
         | Edit::DeleteContent { .. }
         | Edit::ReplaceImage { .. }

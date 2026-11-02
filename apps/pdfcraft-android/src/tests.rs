@@ -807,3 +807,22 @@ fn upright_comment_hit_boxes_match_the_engine_on_rotated_pages() {
         assert!(rect.iter().zip(listed_rect).all(|(a, b)| (*a as f64 - b).abs() < 0.1), "rotation {rotation}");
     }
 }
+
+#[test]
+fn applying_a_complete_font_to_added_text_is_one_undoable_edit() {
+    let s = MobileSession::new();
+    let doc = s.open(blank_pdf(1), None).unwrap().id;
+    s.execute(
+        "page_add_text".into(),
+        json!({"doc":doc,"page":1,"text":"Original English text","at":[60,60],"color":"#2457AD","size":22}).to_string(),
+    )
+    .unwrap();
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/Inter-Regular.ttf");
+    s.execute("content_font".into(), json!({"doc":doc,"page":1,"index":1,"path":path,"text":"Edited English text"}).to_string()).unwrap();
+    let items: Value = serde_json::from_str(&s.execute("content_list".into(), json!({"doc":doc,"page":1}).to_string()).unwrap()).unwrap();
+    assert_eq!(items["count"], 0);
+    s.execute("edit_undo".into(), json!({"doc":doc}).to_string()).unwrap();
+    let items: Value = serde_json::from_str(&s.execute("content_list".into(), json!({"doc":doc,"page":1}).to_string()).unwrap()).unwrap();
+    assert_eq!(items["items"][0]["text"], "Original English text");
+    assert_eq!(items["items"][0]["color"], "#2457AD");
+}

@@ -287,6 +287,7 @@ impl Edit {
             Edit::AddText { .. } => Label::of("Add text"),
             Edit::AddImage { .. } => Label::of("Add image"),
             Edit::UpdateContent { .. } => Label::of("Edit content"),
+            Edit::SetContentFont { .. } => Label::of("Edit text"),
             Edit::DeleteContent { .. } => Label::of("Delete content"),
             Edit::ReplaceImage { .. } => Label::of("Replace image"),
             Edit::PasteContent { .. } => Label::of("Paste"),

@@ -473,6 +473,13 @@ pub enum Edit {
         index: usize,
         content: AddedContent,
     },
+    /// Use a complete font for added text, retaining it as ordinary editable page text.
+    SetContentFont {
+        page: usize,
+        index: usize,
+        bytes: Arc<Vec<u8>>,
+        text: Option<String>,
+    },
     DeleteContent {
         page: usize,
         index: usize,

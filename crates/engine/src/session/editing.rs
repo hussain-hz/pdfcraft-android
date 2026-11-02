@@ -409,6 +409,7 @@ impl Session {
                 e,
                 Edit::AddText { .. }
                     | Edit::AddImage { .. }
+                    | Edit::SetContentFont { .. }
                     | Edit::UpdateContent { .. }
                     | Edit::DeleteContent { .. }
                     | Edit::ReplaceImage { .. }

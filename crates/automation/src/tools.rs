@@ -655,6 +655,8 @@ pub fn tools() -> Vec<ToolDef> {
             json!({ "doc": doc(), "page": { "type": "integer", "minimum": 1 }, "path": { "type": "string" }, "rect": { "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4 } }),
             &["doc", "page", "path"],
         )),
+        t("content_font", "Set added text font", "Apply an explicitly selected complete font to one separate added text paragraph. The paragraph becomes ordinary editable source text, preserving its colors, sizes and rows. Undo restores the original added item. Refuses ambiguous joined regions and non-text items atomically.")
+            .with(schema(json!({"doc":doc(),"page":{"type":"integer","minimum":1},"index":{"type":"integer","minimum":1},"path":{"type":"string"},"text":{"type":"string"}}), &["doc","page","index","path"])),
         t("content_update", "Edit added content", "Move/resize (rect), retype (text) or restyle (font, size, bold, italic, color, align, char_spacing in points) an added item (page, index from content_list). Images: rotate (degrees, multiple of 90, counter-clockwise), flip_h / flip_v (toggle), crop [left, bottom, right, top] as fractions trimmed, image (a file that replaces the picture). Undoable.")
             .with(schema(
                 json!({
@@ -1405,6 +1407,8 @@ pub fn tools() -> Vec<ToolDef> {
         t("text_font_files", "List installed document fonts", "Discover openly licensed, embeddable TrueType/OpenType files on request. Optional directories (at most 16) restrict the scan; with --root, only that root is scanned by default and supplied folders must stay inside it. The scan skips symlinks, collections and invalid/licence-restricted fonts, with depth, entry and byte budgets. Select a returned path with text_font_import.")
             .ro().cmd("edit.edit_text")
             .with(schema(json!({"directories":{"type":"array","items":{"type":"string"},"maxItems":16}}), &[])),
+        t("text_font_check", "Check document font coverage", "Read-only validation of an openly licensed complete font and its ability to shape the supplied draft before importing it. Font programs are limited to 16 MiB. Returns supported without modifying any document.")
+            .ro().with(schema(json!({"path":{"type":"string"},"text":{"type":"string"}}), &["path","text"])),
         t("text_font_import", "Load document font", "Load an explicitly selected, openly licensed full TrueType/OpenType face into a page. The program's family, embedding permissions and licence declaration are validated. Completes source subsets of the same face without replacing existing glyphs. Returns a font resource usable with text_edit.font_resource. Undoable; respects root confinement. No system-interface fallback is exported.")
             .cmd("edit.edit_text")
             .with(schema(json!({"doc":doc(), "page":{"type":"integer","minimum":1}, "path":{"type":"string"}}), &["doc","page","path"])),

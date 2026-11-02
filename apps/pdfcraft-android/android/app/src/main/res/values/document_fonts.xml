@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="font_import">Import original font</string>
+    <string name="font_downloads">Download fonts</string>
+    <string name="font_library">Saved fonts</string>
+    <string name="font_preview">Font preview</string>
+    <string name="font_original">Original font: %1$s</string>
+    <string name="font_matching">Matches the original font. Load it to complete missing glyphs without replacing the paragraph’s styles.</string>
+    <string name="font_replacement">This replaces the paragraph’s font after you apply it. Its text colors and sizes are retained.</string>
+    <string name="font_load_original">Load original font</string>
+    <string name="font_apply_replacement">Apply selected font</string>
+    <string name="font_invalid">Choose a complete, embeddable, openly licensed TTF or OTF font.</string>
+    <string name="font_too_large">The font must be no larger than 16 MB.</string>
+    <string name="font_document_changed">The document changed. Select the paragraph again.</string>
+    <string name="font_applied">The selected font is ready in this document.</string>
+    <string name="font_empty">Import a font from your phone or download one from the library.</string>
+    <string name="font_catalog_hint">Arabic and English fonts from Google Fonts. Download once, then use them offline. A different family is applied only after preview and confirmation.</string>
+    <string name="font_source_license">Source and OFL licence</string>
+    <string name="font_regular">Regular</string>
+    <string name="font_bold">Bold</string>
+    <string name="font_downloaded">Saved • Preview</string>
+    <string name="font_cancel_work">Cancel</string>
+    <string name="font_working">Preparing font…</string>
+    <string name="font_download_progress">Downloading font… %1$d%%</string>
+    <string name="font_unsupported">The selected font cannot show all the characters in this text. Choose another font.</string>
+    <string name="font_download_failed">The font could not be downloaded or verified. Check your connection and try again.</string>
+</resources>

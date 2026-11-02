@@ -562,6 +562,18 @@ impl Automation {
                 };
                 json!({"fonts": pdfcraft_engine::text_fonts::discover(&roots).into_iter().map(|f| json!({"path":f.path,"family":f.family,"font":f.face})).collect::<Vec<_>>()})
             }
+            "text_font_check" => {
+                let path = self.resolve(a.str("path")?, false)?;
+                use std::io::Read;
+                let mut bytes = Vec::new();
+                std::fs::File::open(path).map_err(failed)?.take((16 << 20) + 1).read_to_end(&mut bytes).map_err(failed)?;
+                pdfcraft_fonts::embedding::validate_document_input(&bytes).map_err(failed)?;
+                let text = a.str("text")?.replace('\r', "");
+                let supported = pdfcraft_fonts::embedding::covers(&bytes, &text)
+                    && (!pdfcraft_fonts::source_shaping::required(&text)
+                        || text.lines().all(|row| pdfcraft_fonts::source_shaping::shape(&bytes, row).is_ok()));
+                json!({"supported":supported})
+            }
             "text_font_import" => {
                 let page = self.page(&a)?;
                 let path = self.resolve(a.str("path")?, false)?;
@@ -769,6 +781,29 @@ impl Automation {
             "content_list" => self.content_list(&a)?,
             "page_add_text" => self.page_add_text(&a)?,
             "page_add_image" => self.page_add_image(&a)?,
+            "content_font" => {
+                let page = self.page(&a)?;
+                let index = a.int("index")?;
+                if index < 1 {
+                    return Err(ToolError::InvalidArgs("index must be positive".into()));
+                }
+                let path = self.resolve(a.str("path")?, false)?;
+                use std::io::Read;
+                let mut bytes = Vec::new();
+                std::fs::File::open(path).map_err(failed)?.take((16 << 20) + 1).read_to_end(&mut bytes).map_err(failed)?;
+                if bytes.len() > 16 << 20 {
+                    return Err(ToolError::InvalidArgs("font input exceeds 16 MiB".into()));
+                }
+                self.apply(
+                    &a,
+                    Edit::SetContentFont {
+                        page,
+                        index: usize::try_from(index - 1).map_err(|_| ToolError::InvalidArgs("index is too large".into()))?,
+                        bytes: Arc::new(bytes),
+                        text: a.opt_str("text")?.map(str::to_owned),
+                    },
+                )?
+            }
             "content_update" => self.content_update(&a)?,
             "content_delete" => self.content_delete(&a)?,
             "content_copy" => self.content_copy(&a)?,

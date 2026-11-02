@@ -103,6 +103,7 @@ pub(crate) fn check_permission(edit: &Edit, p: &pdfcraft_cos::Permissions) -> Re
         | Edit::ApplyRedactions { .. }
         | Edit::AddText { .. }
         | Edit::AddImage { .. }
+        | Edit::SetContentFont { .. }
         | Edit::UpdateContent { .. }
         | Edit::MoveObjects { .. }
         | Edit::DeleteContent { .. }
@@ -746,6 +747,7 @@ pub(crate) fn run_edit(doc: &mut pdfcraft_cos::Document, edit: &Edit, cx: &mut E
             pdfcraft_edit::add_content(doc, *page, &AddedContent::Image(pdfcraft_edit::AddedImage::new(rect, image)))?;
         }
         Edit::UpdateContent { page, index, content } => pdfcraft_edit::update_content(doc, *page, *index, content)?,
+        Edit::SetContentFont { page, index, bytes, text } => pdfcraft_edit::set_content_font(doc, *page, *index, bytes, text.as_deref())?,
         Edit::DeleteContent { page, index } => pdfcraft_edit::delete_content(doc, *page, *index)?,
         Edit::ReplaceImage { page, index, name, bytes } => {
             let item = pdfcraft_edit::list_added(doc).into_iter().filter(|a| a.page == *page).nth(*index);

@@ -31,7 +31,7 @@ use layout::Piece;
 #[cfg(test)]
 pub(crate) use layout::WRAP_CALLS;
 pub use layout::{PASTE_STEP, first_undrawable, lines, paste_place, paste_rect, text_rect, text_width};
-pub use store::{add_content, delete_content, isolate_content, list_added, scan_markers, update_content};
+pub use store::{add_content, delete_content, isolate_content, list_added, scan_markers, set_content_font, update_content};
 pub use types::{Added, AddedImage, AddedText, Align, CHAR_SPACING_LIMIT, Family, MarkerScan};
 
 #[derive(Clone, Debug, PartialEq)]

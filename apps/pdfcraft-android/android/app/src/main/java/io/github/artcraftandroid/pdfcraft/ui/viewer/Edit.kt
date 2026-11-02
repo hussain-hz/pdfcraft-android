@@ -34,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -190,9 +191,13 @@ private fun EditFormatBar(vm: AppViewModel, doc: OpenDocument, para: Paragraph) 
     Column(Modifier.fillMaxWidth().background(c.surface)) {
         when (panel) {
             FormatPanel.Size -> SizePanel(para) { vm.edit.styleParagraph(doc, para, mapOf("size" to it.toDouble())) }
-            FormatPanel.Font -> FontPanel(vm.edit.editFont[para.page to para.number]) { f ->
-                vm.edit.editFont[para.page to para.number] = f
-                vm.edit.styleParagraph(doc, para, mapOf("font" to f, "bold" to para.bold, "italic" to para.italic))
+            FormatPanel.Font -> Column {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    TextButton(onClick = { vm.fonts.show(doc, para); vm.fonts.pick() }) { Text(stringResource(R.string.font_import), color = c.toolAccent) }
+                    TextButton(onClick = { vm.fonts.show(doc, para, downloads = true) }) { Text(stringResource(R.string.font_downloads), color = c.toolAccent) }
+                }
+                TextButton(onClick = { vm.fonts.show(doc, para) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_library), color = c.toolAccent) }
+                if (!inlineRtl(para.text)) FontPanel(vm.edit.editFont[para.page to para.number]) { f -> vm.fonts.standard(doc, para, f) }
             }
             FormatPanel.Color -> ColorPanel(para.color) { vm.edit.styleParagraph(doc, para, mapOf("color" to it)) }
             FormatPanel.Align -> Column {
@@ -376,6 +381,7 @@ private fun AlignPanel(current: String, onAlign: (String) -> Unit) {
  */
 @Composable
 fun BoxScope.EditOverlay(vm: AppViewModel, doc: OpenDocument) {
+    DocumentFontDialogs(vm, doc)
     val pages = doc.viewer.visiblePages()
     LaunchedEffect(pages, doc.info.generation) { for (p in pages) vm.edit.loadParagraphs(doc, p) }
     val accent = pdfColors.accent

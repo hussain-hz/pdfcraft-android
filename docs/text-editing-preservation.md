@@ -46,3 +46,6 @@ The local QA build uses a fresh `cargo ndk ... build --profile low-disk` library
 sources, with bindings generated from that same library. It does not reuse the previous APK's
 native library. An official release still needs its normal optimized build and physical-device
 trial; an unavailable original font cannot be reconstructed from missing PDF glyphs.
+
+The follow-up [document font library](document-font-library.md) adds original-font import,
+verified on-demand downloads and explicit replacement previews.
