@@ -292,7 +292,6 @@
     <string name="msg_busy_recognizing">جارٍ التعرّف على النص…</string>
     <string name="msg_busy_saving_scan">جارٍ حفظ المسح الضوئي…</string>
     <string name="msg_busy_setting_password">جارٍ تعيين كلمة المرور…</string>
-    <string name="msg_button_script">يشغّل هذا الزر برنامجًا نصيًا، ولا يدعم PdfCraft تشغيل البرامج النصية.</string>
     <string name="msg_button_submit">يرسل هذا الزر النموذج عبر الإنترنت، ولا يدعم PdfCraft ذلك.</string>
     <string name="msg_clip_comment">تعليق</string>
     <string name="msg_clip_pdf_text">نص PDF</string>

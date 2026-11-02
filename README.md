@@ -9,6 +9,7 @@ This fork retains the PdfCraft name and application ID, with engine **0.17.0**, 
 <p align="center">
   <b>An Android native open-source PDF reader and editor written in Rust, built on the same engine as the desktop app, <a href="https://github.com/storytold/pdfcraft">PdfCraft</a>, with a Kotlin/Jetpack Compose UI.</b><br>
   Many credits to the original maintainers, <a href="https://github.com/storytold">storytold</a>.
+The upstream Android app is also available on <a href="https://f-droid.org/en/packages/io.github.artcraftandroid.pdfcraft/">F-Droid</a>. Releases of this fork are available through its GitHub download link below.
 </p>
 
 <p align="center">

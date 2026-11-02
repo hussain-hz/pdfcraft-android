@@ -439,7 +439,8 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     /** The camera app came back with [f] for Add image: [ok] when it took the photo. */
     internal fun onCameraPhoto(f: File, ok: Boolean) {
         imageShot = false
-        if (!ok || !f.isFile || f.length() == 0L) {
+        if (!ok || !f.isFile || f.length() == 0L || imageFor == null) {
+            f.delete()
             imageFor = null
             imageAt = null
             return

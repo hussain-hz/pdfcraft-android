@@ -597,3 +597,5 @@ mod review_html_tests {
         assert!(!html.contains("<script>"));
     }
 }
+
+pub(crate) use form_tools::{alert_json, request_json};

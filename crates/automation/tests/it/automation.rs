@@ -4105,7 +4105,7 @@ fn creating_from_multiple_files_through_tools() {
     assert!(dir.join("all.pdf").is_file());
     // A file that can't be converted fails the whole combine, naming it.
     let err = a.call("doc_create_multiple", &json!({ "paths": ["a.pdf", "report.docx"] })).unwrap_err();
-    assert!(matches!(&err, ToolError::Failed(m) if m.contains("report.docx") && m.contains("can't be converted")), "{err}");
+    assert!(matches!(&err, ToolError::Failed(m) if m.contains("report.docx") && m.contains("Word file is damaged")), "{err}");
     assert!(matches!(a.call("doc_create_multiple", &json!({ "paths": [] })), Err(ToolError::InvalidArgs(_))));
     assert!(matches!(a.call("doc_create_multiple", &json!({ "paths": ["a.pdf"], "mode": "zip" })), Err(ToolError::InvalidArgs(_))));
     assert!(matches!(a.call("doc_create_multiple", &json!({ "paths": ["a.pdf"], "mode": "separate" })), Err(ToolError::InvalidArgs(_))));
@@ -4118,7 +4118,7 @@ fn creating_from_multiple_files_through_tools() {
     let made = ok(&mut a, "doc_create_multiple", args);
     let files = made["files"].as_array().unwrap();
     assert!(files[0]["output"].as_str().unwrap().ends_with("notes (2).pdf"), "{files:?}");
-    assert!(files[1]["error"].as_str().unwrap().contains("can't be converted"));
+    assert!(files[1]["error"].as_str().unwrap().contains("Word file is damaged"));
     assert_eq!(files[2]["skipped"], "already a PDF");
     assert!(files[3]["output"].as_str().unwrap().ends_with("scan.pdf"));
     assert!(files[4]["error"].is_string());

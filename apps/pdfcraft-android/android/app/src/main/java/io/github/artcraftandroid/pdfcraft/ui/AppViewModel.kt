@@ -66,7 +66,7 @@ data class Message(val text: String, val actionLabel: String? = null, val action
 data class PasswordRequest(val uri: Uri, val file: File, val wrong: Boolean)
 
 /** The app's state: the engine, the open document, Home's lists, and the messages. */
-class AppViewModel(app: Application) : AndroidViewModel(app) {
+class AppViewModel(app: Application, saved: androidx.lifecycle.SavedStateHandle) : AndroidViewModel(app) {
     private val application = app as PdfcraftApplication
     val files = DocumentFiles(app)
     private val saver = io.github.artcraftandroid.pdfcraft.engine.DocumentSaver(files) { tell(it) }
@@ -80,7 +80,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val library = FileLibrary(this)
     val updates = AppUpdater(app, viewModelScope) { intents.trySend(it) }
     val jobs = ToolJobs(this)
-    val scan = Scanner(this)
+    val scan = Scanner(this,saved)
 
     var engine by mutableStateOf<Engine?>(null)
         private set
@@ -575,8 +575,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val center = androidx.compose.ui.geometry.Offset(v.viewW / 2f, v.viewH / 2f)
         when {
             ctrl && keyCode == android.view.KeyEvent.KEYCODE_P -> print(doc)
-            ctrl && (keyCode == android.view.KeyEvent.KEYCODE_EQUALS || keyCode == android.view.KeyEvent.KEYCODE_PLUS || keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ADD) -> v.zoomTo(v.zoom + 0.25f, center)
-            ctrl && (keyCode == android.view.KeyEvent.KEYCODE_MINUS || keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_SUBTRACT) -> v.zoomTo(v.zoom - 0.25f, center)
+            ctrl && (keyCode == android.view.KeyEvent.KEYCODE_EQUALS || keyCode == android.view.KeyEvent.KEYCODE_PLUS || keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ADD) -> v.zoomStep(1, center)
+            ctrl && (keyCode == android.view.KeyEvent.KEYCODE_MINUS || keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_SUBTRACT) -> v.zoomStep(-1, center)
             ctrl -> return false
             keyCode == android.view.KeyEvent.KEYCODE_N || keyCode == android.view.KeyEvent.KEYCODE_PAGE_DOWN -> v.goToPage(v.currentPage + 1)
             keyCode == android.view.KeyEvent.KEYCODE_P || keyCode == android.view.KeyEvent.KEYCODE_PAGE_UP -> v.goToPage(v.currentPage - 1)
@@ -699,6 +699,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         val saved = ReadAloud.savedPosition(getApplication(), key)?.takeIf { it.first in 0 until doc.pageCount }
+        if (saved == ReadAloud.START_OVER) {
+            readAloud = ReadAloud(getApplication(), eng, doc, viewModelScope, 0, { readAloud = null }, key)
+            return
+        }
         if (saved != null) {
             readAloud = ReadAloud(getApplication(), eng, doc, viewModelScope, saved.first, { readAloud = null }, key, resumeAt = saved.second to saved.third)
             tell(text(R.string.msg_read_aloud_resumed), text(R.string.msg_read_aloud_start_over)) {
@@ -710,6 +714,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         readAloud = ReadAloud(getApplication(), eng, doc, viewModelScope, doc.viewer.currentPage, { readAloud = null }, key)
+    }
+
+    /**
+     * While Read aloud is on, a tap on a word moves the reading there, as the reference's does. False
+     * when no word is under [at] (the tap then shows or hides the bars).
+     */
+    suspend fun readAloudAt(doc: OpenDocument, at: io.github.artcraftandroid.pdfcraft.ui.viewer.PagePoint, slopPoints: Float): Boolean {
+        val current = readAloud ?: return false
+        val eng = engine ?: return false
+        val word = withContext(eng.commands) { eng.session.wordAt(doc.id, at.page.toUInt(), at.x, at.y, slopPoints) } ?: return false
+        if (readAloud !== current) return false
+        current.stop()
+        readAloud = ReadAloud(getApplication(), eng, doc, viewModelScope, word.page.toInt(), { readAloud = null }, docKey(doc), startGlyph = word.start)
+        return true
     }
 
     // ---- Tools' remembered settings, bookmarks, stars --------------------------------------
@@ -838,6 +856,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         statusBarInDocuments = on
         appPrefs.edit { putBoolean("statusBarInDocuments", on) }
     }
+
+    var searchCount by mutableStateOf(appPrefs.getBoolean("searchCount", false))
+        private set
+    fun updateSearchCount(on: Boolean) { searchCount = on; appPrefs.edit { putBoolean("searchCount", on) } }
 
     // ---- Reading the document ---------------------------------------------------------------
 
@@ -1397,6 +1419,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
     // Launch only after every state property and lazy delegate has been initialized.
     init {
+        scan.restore()
         viewModelScope.launch {
             application.engine.await().onSuccess { engine = it; fonts.initialize() }.onFailure { engineProblem = it.userMessage }
             refreshRecents()

@@ -448,6 +448,15 @@ impl Automation {
         if !doc.edit_notices.is_empty() {
             out["warnings"] = json!(doc.edit_notices.iter().map(ToString::to_string).collect::<Vec<_>>());
         }
+        // Field calculations and validation can emit viewer messages during any edit.
+        // Keep the structured 0.17 format; Android displays their message text.
+        let js = self.session.take_js_output(id);
+        if !js.alerts.is_empty() {
+            out["alerts"] = json!(js.alerts.iter().map(crate::a11y::alert_json).collect::<Vec<_>>());
+        }
+        if !js.requests.is_empty() {
+            out["requests"] = json!(js.requests.iter().map(crate::a11y::request_json).collect::<Vec<_>>());
+        }
         Ok(out)
     }
 

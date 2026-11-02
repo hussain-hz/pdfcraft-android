@@ -98,7 +98,7 @@ class FontDownloadsDeviceTest {
         val application = context.applicationContext as PdfcraftApplication
         val store = androidx.lifecycle.ViewModelStore()
         val vm = withContext(Dispatchers.Main) {
-            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(application).also { store.put("auto-font",it); it.open(android.net.Uri.fromFile(source)) }
+            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(application, androidx.lifecycle.SavedStateHandle()).also { store.put("auto-font",it); it.open(android.net.Uri.fromFile(source)) }
         }
         try {
             kotlinx.coroutines.withTimeout(60000) {
@@ -163,7 +163,7 @@ class FontDownloadsDeviceTest {
         val application = context.applicationContext as PdfcraftApplication
         val store = androidx.lifecycle.ViewModelStore()
         val vm = withContext(Dispatchers.Main) {
-            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(application).also { store.put("auto-font",it); it.open(android.net.Uri.fromFile(source)) }
+            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(application, androidx.lifecycle.SavedStateHandle()).also { store.put("auto-font",it); it.open(android.net.Uri.fromFile(source)) }
         }
         try {
             kotlinx.coroutines.withTimeout(60000) {
@@ -229,7 +229,7 @@ class FontDownloadsDeviceTest {
         val directory = File(context.getExternalFilesDir(null),"font-startup-qa/${System.nanoTime()}")
         val store = androidx.lifecycle.ViewModelStore()
         val vm = withContext(Dispatchers.Main) {
-            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(context.applicationContext as PdfcraftApplication).also { store.put("startup-fonts",it) }
+            io.github.artcraftandroid.pdfcraft.ui.AppViewModel(context.applicationContext as PdfcraftApplication, androidx.lifecycle.SavedStateHandle()).also { store.put("startup-fonts",it) }
         }
         try {
             kotlinx.coroutines.withTimeout(60000) { while(withContext(Dispatchers.Main) { vm.engine == null }) kotlinx.coroutines.delay(50) }
