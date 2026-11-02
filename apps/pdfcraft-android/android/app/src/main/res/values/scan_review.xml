@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_importing">Adding photos…</string>
+    <string name="scan_page_limit">A scan can contain up to 50 pages.</string>
+    <string name="scan_photo_limit">Each photo must be 32 MB or smaller.</string>
+    <string name="scan_photo_invalid">This photo cannot be decoded. Choose a JPEG or PNG image.</string>
+    <string name="scan_saved_without_ocr">The scan was saved without searchable text; text recognition is not installed.</string>
+    <string name="scan_original_view">Original photo</string>
+    <string name="scan_result_view">Processed result</string>
+    <string name="scan_compare_original">Compare original</string>
+    <string name="scan_preview_retry">Preview failed — retry</string>
+    <string name="scan_import_photos">Import photos</string>
+    <string name="scan_strength">Strength: %1$d</string>
+    <string name="scan_strength_label">Enhancement strength</string>
+    <string name="scan_apply_all">Apply to all</string>
+    <string name="scan_rotate">Rotate</string>
+    <string name="scan_move_before">Move earlier</string>
+    <string name="scan_move_after">Move later</string>
+    <string name="scan_searchable">Searchable text</string>
+    <string name="scan_apply_all_hint">Applies to every page in this scan only. Each page keeps its own photo and document boundaries.</string>
+    <string name="scan_apply_look">Image enhancement and intensity</string>
+    <string name="scan_apply_rotation">Same page rotation</string>
+    <string name="scan_apply_crop">Auto-crop each page using its detected edges</string>
+    <string name="scan_crop_invalid">Adjust the page corners again; the crop must enclose a valid document area.</string>
+</resources>

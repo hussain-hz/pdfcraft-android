@@ -95,6 +95,7 @@ class MainActivity : ComponentActivity() {
                     when (kind) {
                         FilePickKind.Combine -> pickMany.launch(arrayOf("application/pdf", "image/*", "text/plain") + OFFICE_TYPES)
                         FilePickKind.Create -> pickMany.launch(arrayOf("image/*", "text/plain", "application/pdf") + OFFICE_TYPES)
+                        FilePickKind.ScanImages -> pickMany.launch(arrayOf("image/jpeg", "image/png"))
                         FilePickKind.ImportFont -> pickOne.launch(arrayOf("*/*"))
                         FilePickKind.ImportComments -> pickOne.launch(arrayOf("application/pdf"))
                         FilePickKind.Insert, FilePickKind.Open -> pickOne.launch(arrayOf("application/pdf"))

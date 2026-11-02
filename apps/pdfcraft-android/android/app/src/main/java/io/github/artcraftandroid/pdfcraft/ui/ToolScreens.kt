@@ -519,7 +519,7 @@ fun CombineScreen(vm: AppViewModel) {
 data class PickedFile(val uri: android.net.Uri, val name: String, val size: Long?)
 
 /** What a file picker was opened for. */
-enum class FilePickKind { Combine, Create, Insert, Open, DigitalId, ImportComments, ImportFont }
+enum class FilePickKind { Combine, Create, Insert, Open, DigitalId, ImportComments, ImportFont, ScanImages }
 
 /**
  * Crop pages, laid out as the reference's: the page inset 32 dp on black, a crop frame with ringed
@@ -673,7 +673,8 @@ fun CropScreen(vm: AppViewModel, doc: OpenDocument) {
  * as shares of the photo's width and height (x1, y1 … x4, y4 from the top left, clockwise), the
  * whole photo when No crop was chosen or no edges were found. [found] is what Auto-detect found.
  */
-data class ScanPage(val file: java.io.File, val thumb: ImageBitmap, val corners: FloatArray = WHOLE, val found: FloatArray? = null) {
+data class ScanPage(val file: java.io.File, val thumb: ImageBitmap, val corners: FloatArray = WHOLE, val found: FloatArray? = null,
+    val filter: ScanFilter = ScanFilter.AutoColor, val strength: Int = filter.level, val rotation: Int = 0) {
     companion object {
         val WHOLE = floatArrayOf(0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f)
     }
@@ -691,82 +692,114 @@ enum class ScanFilter(@StringRes val label: Int, val mode: String, val level: In
 /** Scan: pages taken with the camera, reviewed (name, retake, crop, delete, look), then saved as a PDF. */
 @Composable
 fun ScanScreen(vm: AppViewModel) {
-    val c = pdfColors
-    val pages = vm.scan.scanPages
-    var filter by remember { mutableStateOf(ScanFilter.AutoColor) }
+    val c=pdfColors; val pages=vm.scan.scanPages
     var current by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var cropping by remember { mutableStateOf<java.io.File?>(null) }
     var naming by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { if (pages.isEmpty()) vm.scan.takeScanPhoto() }
-    // a page just taken is the one shown
+    var applyingAll by remember { mutableStateOf(false) }
+    var compare by remember { mutableStateOf(false) }
+    var processed by remember { mutableStateOf<ImageBitmap?>(null) }
+    var loading by remember { mutableStateOf(false) }
+    var previewError by remember { mutableStateOf(false) }
+    var request by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var retry by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    LaunchedEffect(Unit) { vm.scan.openCameraIfNeeded() }
     var seen by remember { androidx.compose.runtime.mutableIntStateOf(pages.size) }
-    LaunchedEffect(pages.size) {
-        if (pages.size > seen) current = pages.lastIndex
-        seen = pages.size
+    LaunchedEffect(pages.size) { if(pages.size>seen) current=pages.lastIndex; current=current.coerceAtMost(pages.lastIndex).coerceAtLeast(0); seen=pages.size }
+    val page=pages.getOrNull(current)
+    LaunchedEffect(page,retry) {
+        val token=++request; processed=null; previewError=false; compare=false
+        if(page!=null) {
+            loading=true
+            try { kotlinx.coroutines.delay(250); val image=vm.scan.preview(page); if(request==token) processed=image }
+            catch(e: kotlinx.coroutines.CancellationException) { throw e }
+            catch(_: Exception) { if(request==token) previewError=true }
+            finally { if(request==token) loading=false }
+        } else loading=false
     }
-    val croppingAt = pages.indexOfFirst { it.file == cropping }
-    if (croppingAt >= 0) {
-        ScanCrop(pages[croppingAt], onDone = { pages[croppingAt] = pages[croppingAt].copy(corners = it); cropping = null }, onCancel = { cropping = null })
+    val croppingAt=pages.indexOfFirst { it.file==cropping }
+    if(croppingAt>=0) {
+        ScanCrop(pages[croppingAt],onDone={ corners -> vm.scan.update(croppingAt) { it.copy(corners=corners) }; cropping=null },onCancel={ cropping=null })
         return
     }
-    val addPageLabel = stringResource(R.string.tools_add_page)
-    ToolScaffold(
-        if (pages.isEmpty()) stringResource(R.string.common_tool_scan) else stringResource(R.string.tools_page_of, current.coerceAtMost(pages.lastIndex) + 1, pages.size),
-        { vm.scan.discardScan() },
-        stringResource(R.string.tools_save_pdf), pages.isNotEmpty(), { vm.scan.saveScan(filter) },
-    ) {
-        // the new file's name, changeable before it's saved (not when the pages go into an open document)
-        if (vm.scan.insertScanAt == null && vm.scan.scanName.isNotBlank()) {
-            val nameLabel = stringResource(R.string.tools_scan_name_description, vm.scan.scanName)
-            Row(
-                Modifier.fillMaxWidth().clickable { naming = true }.padding(horizontal = 16.dp, vertical = 10.dp).semantics { contentDescription = nameLabel },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(LucideIcons.FileText, null, tint = c.icon, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(12.dp))
-                Text(vm.scan.scanName, color = c.text, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Spacer(Modifier.width(12.dp))
-                Icon(LucideIcons.Pencil, null, tint = c.icon, modifier = Modifier.size(20.dp))
+    ToolScaffold(if(pages.isEmpty()) stringResource(R.string.common_tool_scan) else stringResource(R.string.tools_page_of,current+1,pages.size),
+        {vm.scan.discardScan()},stringResource(R.string.tools_save_pdf),pages.isNotEmpty() && !vm.scan.receiving,{vm.scan.saveScan()}) {
+        if(vm.scan.insertScanAt==null && vm.scan.scanName.isNotBlank()) {
+            val nameLabel=stringResource(R.string.tools_scan_name_description,vm.scan.scanName)
+            Row(Modifier.fillMaxWidth().clickable { naming=true }.semantics { contentDescription=nameLabel }.padding(horizontal=16.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
+                Text(vm.scan.scanName,color=c.text,modifier=Modifier.weight(1f),maxLines=1,overflow=TextOverflow.Ellipsis)
+                Icon(LucideIcons.Pencil,stringResource(R.string.common_file_name),tint=c.icon,modifier=Modifier.size(18.dp))
             }
         }
-        Box(Modifier.weight(1f).fillMaxWidth().background(c.desk), contentAlignment = Alignment.Center) {
-            val page = pages.getOrNull(current.coerceAtMost(pages.lastIndex))
-            if (page != null) {
-                ScanPhoto(page.thumb, page.corners, Modifier.fillMaxSize())
-            } else {
-                Text(stringResource(R.string.tools_scan_empty), color = c.textSecondary)
-            }
+        Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
+            Text(stringResource(if(compare) R.string.scan_original_view else R.string.scan_result_view),color=c.textSecondary,fontSize=13.sp)
+            TextButton(onClick={applyingAll=true},enabled=pages.size>1) {Text(stringResource(R.string.scan_apply_all),color=if(pages.size>1)c.accent else c.textSecondary,fontSize=12.sp)}
+            TextButton(onClick={compare=!compare},enabled=page!=null) { Text(stringResource(R.string.scan_compare_original),color=c.accent) }
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            pages.forEachIndexed { i, p ->
-                Image(p.thumb, stringResource(R.string.tools_page_number, i + 1), modifier = Modifier.size(56.dp, 72.dp).clip(RoundedCornerShape(4.dp)).border(2.dp, if (i == current) c.accent else Color.Transparent, RoundedCornerShape(4.dp)).clickable { current = i }, contentScale = ContentScale.Crop)
-            }
-            Box(Modifier.size(56.dp, 72.dp).clip(RoundedCornerShape(4.dp)).background(c.surfaceRaised).clickable { vm.scan.takeScanPhoto() }.semantics { contentDescription = addPageLabel }, contentAlignment = Alignment.Center) {
-                Icon(LucideIcons.Plus, null, tint = c.icon)
-            }
+        Box(Modifier.weight(1f).fillMaxWidth().background(c.desk),contentAlignment=Alignment.Center) {
+            if(page!=null) {
+                val image=if(compare) page.thumb else processed ?: page.thumb
+                Image(image,stringResource(if(compare) R.string.scan_original_view else R.string.scan_result_view),modifier=Modifier.fillMaxSize().padding(12.dp),contentScale=ContentScale.Fit)
+                if(loading && !compare) androidx.compose.material3.CircularProgressIndicator(color=c.accent)
+                if(previewError && !compare) TextButton(onClick={retry++},modifier=Modifier.align(Alignment.BottomCenter).background(c.surface)) { Text(stringResource(R.string.scan_preview_retry),color=c.accent) }
+            } else Text(stringResource(R.string.tools_scan_empty),color=c.textSecondary)
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            pages.forEachIndexed { i,p ->
+                Image(p.thumb,stringResource(R.string.tools_page_number,i+1),modifier=Modifier.size(50.dp,60.dp).clip(RoundedCornerShape(4.dp))
+                    .border(2.dp,if(i==current)c.accent else Color.Transparent,RoundedCornerShape(4.dp)).clickable {current=i},contentScale=ContentScale.Crop)
+            }
+            TextButton(onClick={vm.scan.takeScanPhoto()},enabled=!vm.scan.receiving) { Text(stringResource(R.string.tools_add_page),color=c.accent) }
+            TextButton(onClick={vm.pickFiles(FilePickKind.ScanImages)},enabled=!vm.scan.receiving) { Text(stringResource(R.string.scan_import_photos),color=c.accent) }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=8.dp)) {
             ScanFilter.entries.forEach { f ->
-                Text(
-                    stringResource(f.label), color = if (f == filter) c.accent else c.text, fontSize = 14.sp,
-                    modifier = Modifier.clip(CircleShape).background(if (f == filter) c.pressed else Color.Transparent).clickable { filter = f }.padding(horizontal = 14.dp, vertical = 8.dp),
-                )
+                Text(stringResource(f.label),color=if(f==page?.filter)c.accent else c.text,fontSize=14.sp,
+                    modifier=Modifier.clip(CircleShape).background(if(f==page?.filter)c.pressed else Color.Transparent)
+                        .clickable(enabled=page!=null) {vm.scan.update(current) {it.copy(filter=f,strength=f.level)}}.padding(horizontal=12.dp,vertical=8.dp))
             }
         }
-        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = { vm.scan.retakeScan(current) }, enabled = pages.isNotEmpty()) { Text(stringResource(R.string.tools_retake), color = c.accent) }
-            TextButton(onClick = { cropping = pages.getOrNull(current.coerceAtMost(pages.lastIndex))?.file }, enabled = pages.isNotEmpty()) { Text(stringResource(R.string.tools_crop), color = c.accent) }
-            TextButton(onClick = { if (pages.isNotEmpty()) { pages.removeAt(current.coerceAtMost(pages.lastIndex)); current = (current - 1).coerceAtLeast(0) } }, enabled = pages.isNotEmpty()) { Text(stringResource(R.string.common_delete), color = c.accent) }
+        if(page!=null && page.filter!=ScanFilter.Original) {
+            Row(Modifier.fillMaxWidth().padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically) {
+                Text(stringResource(R.string.scan_strength,page.strength),color=c.textSecondary,fontSize=12.sp)
+                val strengthLabel=stringResource(R.string.scan_strength_label)
+                androidx.compose.material3.Slider(value=page.strength.toFloat(),onValueChange={v -> vm.scan.update(current) {it.copy(strength=v.toInt())}},valueRange=0f..100f,
+                    modifier=Modifier.weight(1f).padding(horizontal=8.dp).semantics {contentDescription=strengthLabel})
+            }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.SpaceEvenly) {
+            TextButton(onClick={vm.scan.retakeScan(current)},enabled=page!=null && !vm.scan.receiving) {Text(stringResource(R.string.tools_retake),color=c.accent)}
+            TextButton(onClick={cropping=page?.file},enabled=page!=null) {Text(stringResource(R.string.tools_crop),color=c.accent)}
+            TextButton(onClick={vm.scan.update(current) {it.copy(rotation=(it.rotation+90)%360)}},enabled=page!=null) {Text(stringResource(R.string.scan_rotate),color=c.accent)}
+            TextButton(onClick={vm.scan.delete(current); current=(current-1).coerceAtLeast(0)},enabled=page!=null) {Text(stringResource(R.string.common_delete),color=c.accent)}
+        }
+        Row(Modifier.fillMaxWidth().padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
+            TextButton(onClick={current=vm.scan.move(current,-1)},enabled=current>0) {Text(stringResource(R.string.scan_move_before),color=c.accent,fontSize=12.sp)}
+            TextButton(onClick={current=vm.scan.move(current,1)},enabled=current<pages.lastIndex) {Text(stringResource(R.string.scan_move_after),color=c.accent,fontSize=12.sp)}
+            Text(stringResource(R.string.scan_searchable),color=c.text,fontSize=12.sp,modifier=Modifier.weight(1f).padding(horizontal=8.dp))
+            val searchableLabel=stringResource(R.string.scan_searchable)
+            Switch(checked=vm.scan.makeSearchable,onCheckedChange={vm.scan.makeSearchable=it},modifier=Modifier.semantics {contentDescription=searchableLabel})
         }
     }
-    if (naming) {
-        var name by remember { mutableStateOf(vm.scan.scanName) }
-        PdfDialog(
-            onDismiss = { naming = false }, title = stringResource(R.string.common_file_name),
-            confirm = stringResource(R.string.common_ok), confirmEnabled = name.isNotBlank(), onConfirm = { vm.scan.scanName = name.trim(); naming = false },
-        ) {
-            PdfField(name, { name = it }, stringResource(R.string.common_file_name))
+    if(applyingAll) {
+        var look by remember { mutableStateOf(true) }
+        var rotation by remember { mutableStateOf(true) }
+        var crop by remember { mutableStateOf(false) }
+        PdfDialog(onDismiss={applyingAll=false},title=stringResource(R.string.scan_apply_all),confirm=stringResource(R.string.common_done),
+            confirmEnabled=look || rotation || crop,onConfirm={vm.scan.applyToAll(current,look,rotation,crop); applyingAll=false}) {
+            Text(stringResource(R.string.scan_apply_all_hint),color=c.textSecondary,fontSize=13.sp)
+            listOf(Triple(R.string.scan_apply_look,look,{v:Boolean->look=v}),Triple(R.string.scan_apply_rotation,rotation,{v:Boolean->rotation=v}),Triple(R.string.scan_apply_crop,crop,{v:Boolean->crop=v})).forEach { (label,value,change) ->
+                Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                    Text(stringResource(label),color=c.text,modifier=Modifier.weight(1f),fontSize=14.sp)
+                    androidx.compose.material3.Checkbox(checked=value,onCheckedChange=change)
+                }
+            }
         }
+    }
+    if(naming) {
+        var name by remember {mutableStateOf(vm.scan.scanName)}
+        PdfDialog(onDismiss={naming=false},title=stringResource(R.string.common_file_name),confirm=stringResource(R.string.common_ok),confirmEnabled=name.isNotBlank(),
+            onConfirm={vm.scan.scanName=name.trim(); naming=false}) {PdfField(name,{name=it},stringResource(R.string.common_file_name))}
     }
 }
 
@@ -777,8 +810,8 @@ fun ScanScreen(vm: AppViewModel) {
 @Composable
 private fun ScanCrop(page: ScanPage, onDone: (FloatArray) -> Unit, onCancel: () -> Unit) {
     val c = pdfColors
-    var corners by remember(page.file) { mutableStateOf(page.corners) }
-    ToolScaffold(stringResource(R.string.tools_crop), onCancel, stringResource(R.string.common_done), true, { onDone(corners) }) {
+    var corners by remember(page.file) { mutableStateOf(page.corners.copyOf()) }
+    ToolScaffold(stringResource(R.string.tools_crop), onCancel, stringResource(R.string.common_done), validScanCorners(corners), { onDone(corners) }) {
         Box(Modifier.weight(1f).fillMaxWidth().background(c.desk)) {
             ScanPhoto(page.thumb, corners, Modifier.fillMaxSize(), onMove = { corners = it })
         }
@@ -790,19 +823,7 @@ private fun ScanCrop(page: ScanPage, onDone: (FloatArray) -> Unit, onCancel: () 
 }
 
 /** Whether [q] (x1, y1 … x4, y4) is a convex quadrilateral, its corners going round one way. */
-private fun convexQuad(q: FloatArray): Boolean {
-    var sign = 0
-    for (i in 0 until 4) {
-        val (ax, ay) = q[2 * i] to q[2 * i + 1]
-        val (bx, by) = q[2 * ((i + 1) % 4)] to q[2 * ((i + 1) % 4) + 1]
-        val (cx, cy) = q[2 * ((i + 2) % 4)] to q[2 * ((i + 2) % 4) + 1]
-        val cross = (bx - ax) * (cy - by) - (by - ay) * (cx - bx)
-        val s = if (cross > 1e-6f) 1 else if (cross < -1e-6f) -1 else return false
-        if (sign != 0 && s != sign) return false
-        sign = s
-    }
-    return true
-}
+private fun convexQuad(q: FloatArray): Boolean = validScanCorners(q)
 
 /**
  * A scanned page's photo, fitted, with the part kept outlined and the rest dimmed: [corners] as

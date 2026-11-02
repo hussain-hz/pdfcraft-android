@@ -1211,6 +1211,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
             FilePickKind.ImportComments -> features.importComments(uris.first())
             FilePickKind.ImportFont -> fonts.importPicked(uris.first())
+            FilePickKind.ScanImages -> scan.importPhotos(uris)
             FilePickKind.Open -> open(uris.first())
             FilePickKind.DigitalId -> viewModelScope.launch {
                 val uri = uris.first()
