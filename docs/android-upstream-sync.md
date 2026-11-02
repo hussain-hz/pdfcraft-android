@@ -26,7 +26,7 @@ There are 11 commits in this interval, including seven functional changes. This 
 - The 0.17 `js_run` response contains alert objects rather than strings. Android extracts their message. Edits that run field calculations also return structured alerts/requests, so the viewer does not lose those messages.
 - Scan state contains paths and small metadata, never bitmaps or live native document IDs. Only files directly inside the app's own camera cache are restored. Missing files are skipped, and pending retakes retain the correct page index.
 - A scan that was being inserted into an open native document is recovered as a new scan, with an explanatory message. A native document handle cannot survive process death. An interrupted Add image operation with no restored target drops its own temporary photo.
-- Stable 0.0.4 remains the published stable release. Preview version metadata does not publish a new stable release.
+- The owner confirmed that phone testing of 0.0.5-rc.1 succeeded before preparing stable 0.0.5. Stable metadata uses base version code 599 (ARM64 5992; ARMv7 5991), above the preview and 0.0.4.
 
 ## Validation
 
