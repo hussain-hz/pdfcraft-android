@@ -24,6 +24,8 @@ use serde_json::{Value, json};
 
 uniffi::setup_scaffolding!();
 
+mod core_fonts;
+
 #[cfg(test)]
 mod tests;
 

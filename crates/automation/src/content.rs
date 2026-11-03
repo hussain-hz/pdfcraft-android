@@ -149,6 +149,11 @@ impl Automation {
     }
 
     pub(crate) fn page_add_text(&mut self, a: &Args) -> Result<Value> {
+        if let Some(expected) = a.opt_int("expected_generation")? {
+            if u64::try_from(expected).ok() != Some(self.doc(a)?.edit_generation()) {
+                return Err(bad("the document changed while choosing its font; try again"));
+            }
+        }
         let page = self.page(a)?;
         let ph = self.doc(a)?.info.pages[page].height as f64;
         let rect = match (rect_arg(a, "rect")?, a.get("at")) {
@@ -163,8 +168,47 @@ impl Automation {
         };
         let mut t = AddedText { rect, text: a.str("text")?.to_string(), ..AddedText::default() };
         style(a, &mut t)?;
-        let mut out = self.apply(a, Edit::AddText { page, text: t })?;
-        out["index"] = json!(self.doc(a)?.added().iter().filter(|x| x.page == page).count());
+        let path = a.opt_str("font_path")?;
+        let resource = a.opt_str("font_resource")?;
+        if path.is_some() && resource.is_some() {
+            return Err(bad("choose font_path or font_resource"));
+        }
+        let program = if let Some(path) = path {
+            use std::io::Read;
+            let mut bytes = Vec::new();
+            std::fs::File::open(self.resolve(path, false)?).map_err(failed)?.take((16 << 20) + 1).read_to_end(&mut bytes).map_err(failed)?;
+            Some(bytes)
+        } else if let Some(resource) = resource {
+            Some(
+                self.doc(a)?
+                    .text_editor_fonts(page)
+                    .into_iter()
+                    .find(|f| f.resource == resource)
+                    .ok_or_else(|| bad("font resource is not available on this page"))?
+                    .bytes,
+            )
+        } else {
+            None
+        };
+        let custom = program.is_some();
+        let edit = if let Some(bytes) = program {
+            // Both edits run on the session's disposable candidate: failure leaves no placeholder,
+            // and the complete operation has a single Undo entry.
+            let index = self.doc(a)?.added().iter().filter(|x| x.page == page).count();
+            let text = std::mem::replace(&mut t.text, ".".into());
+            Edit::Batch {
+                label: "Add text".into(),
+                edits: vec![
+                    Edit::AddText { page, text: t },
+                    Edit::SetContentFont { page, index, bytes: std::sync::Arc::new(bytes), text: Some(text) },
+                ],
+            }
+        } else {
+            Edit::AddText { page, text: t }
+        };
+        let mut out = self.apply(a, edit)?;
+        out["index"] = if custom { Value::Null } else { json!(self.doc(a)?.added().iter().filter(|x| x.page == page).count()) };
+        out["source_font"] = json!(custom);
         Ok(out)
     }
 

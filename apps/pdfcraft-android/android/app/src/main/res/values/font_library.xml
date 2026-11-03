@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="font_library_title">Fonts</string>
+    <string name="font_library_summary">Download Microsoft Core Fonts or import your fonts</string>
+    <string name="font_library_core_title">Microsoft Core Fonts</string>
+    <string name="font_library_core_body">11 classic families, 30 styles. Download the complete pack once and use it offline.</string>
+    <string name="font_library_count">Installed styles: %1$d / %2$d</string>
+    <string name="font_library_download">Download the complete pack</string>
+    <string name="font_library_verify">Verify installed pack</string>
+    <string name="font_library_license">Microsoft font licence</string>
+    <string name="font_library_terms">Read the original licence below. This download contains the classic Core Fonts, not every font supplied with Windows.</string>
+    <string name="font_library_accept">Accept and install</string>
+    <string name="font_library_import_title">Your font files</string>
+    <string name="font_library_import_body">Import TTF or OTF files, or a ZIP containing several fonts. Choose fonts you are licensed to use.</string>
+    <string name="font_library_import">Import fonts or ZIP</string>
+    <string name="font_library_scope">Calibri, Tahoma and Segoe UI are not part of this pack. Imported fonts must permit editable PDF embedding. Existing text is never replaced with another font automatically.</string>
+    <string name="font_library_failed">Could not complete the font operation. Check the connection or font files and try again. Completed downloads are kept.</string>
+    <string name="font_library_cancelled">Cancelled. Completed fonts are kept; you can resume later.</string>
+    <string name="font_library_installed">Microsoft font styles ready: %1$d</string>
+    <string name="font_library_imported">Imported files: %1$d · Unsupported files skipped: %2$d</string>
+    <string name="font_search">Search font families or styles</string>
+    <string name="font_filter_all">All</string>
+    <string name="font_filter_system">Phone</string>
+    <string name="font_filter_added">Added</string>
+    <string name="font_current">Current font</string>
+    <string name="font_no_matches">No matching fonts</string>
+    <string name="font_expand_family">Show styles for %1$s</string>
+    <string name="font_style_italic">Italic</string>
+    <string name="font_style_bold_italic">Bold italic</string>
+    <string name="font_pending_draft">Complete the pending text or provide its original font before saving or sharing.</string>
+</resources>

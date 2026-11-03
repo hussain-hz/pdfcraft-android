@@ -1,0 +1,274 @@
+{
+  "packages": [
+    {
+      "file": "andale32.exe",
+      "sha256": "0524fe42951adc3a7eb870e32f0920313c71f170c859b5f770d82b4ee111e970",
+      "size": 198384,
+      "fonts": [
+        {
+          "name": "AndaleMo.TTF",
+          "sha256": "48d9bc613917709d3b0e0f4a6d4fe33a5c544c5035dffe9e90bc11e50e822071",
+          "size": 105468,
+          "face": "AndaleMono"
+        }
+      ],
+      "family": "Andale Mono"
+    },
+    {
+      "file": "arial32.exe",
+      "sha256": "85297a4d146e9c87ac6f74822734bdee5f4b2a722d7eaa584b7f2cbf76f478f6",
+      "size": 554208,
+      "fonts": [
+        {
+          "name": "Arial.TTF",
+          "sha256": "35c0f3559d8db569e36c31095b8a60d441643d95f59139de40e23fada819b833",
+          "size": 275572,
+          "face": "ArialMT"
+        },
+        {
+          "name": "Arialbd.TTF",
+          "sha256": "4044aa6b5bebbc36980206b45b0aaaaa5681552a48bcadb41746d5d1d71fd7b4",
+          "size": 286620,
+          "face": "Arial-BoldMT"
+        },
+        {
+          "name": "Arialbi.TTF",
+          "sha256": "2f371cd9d96b3ac544519d85c16dc43ceacdfcea35090ee8ddf3ec5857c50328",
+          "size": 224692,
+          "face": "Arial-BoldItalicMT"
+        },
+        {
+          "name": "Ariali.TTF",
+          "sha256": "70ade233175a6a6675e4501461af9326e6f78b1ffdf787ca0da5ab0fc8c9cfd6",
+          "size": 206132,
+          "face": "Arial-ItalicMT"
+        }
+      ],
+      "family": "Arial"
+    },
+    {
+      "file": "arialb32.exe",
+      "sha256": "a425f0ffb6a1a5ede5b979ed6177f4f4f4fdef6ae7c302a7b7720ef332fec0a8",
+      "size": 168176,
+      "fonts": [
+        {
+          "name": "AriBlk.TTF",
+          "sha256": "dad7c04acb26e23dfe4780e79375ca193ddaf68409317e81577a30674668830e",
+          "size": 117028,
+          "face": "Arial-Black"
+        }
+      ],
+      "family": "Arial Black"
+    },
+    {
+      "file": "comic32.exe",
+      "sha256": "9c6df3feefde26d4e41d4a4fe5db2a89f9123a772594d7f59afd062625cd204e",
+      "size": 246008,
+      "fonts": [
+        {
+          "name": "Comic.TTF",
+          "sha256": "b82c53776058f291382ff7e008d4675839d2dc21eb295c66391f6fb0655d8fc0",
+          "size": 126364,
+          "face": "ComicSansMS"
+        },
+        {
+          "name": "Comicbd.TTF",
+          "sha256": "873361465d994994762d0b9845c99fc7baa2a600442ea8db713a7dd19f8b0172",
+          "size": 111476,
+          "face": "ComicSansMS-Bold"
+        }
+      ],
+      "family": "Comic Sans MS"
+    },
+    {
+      "file": "courie32.exe",
+      "sha256": "bb511d861655dde879ae552eb86b134d6fae67cb58502e6ff73ec5d9151f3384",
+      "size": 646368,
+      "fonts": [
+        {
+          "name": "cour.ttf",
+          "sha256": "6715838c52f813f3821549d3f645db9a768bd6f3a43d8f85a89cb6875a546c61",
+          "size": 302688,
+          "face": "CourierNewPSMT"
+        },
+        {
+          "name": "courbd.ttf",
+          "sha256": "edf8a7c5bfcac2e1fe507faab417137cbddc9071637ef4648238d0768c921e02",
+          "size": 311508,
+          "face": "CourierNewPS-BoldMT"
+        },
+        {
+          "name": "courbi.ttf",
+          "sha256": "66dbfa20b534fba0e203da140fec7276a45a1069e424b1b9c35547538128bbe8",
+          "size": 234788,
+          "face": "CourierNewPS-BoldItalicMT"
+        },
+        {
+          "name": "couri.ttf",
+          "sha256": "f3f6b09855b6700977e214aab5eb9e5be6813976a24f894bd7766e92c732fbe1",
+          "size": 244156,
+          "face": "CourierNewPS-ItalicMT"
+        }
+      ],
+      "family": "Courier New"
+    },
+    {
+      "file": "georgi32.exe",
+      "sha256": "2c2c7dcda6606ea5cf08918fb7cd3f3359e9e84338dc690013f20cd42e930301",
+      "size": 392440,
+      "fonts": [
+        {
+          "name": "Georgia.TTF",
+          "sha256": "7d0bb20c632bb59e81a0885f573bd2173f71f73204de9058feb68ce032227072",
+          "size": 142964,
+          "face": "Georgia"
+        },
+        {
+          "name": "Georgiab.TTF",
+          "sha256": "82d2fbadb88a8632d7f2e8ad50420c9fd2e7d3cbc0e90b04890213a711b34b93",
+          "size": 139584,
+          "face": "Georgia-Bold"
+        },
+        {
+          "name": "Georgiai.TTF",
+          "sha256": "1523f19bda6acca42c47c50da719a12dd34f85cc2606e6a5af15a7728b377b60",
+          "size": 156668,
+          "face": "Georgia-Italic"
+        },
+        {
+          "name": "Georgiaz.TTF",
+          "sha256": "c983e037d8e4e694dd0fb0ba2e625bca317d67a41da2dc81e46a374e53d0ec8a",
+          "size": 158796,
+          "face": "Georgia-BoldItalic"
+        }
+      ],
+      "family": "Georgia"
+    },
+    {
+      "file": "impact32.exe",
+      "sha256": "6061ef3b7401d9642f5dfdb5f2b376aa14663f6275e60a51207ad4facf2fccfb",
+      "size": 173288,
+      "fonts": [
+        {
+          "name": "Impact.TTF",
+          "sha256": "00f1fc230ac99f9b97ba1a7c214eb5b909a78660cb3826fca7d64c3af5a14848",
+          "size": 136076,
+          "face": "Impact"
+        }
+      ],
+      "family": "Impact"
+    },
+    {
+      "file": "times32.exe",
+      "sha256": "db56595ec6ef5d3de5c24994f001f03b2a13e37cee27bc25c58f6f43e8f807ab",
+      "size": 661728,
+      "fonts": [
+        {
+          "name": "Times.TTF",
+          "sha256": "4e98adeff8ccc8ef4e3ece8d4547e288ff85fdc9c7ca711a4599c234874bbe86",
+          "size": 330412,
+          "face": "TimesNewRomanPSMT"
+        },
+        {
+          "name": "Timesbd.TTF",
+          "sha256": "4357b63cef20c01661a53c5dae70ffd20cb4765503aaed6d38b17a57c5a90bff",
+          "size": 333900,
+          "face": "TimesNewRomanPS-BoldMT"
+        },
+        {
+          "name": "Timesbi.TTF",
+          "sha256": "192e1b0d18e90334e999a99f8c32808d6a2e74b3698b8cd90c943c2249a46549",
+          "size": 238612,
+          "face": "TimesNewRomanPS-BoldItalicMT"
+        },
+        {
+          "name": "Timesi.TTF",
+          "sha256": "c25ae529b4cecdbca148b6ccb862ee0abad770af8b1fd29c8dba619d1b8da78a",
+          "size": 247092,
+          "face": "TimesNewRomanPS-ItalicMT"
+        }
+      ],
+      "family": "Times New Roman"
+    },
+    {
+      "file": "trebuc32.exe",
+      "sha256": "5a690d9bb8510be1b8b4fe49f1f2319651fe51bbe54775ddddd8ef0bd07fdac9",
+      "size": 357200,
+      "fonts": [
+        {
+          "name": "trebuc.ttf",
+          "sha256": "ec3ffb302488251e1b67fb09dd578b364c5339e27c1cfb26eb627666236453d0",
+          "size": 126796,
+          "face": "TrebuchetMS"
+        },
+        {
+          "name": "Trebucbd.ttf",
+          "sha256": "f65941f9487c0a0a3b7445996ecbbd24466d7ae76ea2a597ced55f438fa63838",
+          "size": 123828,
+          "face": "TrebuchetMS-Bold"
+        },
+        {
+          "name": "trebucbi.ttf",
+          "sha256": "c0a6bdf31f9f2953b2f08a0c1734c892bc825f0fb17c604d420f7acf203a213b",
+          "size": 131188,
+          "face": "Trebuchet-BoldItalic"
+        },
+        {
+          "name": "trebucit.ttf",
+          "sha256": "db56fdac7d3ba20b7aededcb6ee86c46687489d17b759e1708ea4e2d21e38410",
+          "size": 139288,
+          "face": "TrebuchetMS-Italic"
+        }
+      ],
+      "family": "Trebuchet MS"
+    },
+    {
+      "file": "verdan32.exe",
+      "sha256": "c1cb61255e363166794e47664e2f21af8e3a26cb6346eb8d2ae2fa85dd5aad96",
+      "size": 351992,
+      "fonts": [
+        {
+          "name": "Verdana.TTF",
+          "sha256": "96ed14949ca4b7392cff235b9c41d55c125382abbe0c0d3c2b9dd66897cae0cb",
+          "size": 139640,
+          "face": "Verdana"
+        },
+        {
+          "name": "Verdanab.TTF",
+          "sha256": "c8f5065ba91680f596af3b0378e2c3e713b95a523be3d56ae185ca2b8f5f0b23",
+          "size": 136032,
+          "face": "Verdana-Bold"
+        },
+        {
+          "name": "Verdanai.TTF",
+          "sha256": "91b59186656f52972531a11433c866fd56e62ec4e61e2621a2dba70c8f19a828",
+          "size": 154264,
+          "face": "Verdana-Italic"
+        },
+        {
+          "name": "Verdanaz.TTF",
+          "sha256": "698e220f48f4a40e77af7eb34958c8fd02f1e18c3ba3f365d93bfa2ed4474c80",
+          "size": 153324,
+          "face": "Verdana-BoldItalic"
+        }
+      ],
+      "family": "Verdana"
+    },
+    {
+      "file": "webdin32.exe",
+      "sha256": "64595b5abc1080fba8610c5c34fab5863408e806aafe84653ca8575bed17d75a",
+      "size": 185072,
+      "fonts": [
+        {
+          "name": "Webdings.TTF",
+          "sha256": "10d099c88521b1b9e380b7690cbe47b54bb19396ca515358cfdc15ac249e2f5d",
+          "size": 118752,
+          "face": "Webdings"
+        }
+      ],
+      "family": "Webdings"
+    }
+  ],
+  "source": "https://corefonts.sourceforge.net/",
+  "checksumsSource": "https://sources.debian.org/src/msttcorefonts/3.8.1/cabfiles.sha256sums/"
+}

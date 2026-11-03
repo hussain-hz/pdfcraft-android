@@ -519,7 +519,7 @@ fun CombineScreen(vm: AppViewModel) {
 data class PickedFile(val uri: android.net.Uri, val name: String, val size: Long?)
 
 /** What a file picker was opened for. */
-enum class FilePickKind { Combine, Create, Insert, Open, DigitalId, ImportComments, ImportFont, ScanImages }
+enum class FilePickKind { Combine, Create, Insert, Open, DigitalId, ImportComments, ImportFont, ImportFontLibrary, ScanImages }
 
 /**
  * Crop pages, laid out as the reference's: the page inset 32 dp on black, a crop frame with ringed

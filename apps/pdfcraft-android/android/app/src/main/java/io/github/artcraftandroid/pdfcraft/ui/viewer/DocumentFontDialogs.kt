@@ -40,8 +40,8 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
     }
     AlertDialog(onDismissRequest = manager::close, containerColor = colors.menu, titleContentColor = colors.text,
         textContentColor = colors.textSecondary, title = { Text(stringResource(title)) },
-        text = { Column(Modifier.fillMaxWidth().heightIn(max = 470.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(stringResource(R.string.font_original, target.para.font), color = colors.textSecondary, fontSize = 13.sp)
+        text = { Column(Modifier.fillMaxWidth().heightIn(max = 470.dp).then(if (manager.sheet == FontSheet.Installed && !manager.working) Modifier else Modifier.verticalScroll(rememberScrollState())), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (manager.sheet != FontSheet.Installed) Text(stringResource(R.string.font_original, target.para.font), color = colors.textSecondary, fontSize = 13.sp)
             manager.problem?.let { Text(it, color = colors.toolAccent) }
             if (manager.working) {
                 Text(if (manager.progress == null) stringResource(R.string.font_working)
@@ -50,30 +50,14 @@ fun DocumentFontDialogs(vm: AppViewModel, doc: OpenDocument) {
                 if (progress == null) LinearProgressIndicator(Modifier.fillMaxWidth())
                 else LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
             } else when (manager.sheet) {
-                FontSheet.Installed -> {
-                    if (manager.installingDefaults) Text(stringResource(R.string.font_auto_installing), color = colors.toolAccent, fontSize = 13.sp)
-                    if (manager.defaultsFailed) Text(stringResource(R.string.font_auto_retry_hint), color = colors.textSecondary, fontSize = 13.sp)
-                    val choices = installedDocumentFonts(manager.phone, manager.stored)
-                    if (choices.isEmpty()) Text(stringResource(R.string.font_empty))
-                    choices.forEachIndexed { index, choice ->
-                        if (index == 0 || choice.system != choices[index - 1].system) {
-                            Text(stringResource(if (choice.system) R.string.font_phone else R.string.font_installed_extra), color = colors.toolAccent, fontSize = 13.sp)
-                        }
-                        TextButton(onClick = { manager.choose(choice.font) }, modifier = Modifier.fillMaxWidth()) { Text(choice.font.face, color = colors.text) }
-                    }
-                    if (!inlineRtl(target.draft)) {
-                        listOf("helvetica" to R.string.edit_font_sans, "times" to R.string.edit_font_serif, "courier" to R.string.edit_font_mono).forEach { (font, label) ->
-                            TextButton(onClick = { manager.standard(doc, target.para, font) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(label), color = colors.text) }
-                        }
-                    }
-                    HorizontalDivider(color = colors.divider)
-                    TextButton(onClick = manager::pick, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_import), color = colors.toolAccent) }
-                    TextButton(onClick = manager::downloads, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.font_downloads), color = colors.toolAccent) }
-                }
+                FontSheet.Installed -> InstalledFontPicker(vm, doc, manager)
                 FontSheet.Downloads -> {
                     Text(stringResource(R.string.font_catalog_hint), fontSize = 13.sp)
                     TextButton(onClick = { manager.downloadGroup(manager.catalog) }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.font_download_all), color = colors.toolAccent)
+                    }
+                    TextButton(onClick=vm.fontLibrary::openSettings, modifier=Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.font_library_core_title), color=colors.toolAccent)
                     }
                     manager.catalog.sortedBy { !it.arabic }.groupBy { it.family }.forEach { (family, fonts) ->
                         val font = fonts.first()

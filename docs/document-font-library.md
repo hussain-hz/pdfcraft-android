@@ -15,10 +15,10 @@ redirects and unexpected data are rejected. Verified fonts and their licences ar
 app's private files and reused without network access. No font binaries are added to the APK.
 
 The system picker copies the selected file with a 16 MiB limit. Native validation checks its
-font data, static face, embedding permissions and declared open licence. A new read-only
+font data, static face and editable embedding permissions. Licensed external inputs, including
+Microsoft Core Fonts and user imports, are supported; optional proprietary inputs are not bundled assets. A new read-only
 `text_font_check` verifies character coverage and complex shaping before preview, so a Latin-only
-font cannot be applied to Arabic through a misleading system fallback. Fira Sans's shorter OFL
-declaration is accepted only with a recognized official SIL/OFL licence URL.
+font cannot be applied to Arabic through a misleading system fallback. The Google Fonts catalog retains pinned OFL files and verified licence hashes.
 
 Font choices capture the document, paragraph, pending draft and generation. Apply checks the
 same document and generation under its save lock. Preview/cancellation does not register a font
@@ -136,3 +136,8 @@ cache writes. All 21 emulator instrumentation tests pass, including setup agains
 isolated font directory without opening a PDF, complete verified download and combined system /
 private list checks. The user confirmed successful phone use of RC.6 before these list changes;
 this UI/setup revision still requires its own phone trial.
+
+## Settings library and automatic document faces
+
+See [Windows font library](windows-font-library.md) for Microsoft Core Fonts, bulk ZIP imports,
+the grouped searchable editor picker and automatic source-face selection when adding text.

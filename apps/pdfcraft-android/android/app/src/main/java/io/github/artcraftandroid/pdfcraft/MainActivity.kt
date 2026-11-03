@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
                         FilePickKind.Create -> pickMany.launch(arrayOf("image/*", "text/plain", "application/pdf") + OFFICE_TYPES)
                         FilePickKind.ScanImages -> pickMany.launch(arrayOf("image/jpeg", "image/png"))
                         FilePickKind.ImportFont -> pickOne.launch(arrayOf("*/*"))
+                        FilePickKind.ImportFontLibrary -> pickMany.launch(arrayOf("*/*"))
                         FilePickKind.ImportComments -> pickOne.launch(arrayOf("application/pdf"))
                         FilePickKind.Insert, FilePickKind.Open -> pickOne.launch(arrayOf("application/pdf"))
                         // .p12 / .pfx: providers type them as PKCS #12, or not at all

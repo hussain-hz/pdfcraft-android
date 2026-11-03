@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="font_library_title">الخطوط</string>
+    <string name="font_library_summary">تنزيل حزمة Microsoft الأساسية أو استيراد خطوطك</string>
+    <string name="font_library_core_title">خطوط Microsoft الأساسية</string>
+    <string name="font_library_core_body">11 عائلة كلاسيكية و30 نمطًا. نزّل الحزمة كاملة واستخدمها دون اتصال.</string>
+    <string name="font_library_count">الأنماط المثبّتة: %1$d من %2$d</string>
+    <string name="font_library_download">تنزيل الحزمة كاملة</string>
+    <string name="font_library_verify">التحقق من الحزمة المثبّتة</string>
+    <string name="font_library_license">ترخيص خطوط Microsoft</string>
+    <string name="font_library_terms">اقرأ الترخيص الأصلي أدناه. تضم هذه الحزمة الخطوط الأساسية الكلاسيكية، ولا تشمل جميع خطوط ويندوز.</string>
+    <string name="font_library_accept">أوافق وأثبّت الحزمة</string>
+    <string name="font_library_import_title">ملفات خطوطك</string>
+    <string name="font_library_import_body">استورد ملفات TTF أو OTF، أو حزمة ZIP تضم عدة خطوط تملك ترخيص استخدامها.</string>
+    <string name="font_library_import">استيراد خطوط أو حزمة ZIP</string>
+    <string name="font_library_scope">لا تشمل الحزمة Calibri أو Tahoma أو Segoe UI. يجب أن تسمح الخطوط المستوردة بتضمينها للتحرير في PDF. يبقى خط النص الأصلي محفوظًا.</string>
+    <string name="font_library_failed">تعذّر إكمال العملية. تحقق من الاتصال أو ملفات الخطوط وحاول مجددًا. تظل التنزيلات المكتملة محفوظة.</string>
+    <string name="font_library_cancelled">أُلغيت العملية. بقيت الخطوط المكتملة محفوظة ويمكنك المتابعة لاحقًا.</string>
+    <string name="font_library_installed">أنماط Microsoft الجاهزة: %1$d</string>
+    <string name="font_library_imported">الخطوط المستوردة: %1$d · الملفات غير المدعومة: %2$d</string>
+    <string name="font_search">ابحث عن عائلة خط أو نمط</string>
+    <string name="font_filter_all">الكل</string>
+    <string name="font_filter_system">الهاتف</string>
+    <string name="font_filter_added">المضافة</string>
+    <string name="font_current">الخط الحالي</string>
+    <string name="font_no_matches">لا توجد خطوط مطابقة</string>
+    <string name="font_expand_family">عرض أنماط %1$s</string>
+    <string name="font_style_italic">مائل</string>
+    <string name="font_style_bold_italic">عريض مائل</string>
+    <string name="font_pending_draft">أكمل إضافة النص أو وفّر خطه الأصلي قبل الحفظ أو المشاركة.</string>
+</resources>

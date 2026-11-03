@@ -98,6 +98,8 @@ class DocumentFonts internal constructor(private val vm: AppViewModel, private v
             finally { if (operation == token) { working = false; progress = null; applying = false } }
         }
     }
+    internal suspend fun refreshLibrary() = loadStored()
+
     private suspend fun loadStored() {
         val engine = vm.engine ?: return
         val result = engine.tool("text_font_files", mapOf("directories" to listOf(directory.absolutePath))).getJSONArray("fonts")
@@ -170,6 +172,47 @@ class DocumentFonts internal constructor(private val vm: AppViewModel, private v
         preview = null; sheet = FontSheet.Installed
     }
 
+    /** Prefer the document's own program over another version with the same family name. */
+    internal suspend fun sourceFontResource(doc:OpenDocument,page:Int,source:String,draft:String):String? {
+        val engine=vm.engine ?: return null
+        val fonts=engine.tool("text_fonts",mapOf("doc" to doc.id,"page" to page+1)).getJSONArray("fonts")
+        val matching=(0 until fonts.length()).map {fonts.getJSONObject(it)}.filter {
+            editorFaceKey(it.getString("font"))==editorFaceKey(source)
+        }.sortedBy {it.optBoolean("preview_only")}
+        for(font in matching) {
+            val resource=font.getString("resource")
+            try {
+                if(engine.tool("text_font_check",mapOf("doc" to doc.id,"page" to page+1,"font_resource" to resource,"text" to draft)).optBoolean("supported")) return resource
+            } catch(e:CancellationException) {throw e} catch(_:Exception) { /* try a complete face */ }
+        }
+        return null
+    }
+
+    /** Match the exact PostScript face and all characters; never choose a substitute. */
+    internal suspend fun exactFontFile(source:String,draft:String):File? {
+        loadStored();loadPhone()
+        val key=editorFaceKey(source)
+        val saved=(stored+phone).filter {editorFaceKey(it.face)==key}.firstOrNull {
+            vm.engine?.tool("text_font_check",mapOf("path" to it.file.absolutePath,"text" to draft))?.optBoolean("supported")==true
+        }
+        if(saved!=null) return saved.file
+        val remote=matchingOriginalFont(source,catalog)
+        val core=vm.fontLibrary.catalog.singleOrNull {p ->p.fonts.any {editorFaceKey(it.face)==key}}
+        val file=when {
+            remote!=null -> withContext(Dispatchers.IO) {
+                cacheDocumentFonts(catalog.filter {it.family==remote.family},directory)
+                File(directory,"${remote.id}.ttf")
+            }
+            core!=null && app.getSharedPreferences("app",0).getBoolean("coreFontsAccepted",false) -> withContext(Dispatchers.IO) {
+                cacheCoreFontPackage(core,directory)
+                core.installedFile(directory,core.fonts.single {editorFaceKey(it.face)==key})
+            }
+            else -> null
+        } ?: return null
+        loadStored()
+        return file.takeIf {vm.engine?.tool("text_font_check",mapOf("path" to it.absolutePath,"text" to draft))?.optBoolean("supported")==true}
+    }
+
     /** Recover only a refused font-preserving edit; never pick a substitute automatically. */
     fun recover(doc: OpenDocument, para: Paragraph, draft: String, generation: ULong, error: Exception): Boolean {
         if (!needsOriginalFont(error) || working || applying || target != null || vm.document !== doc || doc.closed || doc.closing) return false
@@ -177,24 +220,7 @@ class DocumentFonts internal constructor(private val vm: AppViewModel, private v
         target = FontTarget(doc, para, draft, generation)
         sheet = FontSheet.Installed
         work {
-            loadStored()
-            loadPhone()
-            val key = editorFaceKey(para.font)
-            val saved = (stored + phone).firstOrNull { font ->
-                editorFaceKey(font.face) == key && vm.engine?.tool("text_font_check",
-                    mapOf("path" to font.file.absolutePath, "text" to draft))?.optBoolean("supported") == true
-            }
-            val remote = matchingOriginalFont(para.font, catalog)
-            val file = saved?.file ?: remote?.let { font ->
-                val token = operation
-                try {
-                    withContext(Dispatchers.IO) {
-                        cacheDocumentFonts(catalog.filter { it.family == font.family }, directory, { if (operation == token) progress = it.coerceIn(0f, 1f) })
-                        File(directory, "${font.id}.ttf")
-                    }
-                } catch (e: CancellationException) { throw e }
-                catch (e: Exception) { throw IllegalStateException(text(R.string.font_download_failed), e) }
-            }
+            val file = exactFontFile(para.font, draft)
             if (file == null) {
                 problem = text(R.string.font_original_unavailable, para.font)
                 return@work

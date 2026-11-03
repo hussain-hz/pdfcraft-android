@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="font_library_title">Fuentes</string>
+    <string name="font_library_summary">Descarga fuentes básicas de Microsoft o importa tus fuentes</string>
+    <string name="font_library_core_title">Fuentes básicas de Microsoft</string>
+    <string name="font_library_core_body">11 familias clásicas y 30 estilos. Descarga el paquete completo y úsalo sin conexión.</string>
+    <string name="font_library_count">Estilos instalados: %1$d / %2$d</string>
+    <string name="font_library_download">Descargar el paquete completo</string>
+    <string name="font_library_verify">Verificar el paquete instalado</string>
+    <string name="font_library_license">Licencia de fuentes de Microsoft</string>
+    <string name="font_library_terms">Lee la licencia original. El paquete contiene las fuentes básicas clásicas, no todas las fuentes de Windows.</string>
+    <string name="font_library_accept">Aceptar e instalar</string>
+    <string name="font_library_import_title">Tus archivos de fuentes</string>
+    <string name="font_library_import_body">Importa archivos TTF u OTF, o un ZIP con varias fuentes que tengas licencia para usar.</string>
+    <string name="font_library_import">Importar fuentes o ZIP</string>
+    <string name="font_library_scope">El paquete no incluye Calibri, Tahoma ni Segoe UI. Las fuentes importadas deben permitir la incrustación editable en PDF. Se conserva la fuente original del texto.</string>
+    <string name="font_library_failed">No se pudo completar la operación. Comprueba la conexión o los archivos e inténtalo de nuevo. Se conservan las descargas completas.</string>
+    <string name="font_library_cancelled">Operación cancelada. Se conservan las fuentes completas y puedes continuar más tarde.</string>
+    <string name="font_library_installed">Estilos de Microsoft listos: %1$d</string>
+    <string name="font_library_imported">Archivos importados: %1$d · Archivos no compatibles omitidos: %2$d</string>
+    <string name="font_search">Buscar familias o estilos</string>
+    <string name="font_filter_all">Todas</string>
+    <string name="font_filter_system">Teléfono</string>
+    <string name="font_filter_added">Añadidas</string>
+    <string name="font_current">Fuente actual</string>
+    <string name="font_no_matches">No hay fuentes coincidentes</string>
+    <string name="font_expand_family">Mostrar estilos de %1$s</string>
+    <string name="font_style_italic">Cursiva</string>
+    <string name="font_style_bold_italic">Negrita cursiva</string>
+    <string name="font_pending_draft">Completa el texto pendiente o proporciona su fuente original antes de guardar o compartir.</string>
+</resources>

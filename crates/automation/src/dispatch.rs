@@ -563,10 +563,23 @@ impl Automation {
                 json!({"fonts": pdfcraft_engine::text_fonts::discover(&roots).into_iter().map(|f| json!({"path":f.path,"family":f.family,"font":f.face})).collect::<Vec<_>>()})
             }
             "text_font_check" => {
-                let path = self.resolve(a.str("path")?, false)?;
-                use std::io::Read;
-                let mut bytes = Vec::new();
-                std::fs::File::open(path).map_err(failed)?.take((16 << 20) + 1).read_to_end(&mut bytes).map_err(failed)?;
+                let bytes = if let Some(resource) = a.opt_str("font_resource")? {
+                    if a.get("path").is_some() {
+                        return Err(ToolError::InvalidArgs("choose path or font_resource".into()));
+                    }
+                    self.doc(&a)?
+                        .text_editor_fonts(self.page(&a)?)
+                        .into_iter()
+                        .find(|f| f.resource == resource)
+                        .ok_or_else(|| ToolError::InvalidArgs("font resource is not available on this page".into()))?
+                        .bytes
+                } else {
+                    let path = self.resolve(a.str("path")?, false)?;
+                    use std::io::Read;
+                    let mut bytes = Vec::new();
+                    std::fs::File::open(path).map_err(failed)?.take((16 << 20) + 1).read_to_end(&mut bytes).map_err(failed)?;
+                    bytes
+                };
                 pdfcraft_fonts::embedding::validate_document_input(&bytes).map_err(failed)?;
                 let text = a.str("text")?.replace('\r', "");
                 let supported = pdfcraft_fonts::embedding::covers(&bytes, &text)

@@ -71,7 +71,7 @@ suspend fun fetchFontBytes(url: String, sha256: String, limit: Int, expected: In
 typealias FontTransfer = suspend (String, String, Int, Int?, (Float) -> Unit) -> ByteArray
 
 /** Verified private cache; a valid font and licence require no network on subsequent uses. */
-private val documentFontCacheMutex = Mutex()
+internal val documentFontCacheMutex = Mutex()
 
 suspend fun cacheDocumentFont(font: DownloadableFont, directory: File, progress: (Float) -> Unit = {}, transfer: FontTransfer = ::fetchFontBytes): File =
     documentFontCacheMutex.withLock { cacheDocumentFontLocked(font, directory, progress, transfer) }
