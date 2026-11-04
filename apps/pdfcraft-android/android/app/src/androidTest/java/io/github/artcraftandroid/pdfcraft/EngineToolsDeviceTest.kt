@@ -33,7 +33,7 @@ class EngineToolsDeviceTest {
     @Before fun setUp() {
         session = MobileSession()
         dir = File(context.getExternalFilesDir(null), "engine-017-qa/${System.nanoTime()}").apply { mkdirs() }
-        assertEquals("0.17.0", engineVersion())
+        assertEquals("0.18.1", engineVersion())
     }
 
     @After fun closeDocuments() { session.documents().forEach { session.close(it, true) } }
@@ -88,6 +88,25 @@ class EngineToolsDeviceTest {
     private fun addPicture(doc: ULong, file: File = picture()) {
         call("page_add_image", "doc" to doc.toLong(), "page" to 1, "path" to file.absolutePath,
             "rect" to listOf(80, 180, 280, 340))
+    }
+
+    @Test fun htmlExportModesRetainArabicAndImagesWithoutChangingDocument() {
+        val doc = blank()
+        text(doc, "تجربة تصدير العربية", 22)
+        addPicture(doc)
+        val before = call("text_lines", "doc" to doc.toLong(), "page" to 1).toString()
+        for (mode in listOf("rich", "simple")) {
+            val out = File(dir, "export-$mode.html")
+            call("doc_export_office", "doc" to doc.toLong(), "path" to out.path, "html_mode" to mode)
+            val html = out.readText()
+            assertTrue(html.contains("تجربة تصدير العربية"))
+            assertTrue(html.contains("data:image/"))
+            assertEquals(mode == "rich", html.contains("<style>"))
+            if (mode == "simple") assertFalse(html.contains("style="))
+        }
+        assertEquals(before, call("text_lines", "doc" to doc.toLong(), "page" to 1).toString())
+        val reopened = session.open(save(doc, "html-source.pdf").path, null).id
+        assertTrue(call("text_lines", "doc" to reopened.toLong(), "page" to 1).toString().contains("تجربة تصدير العربية"))
     }
 
     @Test fun arabicEditingSaveReopenAndUndo() {

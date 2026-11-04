@@ -441,6 +441,16 @@ fn office_import_and_excel_export_survive_the_engine_upgrade() {
     let bytes = std::fs::read(&xlsx).unwrap();
     assert!(bytes.starts_with(b"PK"));
     assert!(bytes.windows(b"xl/workbook.xml".len()).any(|w| w == b"xl/workbook.xml"));
+    for mode in ["rich", "simple"] {
+        let html = dir.join(format!("export-{mode}.html"));
+        s.execute("doc_export_office".into(), json!({"doc": doc, "path": html, "html_mode": mode}).to_string()).unwrap();
+        let text = std::fs::read_to_string(&html).unwrap();
+        assert!(text.contains("Hello from Jahfan"));
+        assert_eq!(text.contains("<style>"), mode == "rich");
+        if mode == "simple" {
+            assert!(!text.contains("style="));
+        }
+    }
     let saved = dir.join("saved.pdf");
     s.execute("doc_save".into(), json!({"doc": doc, "path": saved}).to_string()).unwrap();
     let reopened = s.open(saved.to_string_lossy().into_owned(), None).unwrap();

@@ -31,4 +31,6 @@
     <string name="feature_create">إنشاء</string>
     <string name="feature_selected_lines">محاذاة الأسطر المحددة فقط</string>
     <string name="feature_resize_handle">تغيير أبعاد الصورة</string>
+    <string name="feature_html_rich">HTML مع التنسيق (.html)</string>
+    <string name="feature_html_simple">HTML مبسّط دون CSS (.html)</string>
 </resources>
