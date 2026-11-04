@@ -12,7 +12,7 @@ Fork extensions remain: contextual Arabic shaping and ActualText, positioned sou
 
 ## Release and validation
 
-This branch prepares `0.0.7-rc.1` (ARM64 7012), above stable `0.0.6` (6992). It is a preview only; stable 0.0.6 remains published until the owner approves phone testing.
+The owner approved `0.0.7-rc.1` for stable `0.0.7`. Stable base code 799 produces ARM64 7992 and ARMv7 7991, above preview 7012/7011 and stable 0.0.6 (6992/6991).
 
 - 2,773 native tests pass across the mobile bridge, annotation, audit, automation, COS, creation/Office import, text editing, engine, export, fonts, optimizer, redaction, renderer, XFA, cryptography, image filters and renderer integration; 12 existing manual cases are ignored. The three font-build fixtures pass when run without the inherited Arabic script filter (the first aggregate invocation exposed that environment mismatch).
 - 114 Android JVM tests pass. Lint has zero errors and one existing Android Gradle Plugin advisory.
