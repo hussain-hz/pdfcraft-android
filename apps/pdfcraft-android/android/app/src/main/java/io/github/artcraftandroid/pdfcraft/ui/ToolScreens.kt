@@ -344,6 +344,8 @@ fun ExportScreen(vm: AppViewModel, doc: OpenDocument) {
             stringResource(R.string.tools_format_word) to "docx", stringResource(R.string.tools_format_rtf) to "rtf",
             stringResource(R.string.tools_format_excel) to "xlsx", stringResource(R.string.tools_format_powerpoint) to "pptx",
             stringResource(R.string.feature_markdown) to "md",
+            stringResource(R.string.feature_html_rich) to "html",
+            stringResource(R.string.feature_html_simple) to "html_simple",
         )
     } else {
         listOf(stringResource(R.string.tools_format_jpeg) to "jpg", stringResource(R.string.tools_format_png) to "png")

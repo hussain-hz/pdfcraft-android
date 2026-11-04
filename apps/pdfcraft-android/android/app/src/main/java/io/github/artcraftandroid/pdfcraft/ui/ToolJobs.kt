@@ -137,9 +137,12 @@ class ToolJobs internal constructor(private val vm: AppViewModel) {
     }
 
     /** Export [doc] as a Word, RTF, Excel or PowerPoint document. */
-    fun exportDocument(doc: OpenDocument, ext: String) = job(text(R.string.msg_busy_exporting_to, ext.uppercase())) { eng ->
+    fun exportDocument(doc: OpenDocument, format: String) = job(text(R.string.msg_busy_exporting_to, (if (format == "html_simple") "html" else format).uppercase())) { eng ->
+        val ext = if (format == "html_simple") "html" else format
         val out = tempFile(ext)
-        eng.tool("doc_export_office", mapOf("doc" to doc.id, "path" to out.absolutePath))
+        val args = mutableMapOf<String, Any>("doc" to doc.id, "path" to out.absolutePath)
+        if (format == "html_simple") args["html_mode"] = "simple"
+        eng.tool("doc_export_office", args)
         vm.toolScreen = null
         val mime = documentMime(ext)
         deliver(out, "${doc.title}.$ext", mime)

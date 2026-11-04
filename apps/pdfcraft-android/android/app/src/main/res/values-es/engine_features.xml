@@ -31,4 +31,6 @@
     <string name="feature_create">Crear</string>
     <string name="feature_selected_lines">Alinear solo las líneas seleccionadas</string>
     <string name="feature_resize_handle">Cambiar tamaño de imagen</string>
+    <string name="feature_html_rich">HTML con formato (.html)</string>
+    <string name="feature_html_simple">HTML simple sin CSS (.html)</string>
 </resources>

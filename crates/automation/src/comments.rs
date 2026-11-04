@@ -183,6 +183,7 @@ impl Automation {
                 "page": c.page + 1,
                 "index": c.index + 1,
                 "type": c.subtype,
+                "intent": c.intent,
                 "author": c.author,
                 "contents": c.contents,
                 "modified": c.modified,
@@ -351,7 +352,7 @@ impl Automation {
                     let [start, end] = ending_pair(kind, endings.as_deref())?;
                     Shape::Line { from: to_user(&info, f[0], f[1]), to: to_user(&info, t[0], t[1]), start, end }
                 }
-                "ink" => {
+                "ink" | "freehand_highlight" => {
                     let wrong = || ToolError::InvalidArgs("strokes must be an array of arrays of [x, y] points".into());
                     let strokes = a.get("strokes").ok_or_else(|| ToolError::InvalidArgs("ink needs `strokes`".into()))?;
                     let strokes = strokes
@@ -369,7 +370,7 @@ impl Automation {
                                 .collect::<Result<Vec<_>>>()
                         })
                         .collect::<Result<Vec<_>>>()?;
-                    Shape::Ink { strokes }
+                    if kind == "freehand_highlight" { Shape::FreehandHighlight { strokes } } else { Shape::Ink { strokes } }
                 }
                 "polygon" | "cloud" | "polyline" => {
                     let wrong = || ToolError::InvalidArgs(format!("{kind} needs `points`: an array of [x, y] points"));
@@ -568,9 +569,10 @@ impl Automation {
             return self.apply(a, edit);
         }
         let text_at = |t: &str| {
-            // Measured as the appearance draws it (in Inter when the standard fonts can't hold it).
-            let w = (pdfcraft_engine::annot_text::text_measure(t)(t, size) + 8.0).clamp(20.0, 600.0);
-            let h = size * 1.2 + 6.0;
+            let longest = t.lines().map(|line| pdfcraft_engine::annot_text::text_measure(line)(line, size)).fold(0.0, f64::max);
+            let w = (longest + 8.0).clamp(20.0, 600.0);
+            let rows = pdfcraft_fonts::wrap_with(t, size, w - 4.0, pdfcraft_engine::annot_text::text_measure(t)).len().max(1);
+            let h = rows as f64 * size * 1.2 + 6.0;
             let rect = pdfcraft_engine::text_box_at(i64::from(info.rotation), at, w, h).unwrap_or([at[0], at[1] - h, at[0] + w, at[1]]);
             Shape::Typewriter { rect, font_size: size }
         };
