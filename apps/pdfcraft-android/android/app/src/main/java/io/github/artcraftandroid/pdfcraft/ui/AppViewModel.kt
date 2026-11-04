@@ -130,6 +130,7 @@ class AppViewModel(app: Application, saved: androidx.lifecycle.SavedStateHandle)
             try {
                 document?.let { current ->
                     if (current.controller.tool != ViewerTool.None) leaveTool(current)
+                    if (!edit.finishAddedText(current)) {current.controller.tool=ViewerTool.Edit;return@launch}
                     if (!saveAndClose(eng, current)) {
                         afterReadOnly = { open(uri, password) }
                         readOnlyPrompt = current
@@ -246,6 +247,7 @@ class AppViewModel(app: Application, saved: androidx.lifecycle.SavedStateHandle)
         val eng = engine ?: return
         if (doc.controller.tool != ViewerTool.None) leaveTool(doc)
         viewModelScope.launch {
+            if (!edit.finishAddedText(doc)) {doc.controller.tool=ViewerTool.Edit;return@launch}
             // changes the file's place can't take (known read-only, or found so now) are offered as a copy
             if (!saveAndClose(eng, doc)) {
                 readOnlyPrompt = doc
@@ -339,6 +341,7 @@ class AppViewModel(app: Application, saved: androidx.lifecycle.SavedStateHandle)
      */
     suspend fun save(doc: OpenDocument, quiet: Boolean = false): Boolean {
         val eng = engine ?: return false
+        if (!edit.finishAddedText(doc)) return false
         return saver.save(doc, eng, quiet)
     }
 
@@ -530,6 +533,7 @@ class AppViewModel(app: Application, saved: androidx.lifecycle.SavedStateHandle)
     fun share(doc: OpenDocument) {
         if (doc.controller.tool == ViewerTool.Draw) doc.commitTool?.invoke()
         handOut {
+            if (!edit.finishAddedText(doc)) error(text(R.string.font_pending_draft))
             // the ink is queued in the engine: reading the document back waits for it, so the save has it
             refresh(doc)
             save(doc)
@@ -1203,6 +1207,7 @@ class AppViewModel(app: Application, saved: androidx.lifecycle.SavedStateHandle)
 
     /** File pickers for the activity: what the files are for, the types, and whether several may be picked. */
     val fonts = DocumentFonts(this)
+    val fontLibrary = FontLibrary(this)
     val features = DocumentFeatures(this)
 
     val filePicks = Channel<FilePickKind>(Channel.BUFFERED)
@@ -1233,6 +1238,7 @@ class AppViewModel(app: Application, saved: androidx.lifecycle.SavedStateHandle)
             }
             FilePickKind.ImportComments -> features.importComments(uris.first())
             FilePickKind.ImportFont -> fonts.importPicked(uris.first())
+            FilePickKind.ImportFontLibrary -> fontLibrary.importPicked(uris)
             FilePickKind.ScanImages -> scan.importPhotos(uris)
             FilePickKind.Open -> open(uris.first())
             FilePickKind.DigitalId -> viewModelScope.launch {

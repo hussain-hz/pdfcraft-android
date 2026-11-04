@@ -826,3 +826,35 @@ fn applying_a_complete_font_to_added_text_is_one_undoable_edit() {
     assert_eq!(items["items"][0]["text"], "Original English text");
     assert_eq!(items["items"][0]["color"], "#2457AD");
 }
+
+#[test]
+fn new_text_uses_an_explicit_font_atomically_and_undoes_as_one_edit() {
+    let session = MobileSession::new();
+    let doc = session.open(blank_pdf(1), None).unwrap().id;
+    let font = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/Inter-Regular.ttf");
+    let add = |text: &str| json!({"doc": doc,"page":1,"text":text,"at":[60,100],"size":19,"color":"#123456","font_path":font.to_string_lossy()});
+    let mut first = add("Exact face");
+    first["expected_generation"] = json!(0);
+    session.execute("page_add_text".into(), first.to_string()).unwrap();
+    let out: Value = serde_json::from_str(&session.execute("text_paragraphs".into(), json!({"doc":doc,"page":1}).to_string()).unwrap()).unwrap();
+    assert_eq!(out["paragraphs"][0]["text"], "Exact face");
+    assert_eq!(out["paragraphs"][0]["font"], "Inter-Regular");
+    assert_eq!(out["paragraphs"][0]["size"].as_f64(), Some(19.0));
+    assert_eq!(out["paragraphs"][0]["color"], "#123456");
+    let resource = session.editor_fonts(doc, 0).unwrap().into_iter().find(|f| f.face == "Inter-Regular").unwrap().resource;
+    let check: Value = serde_json::from_str(
+        &session.execute("text_font_check".into(), json!({"doc":doc,"page":1,"font_resource":resource,"text":"Exact face"}).to_string()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(check["supported"], true);
+    session.execute("edit_undo".into(), json!({"doc":doc}).to_string()).unwrap();
+    let before = session.with_doc(doc, |d| (d.edit_generation(), d.can_undo().map(str::to_owned))).unwrap();
+    assert!(session.execute("page_add_text".into(), add("漢").to_string()).is_err());
+    assert_eq!(session.with_doc(doc, |d| (d.edit_generation(), d.can_undo().map(str::to_owned))).unwrap(), before);
+    let out: Value = serde_json::from_str(&session.execute("text_paragraphs".into(), json!({"doc":doc,"page":1}).to_string()).unwrap()).unwrap();
+    assert!(out["paragraphs"].as_array().unwrap().is_empty());
+    let mut stale = add("Stale");
+    stale["expected_generation"] = json!(0);
+    let stale_error = session.execute("page_add_text".into(), stale.to_string()).unwrap_err().to_string();
+    assert!(stale_error.contains("document changed"), "{stale_error}");
+}

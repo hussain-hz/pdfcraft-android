@@ -78,7 +78,11 @@ import kotlin.math.roundToInt
 class NotePrompt(val doc: OpenDocument, val at: PagePoint?, val selection: Selection? = null)
 
 /** Free text waiting to be typed at a point (Text tool). */
-class TextPrompt(val doc: OpenDocument, val at: PagePoint)
+class TextPrompt(val doc: OpenDocument, val at: PagePoint, source: Paragraph? = null) {
+    var source by mutableStateOf(source)
+    var draft by mutableStateOf("")
+    var failed=false
+}
 
 /** A reply waiting to be written. */
 class ReplyPrompt(val doc: OpenDocument, val comment: CommentInfo)
@@ -320,14 +324,16 @@ private fun InlineNoteBar(hint: String, onDismiss: () -> Unit, onPost: (String) 
 @Composable
 fun BoxScope.TextEntry(vm: AppViewModel, prompt: TextPrompt, onDone: (TextPrompt, String) -> Unit) {
     val c = pdfColors
-    var text by remember { mutableStateOf("") }
+    var text by remember(prompt) { mutableStateOf(prompt.draft) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
     val doc = prompt.doc
     val at = doc.viewer.pageToScreen(prompt.at.page, prompt.at.x, prompt.at.y)
     val density = LocalDensity.current
-    val color = vm.toolPrefs.color(StyledTool.FreeText)
-    val sizeSp = with(density) { (vm.toolPrefs.textSize * doc.viewer.pixelsPerPoint(prompt.at.page)).toSp() }
+    val source = prompt.source
+    val fonts = rememberEditorFonts(vm,doc,prompt.at.page)
+    val color = source?.color?.let(::parseHex) ?: vm.toolPrefs.color(StyledTool.FreeText)
+    val sizeSp = with(density) { ((source?.size ?: vm.toolPrefs.textSize) * doc.viewer.pixelsPerPoint(prompt.at.page)).toSp() }
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     val currentText = androidx.compose.runtime.rememberUpdatedState(text)
     val placeholder = stringResource(R.string.viewer_add_text)
@@ -350,10 +356,17 @@ fun BoxScope.TextEntry(vm: AppViewModel, prompt: TextPrompt, onDone: (TextPrompt
         }
     })
     Box(Modifier.offset { IntOffset(at.x.roundToInt(), at.y.roundToInt()) }.imePadding()) {
+        Column {
+        if(prompt.failed && vm.edit.addTextPrompt===prompt) Row(Modifier.background(c.menu)) {
+            TextButton(onClick=vm.fontLibrary::openSettings) {Text(stringResource(R.string.font_library_title),color=c.toolAccent)}
+            TextButton(onClick={vm.edit.cancelAddedText(prompt)}) {Text(stringResource(R.string.common_cancel),color=c.textSecondary)}
+        }
         androidx.compose.foundation.text.BasicTextField(
             value = text,
-            onValueChange = { text = it },
-            textStyle = androidx.compose.ui.text.TextStyle(color = color, fontSize = sizeSp),
+            onValueChange = { text = it; prompt.draft = it },
+            textStyle = androidx.compose.ui.text.TextStyle(color = color, fontSize = sizeSp, fontFamily = source?.let { editorFamily(it.font,fonts) },
+                fontWeight = if(source?.bold==true) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
+                fontStyle = if(source?.italic==true) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
             cursorBrush = androidx.compose.ui.graphics.SolidColor(c.accent),
             modifier = Modifier
                 .widthIn(min = 80.dp, max = 320.dp)
@@ -367,6 +380,7 @@ fun BoxScope.TextEntry(vm: AppViewModel, prompt: TextPrompt, onDone: (TextPrompt
                 }
             },
         )
+        }
     }
 }
 

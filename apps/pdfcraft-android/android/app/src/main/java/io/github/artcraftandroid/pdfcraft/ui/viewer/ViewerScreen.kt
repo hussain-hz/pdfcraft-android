@@ -262,6 +262,13 @@ private fun ViewerContent(vm: AppViewModel, doc: OpenDocument) {
         // The active tool takes the touches over the pages.
         ToolLayer(vm, doc)
         DocumentFontDialogs(vm, doc)
+        if (vm.edit.addingText) androidx.compose.material3.Surface(modifier=Modifier.align(Alignment.Center),color=c.menu,
+            shape=androidx.compose.foundation.shape.RoundedCornerShape(16.dp),shadowElevation=6.dp) {
+            androidx.compose.foundation.layout.Row(Modifier.padding(20.dp),verticalAlignment=Alignment.CenterVertically) {
+                androidx.compose.material3.CircularProgressIndicator(color=c.accent)
+                androidx.compose.material3.Text(stringResource(R.string.font_working),color=c.text,modifier=Modifier.padding(start=12.dp))
+            }
+        }
         if (ctl.tool == ViewerTool.Edit) EditOverlay(vm, doc)
         vm.textPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postText) }
         vm.fillTextPrompt?.takeIf { it.doc === doc }?.let { TextEntry(vm, it, onDone = vm::postFillText) }

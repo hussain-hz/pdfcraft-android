@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.withLock
 
 /** Edit PDF: the page's paragraphs and pictures, typing in them, and adding text and pictures. */
 class EditPdf internal constructor(private val vm: AppViewModel) {
@@ -102,7 +103,7 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
         if (editMode == EditMode.AddText) {
             editMode = EditMode.Select
             editSelection = null
-            addTextPrompt = TextPrompt(doc, at)
+            addTextPrompt = TextPrompt(doc, at, nearestTextStyle(paragraphs[at.page].orEmpty(), at))
             return
         }
         if (editMode == EditMode.AddImage) {
@@ -327,20 +328,66 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
     /** New page text being typed in Edit PDF (Add text). */
     var addTextPrompt by mutableStateOf<TextPrompt?>(null)
 
+    var addingText by mutableStateOf(false); private set
+    private var addingFor:OpenDocument?=null
+    private var addingCompletion:kotlinx.coroutines.CompletableDeferred<Unit>?=null
+    internal fun cancelAddedText(prompt:TextPrompt) {if(!addingText && addTextPrompt===prompt) addTextPrompt=null}
+    internal suspend fun finishAddedText(doc:OpenDocument):Boolean {
+        addTextPrompt?.takeIf {it.doc===doc && it.draft.isNotBlank() && !it.failed}?.let {postAddText(it,it.draft)}
+        if(addingFor===doc) addingCompletion?.await()
+        return addTextPrompt?.takeIf {it.doc===doc && it.draft.isNotBlank()}==null
+    }
     fun postAddText(prompt: TextPrompt, text: String) {
-        addTextPrompt = null
-        if (text.isBlank()) return
-        vm.runTool(prompt.doc, "page_add_text", mapOf(
-            "page" to prompt.at.page + 1, "text" to text, "at" to listOf(prompt.at.x.toDouble(), prompt.at.y.toDouble()),
-            "size" to 12.0, "font" to "helvetica",
-        )) {
-            vm.viewModelScope.launch {
-                loadParagraphs(prompt.doc, prompt.at.page)
-                val at = prompt.at
-                editSelection = paragraphs[at.page].orEmpty().filter { it.text == text }.minByOrNull {
-                    kotlin.math.abs(it.box[0] - at.x) + kotlin.math.abs(it.box[1] - at.y)
+        if(addingText) return
+        addTextPrompt=null
+        if(text.isBlank()) return
+        addingText=true;prompt.draft=text;prompt.failed=false
+        val doc=prompt.doc;addingFor=doc
+        val completion=kotlinx.coroutines.CompletableDeferred<Unit>();addingCompletion=completion
+        fun refused(message:String) {
+            addingText=false
+            if(vm.document===doc && !doc.closed && !doc.closing) {prompt.failed=true;addTextPrompt=prompt;vm.tell(message)}
+            completion.complete(Unit)
+        }
+        vm.viewModelScope.launch {
+            try {
+                if(vm.document!==doc || doc.closed || doc.closing) {addingText=false;completion.complete(Unit);return@launch}
+                loadParagraphs(doc,prompt.at.page)
+                val source=prompt.source ?: nearestTextStyle(paragraphs[prompt.at.page].orEmpty(),prompt.at).also {prompt.source=it}
+                val generation=doc.info.generation
+                val args=mutableMapOf<String,Any?>("page" to prompt.at.page+1,"text" to text,
+                    "at" to listOf(prompt.at.x.toDouble(),prompt.at.y.toDouble()),"size" to (source?.size?.toDouble() ?: 12.0),
+                    "expected_generation" to generation.toLong())
+                if(source!=null) {
+                    args["bold"]=source.bold;args["italic"]=source.italic;source.color?.let {args["color"]=it}
+                    val embedded=vm.fonts.sourceFontResource(doc,prompt.at.page,source.font,text)
+                    val file=if(embedded==null) vm.fonts.exactFontFile(source.font,text) else null
+                    when {
+                        file!=null -> args["font_path"]=file.absolutePath
+                        embedded!=null -> args["font_resource"]=embedded
+                        else -> {
+                            val builtin=exactStandardFont(source.font)
+                            if(builtin==null) {refused(io.github.artcraftandroid.pdfcraft.text(R.string.font_original_unavailable,source.font));return@launch}
+                            args["font"]=builtin
+                        }
+                    }
                 }
-            }
+                if(vm.document!==doc || doc.closed || doc.closing) {addingText=false;completion.complete(Unit);return@launch}
+                vm.runTool(doc,"page_add_text",args,onFinished={addingText=false;completion.complete(Unit)},onError={
+                    refused(it.userMessage);true
+                }) {
+                    historyChanged()
+                    vm.viewModelScope.launch {doc.saveMutex.withLock {
+                        if(vm.document===doc && !doc.closed && !doc.closing) {
+                            loadParagraphs(doc,prompt.at.page)
+                            editSelection=paragraphs[prompt.at.page].orEmpty().filter {it.text==text}.minByOrNull {
+                                kotlin.math.abs(it.box[0]-prompt.at.x)+kotlin.math.abs(it.box[1]-prompt.at.y)
+                            }
+                        }
+                    }}
+                }
+            } catch(e:kotlinx.coroutines.CancellationException) {addingText=false;completion.complete(Unit);throw e}
+            catch(e:Exception) {refused(e.userMessage)}
         }
     }
 
@@ -458,4 +505,21 @@ class EditPdf internal constructor(private val vm: AppViewModel) {
             addImage(Uri.fromFile(upright))
         }
     }
+}
+
+/** A new label follows the nearest text on this page, including its face and ink. */
+internal fun nearestTextStyle(paragraphs:List<Paragraph>,at:PagePoint):Paragraph? = paragraphs.filter {
+    it.page==at.page && it.text.isNotBlank() && it.box.size==4 && it.box.all(Float::isFinite)
+}.minByOrNull {
+    val dx=maxOf(it.box[0]-at.x,0f,at.x-it.box[2])
+    val dy=maxOf(it.box[1]-at.y,0f,at.y-it.box[3])
+    dx.toDouble()*dx+dy.toDouble()*dy
+}
+
+/** Only the actual standard PDF faces; similarly named commercial families are not aliases. */
+internal fun exactStandardFont(name:String):String? = when(io.github.artcraftandroid.pdfcraft.ui.viewer.editorFaceKey(name)) {
+    "helvetica","helveticabold","helveticaoblique","helveticaboldoblique" -> "helvetica"
+    "timesroman","timesbold","timesitalic","timesbolditalic" -> "times"
+    "courier","courierbold","courieroblique","courierboldoblique" -> "courier"
+    else -> null
 }

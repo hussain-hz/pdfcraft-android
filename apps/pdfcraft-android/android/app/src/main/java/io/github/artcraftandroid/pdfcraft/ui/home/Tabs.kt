@@ -320,7 +320,8 @@ fun SearchTab(vm: AppViewModel) {
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
     val c = pdfColors
-    var page by remember { mutableStateOf("root") }
+    var page by remember { mutableStateOf(if(vm.fontLibrary.settingsRequested) "fonts" else "root") }
+    LaunchedEffect(Unit) {vm.fontLibrary.settingsRequested=false}
     val settingsScroll = rememberScrollState()
     val aboutScroll = rememberScrollState()
     val helpScroll = rememberScrollState()
@@ -330,18 +331,19 @@ fun SettingsScreen(vm: AppViewModel) {
             Box(Modifier.width(56.dp), contentAlignment = Alignment.Center) {
                 BarIcon(LucideIcons.ArrowLeft, stringResource(R.string.common_back), { if (page == "root") vm.settingsOpen = false else page = "root" })
             }
-            Text(stringResource(when (page) { "about" -> R.string.home_about_app; "help" -> R.string.home_help_support; else -> R.string.home_settings }), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(when (page) { "about" -> R.string.home_about_app; "help" -> R.string.home_help_support; "fonts" -> R.string.font_library_title; else -> R.string.home_settings }), color = c.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         }
         Column(Modifier.verticalScroll(when (page) { "about" -> aboutScroll; "help" -> helpScroll; else -> settingsScroll })) {
             when (page) {
                 "root" -> {
-                    Preferences(vm)
+                    Preferences(vm, onFonts = { page = "fonts" })
                     SheetDivider()
                     SheetRow(LucideIcons.CircleHelp, stringResource(R.string.home_help_support), { page = "help" }, chevron = true)
                     SheetRow(LucideIcons.Info, stringResource(R.string.home_about_app), { page = "about" }, chevron = true)
                     Spacer(Modifier.height(24.dp))
                 }
                 "about" -> About(vm)
+                "fonts" -> FontLibraryScreen(vm)
                 "help" -> {
                     val uri = LocalUriHandler.current
                     var leaving by remember { mutableStateOf<String?>(null) }
@@ -359,7 +361,7 @@ fun SettingsScreen(vm: AppViewModel) {
 }
 
 @Composable
-private fun Preferences(vm: AppViewModel) {
+private fun Preferences(vm: AppViewModel, onFonts: () -> Unit) {
     val c = pdfColors
     var authorDialog by remember { mutableStateOf(false) }
     var appearanceDialog by remember { mutableStateOf(false) }
@@ -368,6 +370,7 @@ private fun Preferences(vm: AppViewModel) {
     Section(stringResource(R.string.home_display_preferences))
     PreferenceSummary(stringResource(R.string.home_theme), stringResource(themeLabel(vm.theme))) { appearanceDialog = true }
     PreferenceSummary(stringResource(R.string.home_language), languageLabel(io.github.artcraftandroid.pdfcraft.AppLanguage.selected)) { languageDialog = true }
+    PreferenceSummary(stringResource(R.string.font_library_title), stringResource(R.string.font_library_summary), onFonts)
     SheetDivider()
     Section(stringResource(R.string.home_section_suggestions))
     SheetRow(null, stringResource(R.string.home_offer_suggestions), { vm.forms.updateFormSuggestions(!vm.forms.formSuggestions) }) {
