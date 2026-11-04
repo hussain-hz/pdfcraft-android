@@ -34,4 +34,4 @@ The `page_add_text` tool accepts `font_path` or `font_resource` and an optional 
 - Manual Arabic/English review verifies the settings page, licence flow, family search/expansion, selected Bold style, and the colored theme. Arabic count labels use words rather than a bidirectional slash expression.
 - Signed ARM64 0.0.6-rc.1 (6012) installs over stable 0.0.5 (5992) with the production certificate. All 30 faces were also downloaded and installed through the signed APK settings UI; cache verification reuses the accepted licence.
 
-The existing app icon and five themes are retained. Stable 0.0.5 stays published while the owner tests this preview.
+The existing app icon and five themes are retained. The owner approved the preview for stable 0.0.6. Stable base version code 699 produces ARM64 6992 and ARMv7 6991, above both stable 0.0.5 and preview 0.0.6-rc.1.
