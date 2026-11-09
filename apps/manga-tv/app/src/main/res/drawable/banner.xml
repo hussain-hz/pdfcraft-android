@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 320x180 Android TV launcher banner. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#FF101014" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFFF7A2F" android:pathData="M0,150h320v30h-320z" />
+    <!-- open book -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M40,45 L80,55 L80,125 L40,115 Z" />
+    <path android:fillColor="#FFE0E0E0" android:pathData="M120,45 L80,55 L80,125 L120,115 Z" />
+    <path android:fillColor="#FFFF7A2F" android:pathData="M46,62 L74,69 L74,74 L46,67 Z M46,78 L74,85 L74,90 L46,83 Z M86,69 L114,62 L114,67 L86,74 Z M86,85 L114,78 L114,83 L86,90 Z" />
+    <!-- "TV" mark -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M150,60h50v12h-19v50h-12v-50h-19z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M205,60h13l14,46l14,-46h13l-21,62h-12z" />
+    <path android:fillColor="#FFFF7A2F" android:pathData="M268,110h12v12h-12z" />
+</vector>
