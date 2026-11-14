@@ -343,7 +343,7 @@ fn fitted_box(doc: &Document, r: ObjRef, text: &str) -> Option<[f64; 4]> {
     let d = annot_dict(doc, r);
     let nums = |key: &[u8]| -> Option<Vec<f64>> { d.get(key)?.as_array()?.iter().map(|o| o.as_f64()).collect() };
     // Measured in the face and size the text is drawn in (`/DA`, or `/DS` where it sets one).
-    let TextStyle { size, .. } = text_style::text_style(&d, text_style::dr_face(doc, &d));
+    let TextStyle { face, size, .. } = text_style::text_style(&d, text_style::dr_face(doc, &d));
     let pad = 2.0 + border_width_of(&d);
     let rect = nums(b"Rect").filter(|v| v.len() == 4 && v.iter().all(|x| x.is_finite()))?;
     let rect = [rect[0], rect[1], rect[2], rect[3]];
@@ -358,7 +358,8 @@ fn fitted_box(doc: &Document, r: ObjRef, text: &str) -> Option<[f64; 4]> {
     let (x0, top) = (tb[0].min(tb[2]), tb[1].max(tb[3]));
     let w = tb[2] - tb[0];
     // Measured the way the appearance lays it out (in Inter for text the standard fonts can't hold).
-    let measure = appearance::text_measure(text);
+    let measure =
+        |s: &str, size: f64| if pdfcraft_fonts::needs_inter(text) { pdfcraft_fonts::inter_width(s, size) } else { appearance::text_width_in(face, s, size) };
     let w = if w.is_finite() && w >= 1.0 {
         w
     } else {
@@ -367,14 +368,14 @@ fn fitted_box(doc: &Document, r: ObjRef, text: &str) -> Option<[f64; 4]> {
         (longest + 2.0 * pad + 4.0).clamp(40.0, 300.0)
     };
     let available = (w - 2.0 * pad).max(1.0);
-    let count = if text.chars().any(|c| matches!(c as u32, 0x0600..=0x06ff | 0x0750..=0x077f | 0x08a0..=0x08ff)) {
+    let lines = if text.chars().any(|c| matches!(c as u32, 0x0600..=0x06ff | 0x0750..=0x077f | 0x08a0..=0x08ff)) {
         let face = pdfcraft_fonts::document_arabic_font()?;
-        pdfcraft_fonts::source_shaping::wrap(face.bytes, text, available / size).ok()?.len()
+        pdfcraft_fonts::source_shaping::wrap(face.bytes, text, available / size).ok()?
     } else {
-        pdfcraft_fonts::wrap_with(text, size, available, measure).len()
+        pdfcraft_fonts::wrap_with(text, size, available, measure)
     };
-    let lines = count.max(1) as f64;
-    Some([x0, top - lines * size * 1.2 - 2.0 * pad - 2.0, x0 + w, top])
+    let height = appearance::text_lines_height(&lines, size);
+    Some([x0, top - height - 2.0 * pad - 2.0, x0 + w, top])
 }
 
 /// Reply to a comment; returns the reply's index in the page's `/Annots`.

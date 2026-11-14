@@ -1595,9 +1595,13 @@ fn draw_free_text(context: &AppearanceContext<'_>, mut drawing: AppearanceDrawin
     if parts.text != parts.fill {
         c.push_str("/GS1 gs\n");
     }
-    c.push_str(&format!("{} {} {} {} re W n\n{}", n(rect[0]), n(rect[1]), n(rect[2] - rect[0]), n(rect[3] - rect[1]), rg(text_color)));
+    c.push_str(&format!("{} {} {} {} re W n\n", n(rect[0]), n(rect[1]), n(rect[2] - rect[0]), n(rect[3] - rect[1])));
     let arabic = arabic_text(&text);
     let inter = !arabic && pdfcraft_fonts::needs_inter(&text);
+    if !inter {
+        c.push_str(&format!("BT\n/{} {} Tf\n", crate::text_style::resource_name(face), n(size)));
+    }
+    c.push_str(&rg(text_color));
     let measure = |s: &str, size| {
         if arabic || inter { text_measure(&text)(s, size) } else { text_width_in(face, s, size) }
     };
@@ -1628,9 +1632,6 @@ fn draw_free_text(context: &AppearanceContext<'_>, mut drawing: AppearanceDrawin
     } else {
         shaped_text::appearance_lines(&lines, &mut fonts)
     };
-    if !inter {
-        out.extend_from_slice(b"BT\n");
-    }
     let mut current = None;
     for (line, pieces) in lines.iter().zip(&pieces) {
         if y < rect[1] - size {

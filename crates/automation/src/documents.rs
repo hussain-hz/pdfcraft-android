@@ -562,6 +562,12 @@ impl Automation {
         if !js.alerts.is_empty() {
             out["alerts"] = json!(js.alerts.iter().map(crate::a11y::alert_json).collect::<Vec<_>>());
         }
+        if !js.console.is_empty() {
+            out["console"] = json!(js.console);
+        }
+        if !js.errors.is_empty() {
+            out["errors"] = json!(js.errors);
+        }
         if !js.requests.is_empty() {
             out["requests"] = json!(js.requests.iter().map(crate::a11y::request_json).collect::<Vec<_>>());
         }

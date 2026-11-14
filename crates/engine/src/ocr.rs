@@ -2122,8 +2122,9 @@ mod tests {
     fn editable_output_round_trips_non_win_ansi_words() {
         let mut s = Session::new().with_clock(|| 1_700_000_000);
         let id = s.open("src.pdf", None, Arc::new(fixture(1)), None).unwrap();
+        let word = if pdfcraft_fonts::document_arabic_font().is_some() { "مرحبا" } else { "Привет" };
         let w = PlacedWord {
-            text: "Привет".into(),
+            text: word.into(),
             origin: [20.0, 250.0],
             across: [80.0, 0.0],
             up: [0.0, 10.0],
@@ -2137,7 +2138,7 @@ mod tests {
         if pdfcraft_fonts::CRAFT_FONTS.is_empty() {
             assert!(text.contains("??????"), "{text}");
         } else {
-            assert!(text.contains("Привет"), "{text}");
+            assert!(text.contains(word), "{text}");
         }
     }
 
@@ -2161,12 +2162,13 @@ mod tests {
             confidence: None,
             source: "ocrs".into(),
         };
-        let words = vec![word("Привет", 250.0, 80.0), word("Hello", 100.0, 50.0)];
+        let cyrillic = if pdfcraft_fonts::document_arabic_font().is_some() { "مرحبا" } else { "Привет" };
+        let words = vec![word(cyrillic, 250.0, 80.0), word("Hello", 100.0, 50.0)];
         let bytes = s.editable_ocr_bytes(id, &[OcrPage { already_on_page: 0, page: 0, words, skipped: None, notes: Vec::new() }]).unwrap();
         let mut out = Session::new().with_clock(|| 1_700_000_000);
         let oid = out.open("ocr.pdf", None, bytes, None).unwrap();
         let before = crate::tests::page_texts(&out, oid)[0].clone();
-        assert!(before.contains("Привет") && before.contains("Hello"), "{before}");
+        assert!(before.contains(cyrillic) && before.contains("Hello"), "{before}");
         let shape = crate::Shape::Redact {
             quads: vec![pdfcraft_annot::rect_quad([10.0, 240.0, 110.0, 270.0])],
             overlay: String::new(),
@@ -2182,14 +2184,14 @@ mod tests {
         out.apply(oid, mark).unwrap();
         out.apply(oid, Edit::ApplyRedactions { pages: None }).unwrap();
         let after = crate::tests::page_texts(&out, oid)[0].clone();
-        assert!(!after.contains("Привет") && !after.contains("Пр"), "the Type3 word is gone: {after}");
+        assert!(!after.contains(cyrillic) && !after.contains("Пр"), "the Type3 word is gone: {after}");
         assert!(after.contains("Hello"), "the word outside the mark stays: {after}");
         // Reopened from the saved bytes, an independent read finds the same.
         let saved = out.save_bytes(oid).unwrap();
         let mut again = Session::new();
         let aid = again.open("r.pdf", None, saved, None).unwrap();
         let reread = crate::tests::page_texts(&again, aid)[0].clone();
-        assert!(!reread.contains("Привет") && reread.contains("Hello"), "{reread}");
+        assert!(!reread.contains(cyrillic) && reread.contains("Hello"), "{reread}");
     }
 
     /// A shared document plan serves a multi-page editable export: each page's words must be
@@ -2213,16 +2215,17 @@ mod tests {
         };
         // Different scripts, so each page's words live in different planned fonts (and page 2
         // would inherit page 1's codes under page-local indexing into the shared plan).
+        let (first, second) = if pdfcraft_fonts::document_arabic_font().is_some() { ("مرحبا", "كتاب") } else { ("日本語", "Привет") };
         let found = vec![
-            OcrPage { already_on_page: 0, page: 0, words: vec![word("日本語")], skipped: None, notes: Vec::new() },
-            OcrPage { already_on_page: 0, page: 1, words: vec![word("Привет")], skipped: None, notes: Vec::new() },
+            OcrPage { already_on_page: 0, page: 0, words: vec![word(first)], skipped: None, notes: Vec::new() },
+            OcrPage { already_on_page: 0, page: 1, words: vec![word(second)], skipped: None, notes: Vec::new() },
         ];
         let bytes = s.editable_ocr_bytes(id, &found).unwrap();
         let mut out = Session::new();
         let oid = out.open("ocr.pdf", None, bytes, None).unwrap();
         let texts = crate::tests::page_texts(&out, oid);
-        assert!(texts[0].contains("日本語") && !texts[0].contains("Привет"), "{texts:?}");
-        assert!(texts[1].contains("Привет") && !texts[1].contains("日本語"), "{texts:?}");
+        assert!(texts[0].contains(first) && !texts[0].contains(second), "{texts:?}");
+        assert!(texts[1].contains(second) && !texts[1].contains(first), "{texts:?}");
     }
 
     /// Redacting a recognized page takes the Unicode searchable layer away for good: the

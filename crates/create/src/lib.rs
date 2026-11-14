@@ -776,11 +776,8 @@ pub enum SourceKind {
 pub const IMAGE_EXTENSIONS: [&str; 11] = ["png", "jpg", "jpeg", "tif", "tiff", "gif", "bmp", "jp2", "j2k", "jpx", "pcx"];
 pub const TEXT_EXTENSIONS: [&str; 2] = ["txt", "text"];
 
-pub const CONVERTIBLE: [&str; 22] = [
-    "png", "jpg", "jpeg", "tif", "tiff", "gif", "bmp", "jp2", "j2k", "jpx", "pcx", "txt", "text", "docx", "docm", "dotx", "xlsx", "xlsm", "pptx", "pptm",
-    "ppsx", "rtf",
-];
-pub const OFFICE_EXTENSIONS: &[&str] = &["docx", "xlsx", "pptx", "rtf"];
+pub const CONVERTIBLE: [&str; 13] = ["png", "jpg", "jpeg", "tif", "tiff", "gif", "bmp", "jp2", "j2k", "jpx", "pcx", "txt", "text"];
+pub const OFFICE_EXTENSIONS: &[&str] = &["docx", "docm", "dotx", "xlsx", "xlsm", "pptx", "pptm", "ppsx", "rtf"];
 
 /// A classic TIFF or a BigTIFF (version 43), in either byte order.
 fn is_tiff(bytes: &[u8]) -> bool {

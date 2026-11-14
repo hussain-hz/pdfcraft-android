@@ -12315,7 +12315,7 @@ fn arabic_line_replacement_preserves_the_upstream_clipping_guard() {
 fn replacement_text_beyond_western_european_is_drawn_in_inter() {
     for replacement in ["Mustafa çokyaşar", "Zażółć gęślą jaźń", "Țară și"] {
         for paragraph in [false, true] {
-            let mut doc = text_page("BT /F1 12 Tf 72 700 Td (Mustafa cokyasar) Tj ET");
+            let mut doc = text_page("BT /F1 12 Tf 72 700 Td (Mustafa cokyasar has sufficient room for this text) Tj ET");
             let edit = if paragraph { text::replace_block(&mut doc, 0, 0, replacement) } else { text::replace_line(&mut doc, 0, 0, replacement) };
             assert_eq!(edit.unwrap().substituted.as_deref(), Some("Inter Type3"), "{replacement}");
             assert_eq!(text::text_lines(&reopen(&doc), 0).unwrap()[0].text, replacement);

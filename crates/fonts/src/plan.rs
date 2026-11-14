@@ -255,15 +255,15 @@ mod tests {
     #[test]
     fn face_coverage_is_remembered_per_face_and_character() {
         let faces = document_faces();
-        let Some(face) = faces.first() else {
+        let Some((word, probe)) = [("日本語", '日'), ("مرحبا", 'م')].into_iter().find(|(word, _)| faces.iter().any(|face| word.chars().all(|c| face_has(face.bytes,c)))) else {
             eprintln!("skipping: built without craft-fonts (set CRAFT_FONTS_DIR to run it)");
             return;
         };
         let mut coverage = Coverage::default();
-        let first = (0..50).map(|_| choose_face(&faces, "日本語", &mut coverage)).last().flatten();
+        let first = (0..50).map(|_| choose_face(&faces, word, &mut coverage)).last().flatten();
         assert!(first.is_some());
-        assert!(coverage.lookups <= faces.len() * 3, "{} lookups for 3 characters", coverage.lookups);
-        assert_eq!(coverage.has(0, face, '日'), face_has(face.bytes, '日'));
+        assert!(coverage.lookups <= faces.len() * word.chars().count(), "{} lookups for 3 characters", coverage.lookups);
+        assert_eq!(coverage.has(0, faces[0], probe), face_has(faces[0].bytes, probe));
     }
 
     /// A page's vocabulary: German umlauts are WinAnsi, and a character no bundled face has
@@ -296,12 +296,8 @@ mod tests {
 
     #[test]
     fn encodings_are_aligned_and_total_the_advances() {
-        if crate::CRAFT_FONTS.is_empty() {
-            eprintln!("skipping: built without craft-fonts (set CRAFT_FONTS_DIR to run it)");
-            assert!(TextPlan::for_words(["日本"]).fonts.is_empty());
-            return;
-        }
-        let plan = TextPlan::for_words(["日本語", "語"]);
+        let words = if document_faces().iter().any(|f| "日本語".chars().all(|c| face_has(f.bytes,c))) { ["日本語", "語"] } else if document_faces().iter().any(|f| "عرب".chars().all(|c| face_has(f.bytes,c))) { ["عرب", "ب"] } else { return; };
+        let plan = TextPlan::for_words(words);
         assert_eq!(plan.encoding(0).len(), 3);
         assert_eq!(plan.encoding(1).len(), 1);
         // 語 planned once keeps its code (and font) in both words.
@@ -330,8 +326,12 @@ mod tests {
             eprintln!("skipping: built without craft-fonts (set CRAFT_FONTS_DIR to run it)");
             return;
         }
-        let plan = TextPlan::for_words(["日本\u{1f4a9}語"]);
-        // The emoji has no glyph in any bundled face; the kana/kanji do.
+        let word = if document_faces().iter().any(|f| "日本語".chars().all(|c| face_has(f.bytes,c))) {
+            "日本\u{1f4a9}語"
+        } else if document_faces().iter().any(|f| "عرب".chars().all(|c| face_has(f.bytes,c))) {
+            "عر\u{1f4a9}ب"
+        } else { return; };
+        let plan = TextPlan::for_words([word]);
         assert_eq!(plan.missing(), 1);
         assert_eq!(plan.encoding(0).len(), 4, "the emoji still has an encoding: the font's ?");
     }

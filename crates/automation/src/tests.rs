@@ -48,12 +48,12 @@ fn form_fill_cannot_print_but_js_run_can() {
         "form_set_script",
         json!({ "doc": doc.0, "field": "Qty", "event": "validate", "script": "this.print(); console.println('validated');" }),
     );
-    json(&mut a, "form_fill", json!({ "doc": doc.0, "values": { "Qty": "4" } }));
-    let output = a.session.take_js_output(doc);
-    assert!(output.requests.is_empty(), "{output:?}");
-    assert!(output.console.contains(&"validated".to_string()), "{output:?}");
-    assert!(output.console.iter().any(|line| line.contains("Print") && line.contains("ignored")), "{output:?}");
-    assert!(output.errors.is_empty(), "{output:?}");
+    let output = json(&mut a, "form_fill", json!({ "doc": doc.0, "values": { "Qty": "4" } }));
+    assert!(output["requests"].is_null(), "{output:?}");
+    let console = output["console"].as_array().unwrap();
+    assert!(console.contains(&json!("validated")), "{output:?}");
+    assert!(console.iter().filter_map(Value::as_str).any(|line| line.contains("Print") && line.contains("ignored")), "{output:?}");
+    assert!(output["errors"].is_null(), "{output:?}");
     let fields = json(&mut a, "form_fields", json!({ "doc": doc.0 }));
     let qty = fields["fields"].as_array().unwrap().iter().find(|f| f["name"] == "Qty").unwrap();
     assert_eq!(qty["value"], "4");
