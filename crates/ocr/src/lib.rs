@@ -353,6 +353,11 @@ pub fn visible_text_layer_at(words: &[PlacedWord], plan: &pdfcraft_fonts::TextPl
         let tz = (across / natural * 100.0).max(1.0);
         // The baseline sits above the box's bottom edge by the descender depth.
         let o = [w.origin[0] + vx * DESCENT * size, w.origin[1] + vy * DESCENT * size];
+        let rtl = runs.is_some() && pdfcraft_fonts::source_shaping::visual_runs(&w.text, None).iter().any(|(_, rtl)| *rtl);
+        if rtl {
+            let actual: String = w.text.encode_utf16().map(|unit| format!("{unit:04X}")).collect();
+            out.extend(format!("/Span << /ActualText <FEFF{actual}> >> BDC\n").bytes());
+        }
         out.extend_from_slice(format!("{} Tz ", num(tz)).as_bytes());
         match &runs {
             None => {
@@ -390,6 +395,7 @@ pub fn visible_text_layer_at(words: &[PlacedWord], plan: &pdfcraft_fonts::TextPl
                 }
             }
         }
+        if rtl { out.extend_from_slice(b"EMC\n"); }
     }
     out.extend_from_slice(b"ET\nQ\nEMC\n");
     out

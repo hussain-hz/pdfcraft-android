@@ -430,7 +430,8 @@ fn drawn_for_first_signature(cos: std::borrow::Cow<'_, pdfcraft_cos::Document>) 
             let own = cos.get(w.obj).as_dict().filter(|d| draws_text(&cos, d)).and_then(|d| d.get(b"AP").cloned());
             // `.1`: the first character the drawing showed as `?`.
             if let Some(ap) = own
-                && pdfcraft_forms::appearance::field_appearance_drawn(&cos, &f, w, &f.value, true).1.is_some()
+                && (f.value.iter().any(|text| pdfcraft_fonts::needs_inter(text))
+                    || pdfcraft_forms::appearance::field_appearance_drawn(&cos, &f, w, &f.value, true).1.is_some())
             {
                 drawn.update_dict(w.obj, |d| d.set(b"AP".to_vec(), ap)).ok();
             }

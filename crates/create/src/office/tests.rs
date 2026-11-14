@@ -743,7 +743,7 @@ fn office_files_are_detected_by_content() {
     assert_eq!(office_kind("archive.zip", &zip_of(&[("a.txt", b"hello")], false)), None, "an ordinary zip isn't an Office file");
     assert_eq!(office_kind("notes.txt", b"plain"), None);
     for ext in ["docx", "xlsx", "pptx", "rtf"] {
-        assert!(crate::CONVERTIBLE.contains(&ext));
+        assert!(crate::OFFICE_EXTENSIONS.contains(&ext));
     }
 }
 
