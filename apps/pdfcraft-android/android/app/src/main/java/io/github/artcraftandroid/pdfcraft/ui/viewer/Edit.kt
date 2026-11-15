@@ -509,7 +509,7 @@ private fun BoxScope.InlineEditor(vm: AppViewModel, doc: OpenDocument, para: Par
     val paragraphLabel = stringResource(R.string.edit_paragraph_text)
     val fontPx = para.size * ppp
     val sp = with(density) { (fontPx / fontScale).toSp() }
-    val family = editorFamily(vm.edit.editFont[para.page to para.number] ?: para.font, rememberEditorFonts(vm, doc, para.page))
+    val family = rememberEditorFonts(vm, doc, para.page).family(vm.edit.editFont[para.page to para.number] ?: para.font, value.text)
     with(density) {
         Box(
             Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset { IntOffset(a.x.roundToInt(), a.y.roundToInt()) }.width((b.x - a.x).toDp()).heightIn(min = (b.y - a.y).toDp())

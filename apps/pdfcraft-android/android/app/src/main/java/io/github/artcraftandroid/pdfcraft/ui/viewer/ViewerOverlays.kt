@@ -364,7 +364,7 @@ fun BoxScope.TextEntry(vm: AppViewModel, prompt: TextPrompt, onDone: (TextPrompt
         androidx.compose.foundation.text.BasicTextField(
             value = text,
             onValueChange = { text = it; prompt.draft = it },
-            textStyle = androidx.compose.ui.text.TextStyle(color = color, fontSize = sizeSp, fontFamily = source?.let { editorFamily(it.font,fonts) },
+            textStyle = androidx.compose.ui.text.TextStyle(color = color, fontSize = sizeSp, fontFamily = source?.let { fonts.family(it.font, text) },
                 fontWeight = if(source?.bold==true) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
                 fontStyle = if(source?.italic==true) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
             cursorBrush = androidx.compose.ui.graphics.SolidColor(c.accent),

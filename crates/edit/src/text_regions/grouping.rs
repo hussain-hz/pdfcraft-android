@@ -407,7 +407,8 @@ fn group_layout(lines: &[TextLine], mixed: bool) -> Vec<TextBlock> {
                 block.editor_text.push(' ');
             }
             let start = block.editor_text.len();
-            block.editor_text.push_str(&line.text);
+            let logical = crate::bidi::logical_arabic(&line.text);
+            block.editor_text.push_str(&logical);
             block.spans.push((start..block.editor_text.len(), index));
             row_text.push_str(&line.text);
             block.invisible &= line.origin.state.render_mode == 3;
