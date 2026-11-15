@@ -362,3 +362,28 @@ mod tests {
         assert_eq!(to_visual(&to_logical(&to_visual(&long))), to_visual(&long));
     }
 }
+
+/// Some PDF ToUnicode maps encode pre-shaped Arabic letters. The editor needs logical letters
+/// so a newly inserted character can join its neighbors. Keep other scripts and symbols verbatim.
+pub(crate) fn logical_arabic(text: &str) -> std::borrow::Cow<'_, str> {
+    use unicode_normalization::UnicodeNormalization;
+
+    let presentation_letter = |c: char| matches!(u32::from(c), 0xfb50..=0xfdff | 0xfe80..=0xfefc);
+    if !text.chars().any(presentation_letter) {
+        return text.into();
+    }
+    let mut logical = String::with_capacity(text.len());
+    for c in text.chars() {
+        if presentation_letter(c) {
+            logical.extend(std::iter::once(c).nfkc());
+        } else {
+            logical.push(c);
+        }
+    }
+    logical.into()
+}
+
+#[test]
+fn unfolds_arabic_presentation_letters_and_ligatures_only() {
+    assert_eq!(logical_arabic("ﺗﺠﻤﺪ ﻻ ① ﬁ"), "تجمد لا ① ﬁ");
+}

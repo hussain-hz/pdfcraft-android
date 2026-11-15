@@ -33,7 +33,7 @@ class EngineToolsDeviceTest {
     @Before fun setUp() {
         session = MobileSession()
         dir = File(context.getExternalFilesDir(null), "engine-017-qa/${System.nanoTime()}").apply { mkdirs() }
-        assertEquals("0.18.1", engineVersion())
+        assertEquals("0.21.1", engineVersion())
     }
 
     @After fun closeDocuments() { session.documents().forEach { session.close(it, true) } }

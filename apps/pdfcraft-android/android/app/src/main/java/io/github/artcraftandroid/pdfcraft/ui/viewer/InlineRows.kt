@@ -119,12 +119,22 @@ fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: P
         val first = styles[index].firstOrNull() ?: row.runs.first()
         fun annotated(text: String, scale: Float) = buildAnnotatedString {
             append(text)
+            var pending: AnnotatedString.Range<SpanStyle>? = null
             for (run in styles[index]) if (run.start < run.end && run.end <= length) {
-                addStyle(SpanStyle(color = if (visible) Color(run.rgb[0], run.rgb[1], run.rgb[2]) else Color.Transparent,
-                    fontSize = with(density) { (run.size * ppp * scale).toSp() }, fontFamily = editorFamily(run.font, fonts),
+                val style = SpanStyle(color = if (visible) Color(run.rgb[0], run.rgb[1], run.rgb[2]) else Color.Transparent,
+                    fontSize = with(density) { (run.size * ppp * scale).toSp() }, fontFamily = fonts.family(run.font, text),
                     fontWeight = if (run.bold) FontWeight.Bold else FontWeight.Normal,
-                    fontStyle = if (run.italic) FontStyle.Italic else FontStyle.Normal), run.start, run.end)
+                    fontStyle = if (run.italic) FontStyle.Italic else FontStyle.Normal)
+                val previous = pending
+                // Keep adjacent PDF fragments with the same appearance in one shaping run.
+                pending = if (previous != null && previous.end == run.start && previous.item == style) {
+                    previous.copy(end = run.end)
+                } else {
+                    previous?.let { addStyle(it.item, it.start, it.end) }
+                    AnnotatedString.Range(style, run.start, run.end)
+                }
             }
+            pending?.let { addStyle(it.item, it.start, it.end) }
         }
         val naturalWidth = measurer.measure(annotated(current.text, 1f), softWrap = false).size.width
         val scale = ((width - 2f).coerceAtLeast(1f) / naturalWidth.coerceAtLeast(1)).coerceAtMost(1f)
@@ -141,7 +151,7 @@ fun BoxScope.PositionedInlineEditor(vm: AppViewModel, doc: OpenDocument, para: P
             singleLine = true,
             visualTransformation = transform,
             textStyle = TextStyle(fontSize = with(density) { (first.size * ppp * scale).toSp() },
-                fontFamily = editorFamily(first.font, fonts), color = if (visible) Color(first.rgb[0], first.rgb[1], first.rgb[2]) else Color.Transparent,
+                fontFamily = fonts.family(first.font, current.text), color = if (visible) Color(first.rgb[0], first.rgb[1], first.rgb[2]) else Color.Transparent,
                 textAlign = if (inlineRtl(current.text)) TextAlign.Right else TextAlign.Left,
                 textDirection = TextDirection.Content,
                 platformStyle = PlatformTextStyle(includeFontPadding = false)),

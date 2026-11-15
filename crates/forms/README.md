@@ -52,7 +52,10 @@ let cells: Vec<table::Cell> = grid.cells_for(names)?;      // "Table1_1", "Table
   keeps it: `/V` is stored as typed, the appearance draws `?` for those characters, the widget is
   marked with the first one (`pdfcraft_fonts::UNDRAWN_MARK`, cleared once all of it can be drawn)
   and the form sets `/NeedAppearances`, so other viewers draw the field from its value with fonts
-  that have them. Not in a document that declares PDF/A, which forbids that flag (`declares_pdfa`).
+  that have them. Not in a document that declares PDF/A, which forbids that flag (`declares_pdfa`:
+  the bytes `pdfaid:part` in XMP metadata each filter stage of which decodes within 8 MiB, the cap
+  preflight's Standards panel reads it with; preflight reads the identifier by its namespace, so a
+  packet that gives that namespace another prefix declares PDF/A there and not here).
   `undrawn_fields` lists the marked fields; the engine reports each edit that draws one, and
   flattening refuses to make that `?` permanent.
 - Displaying a form that leaves its appearances to the viewer (`/NeedAppearances`, or a text or
@@ -71,6 +74,12 @@ let cells: Vec<table::Cell> = grid.cells_for(names)?;      // "Table1_1", "Table
   original entry is preserved. Positive limits still apply.
 - Values are validated (options, `MaxLen`, single vs multi-select, NoToggleToOff, read-only) and a
   failed call changes nothing.
+- Native AF recognition stops at the first genuine matching function call. If its arguments
+  are unsupported, the complete action remains a custom script for the caller's `Scripts`
+  interpreter; a later literal call must not replace the original conditional validation.
+  Async for-of loop headers and bodies do not expose AF-looking text inside regex literals.
+- Moving choice fields preserves their own options rather than copying an ancestor's `/Opt`;
+  inherited check-box and radio-button export mappings remain intact.
 - `FieldProps::appearance` applies a `LookPatch` independently to each widget. `None` keeps
   a property; `Some(None)` removes a border/fill colour. Unchanged `/DA`, custom font resources,
   widget-specific `/DA` overrides, indirect `/MK` and `/BS` contents, dash arrays and unknown
